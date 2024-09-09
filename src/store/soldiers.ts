@@ -1,20 +1,12 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
+import { Soldier } from "../model/soldier";
 
 export const useSoldiersStore = defineStore("soldiers", () => {
   const soldiers = ref([
-    {
-      name: "משה אופניק",
-      role: "קצין",
-    },
-    {
-      name: "בוב ספוג",
-      role: "לוחם",
-    },
-    {
-      name: "ג׳ורג קונסטנזה",
-      role: "לוחם",
-    },
+    new Soldier("משה אופניק", "קצין"),
+    new Soldier("בוב ספוג", "לוחם"),
+    new Soldier("ג׳ורג קונסטנזה", "לוחם"),
   ]);
 
   return { soldiers };
