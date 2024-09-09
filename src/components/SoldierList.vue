@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import Listbox from 'primevue/listbox';
-import draggable from 'vuedraggable';
 import Card from "primevue/card";
+import { onMounted, ref } from "vue";
+import draggable from 'vuedraggable';
 import { useSoldiersStore } from "../store/soldiers";
 
-const { soldiers } = useSoldiersStore();
+const { soldiers, fetchSoldiers } = useSoldiersStore();
 const drag = ref(false);
+
+onMounted(() => {
+  fetchSoldiers();
+});
 
 </script>
 
@@ -25,5 +28,4 @@ const drag = ref(false);
   </draggable>
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>
