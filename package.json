@@ -10,8 +10,9 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@primevue/themes": "^4.0.7",
     "pinia": "^2.2.2",
-    "primevue": "^3.52.0",
+    "primevue": "^4.0.7",
     "vitest": "^2.0.5",
     "vue": "^3.4.21",
     "vuedraggable": "^4.1.0"
