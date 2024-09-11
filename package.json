@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest"
   },
   "dependencies": {
     "pinia": "^2.2.2",
     "primevue": "^3.52.0",
+    "vitest": "^2.0.5",
     "vue": "^3.4.21",
     "vuedraggable": "^4.1.0"
   },
