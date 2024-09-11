@@ -4,16 +4,16 @@ import { onMounted } from "vue";
 import { useSoldiersStore } from "../store/soldiers";
 import SoldierCard from "./SoldierCard.vue";
 
-const { soldiers, fetchSoldiers } = useSoldiersStore();
+const store = useSoldiersStore();
 
 onMounted(() => {
-  fetchSoldiers();
+  store.fetchSoldiers();
 });
 
 </script>
 
 <template>
-  <Listbox :options="soldiers" option-label="name" option-value="name">
+  <Listbox :options="store.soldiers" option-label="name" option-value="name">
     <template #option="{ option }">
       <SoldierCard :soldier="option" />
     </template>

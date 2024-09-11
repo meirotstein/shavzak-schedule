@@ -5,9 +5,9 @@ export class GAPIClient {
 
   async getSoldiers(): Promise<SoldierDto[]> {
     return Promise.resolve([
-      { name: "משה אופניק", role: "קצין" },
-      { name: "בוב ספוג", role: "לוחם" },
-      { name: "ג'ורג קונסטנזה", role: "לוחם" },
+      { id: '123', name: "משה אופניק", role: "קצין" },
+      { id: '456', name: "בוב ספוג", role: "לוחם" },
+      { id: '789', name: "ג'ורג קונסטנזה", role: "לוחם" },
     ]);
   }
 }

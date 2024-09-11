@@ -1,28 +1,32 @@
 <script setup lang="ts">
 import Card from "primevue/card";
 import { Soldier } from "../model/soldier";
+import { useSoldiersStore } from "../store/soldiers";
 import Draggable from "./dragndrop/Draggable.vue";
 
+const store = useSoldiersStore();
 
 const props = defineProps<{
   soldier: Soldier;
 }>();
 
 const emit = defineEmits<{
-  'drag-start': [soldier: Soldier, event: DragEvent]
-  'drag-end': [soldier: Soldier, event: DragEvent]
-  'drag-over': [soldier: Soldier, event: DragEvent]
+  'drag-start': [event: DragEvent, soldier: Soldier]
+  'drag-end': [event: DragEvent, soldier: Soldier]
+  'drag-over': [event: DragEvent, soldier: Soldier]
 }>()
 
 function dragOver(e: DragEvent) {
-  emit('drag-over', props.soldier, e);
+  emit('drag-over', e, props.soldier);
 }
 
 function dragStart(e: DragEvent) {
-  emit('drag-start', props.soldier, e);
+  store.setDraggedSoldier(props.soldier);
+  emit('drag-start', e, props.soldier);
 }
 function dragEnd(e: DragEvent) {
-  emit('drag-end', props.soldier, e);
+  store.setDraggedSoldier();
+  emit('drag-end', e, props.soldier);
 }
 
 </script>

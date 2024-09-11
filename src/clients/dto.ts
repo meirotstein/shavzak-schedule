@@ -1,1 +1,1 @@
-export type SoldierDto = { name: string; role: string };
+export type SoldierDto = { id: string; name: string; role: string };

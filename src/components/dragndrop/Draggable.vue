@@ -1,9 +1,10 @@
 <script setup lang="ts">
-  defineEmits<{
-    'drag-start': [event: DragEvent]
-    'drag-end': [event: DragEvent]
-    'drag-over': [event: DragEvent]
-  }>()
+const emit = defineEmits<{
+  'drag-start': [event: DragEvent]
+  'drag-end': [event: DragEvent]
+  'drag-over': [event: DragEvent]
+}>()
+
 </script>
 
 <template>
