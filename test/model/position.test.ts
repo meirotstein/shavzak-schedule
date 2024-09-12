@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { Shift } from "../../src/model/shift";
 import { SchedulerError } from "../../src/errors/scheduler-error";
-import { Position } from '../../src/model/position';
+import { Position } from "../../src/model/position";
 
 describe("Position model tests", () => {
   test("Position model initiation", () => {
@@ -14,12 +14,24 @@ describe("Position model tests", () => {
   test("Position model addShift - adding shift for all day, expecting validation to pass", () => {
     const position = new Position("123", "Patrol");
 
-    const shift1 = new Shift("midnight_to_4am", "00:00", "04:00", 1);
-    const shift2 = new Shift("4am_to_8am", "04:00", "08:00", 1);
-    const shift3 = new Shift("8am_to_12pm", "08:00", "12:00", 1);
-    const shift4 = new Shift("12pm_to_4pm", "12:00", "16:00", 1);
-    const shift5 = new Shift("4pm_to_8pm", "16:00", "20:00", 1);
-    const shift6 = new Shift("8pm_to_midnight", "20:00", "00:00", 1);
+    const shift1 = new Shift("midnight_to_4am", "00:00", "04:00", [
+      { role: "trooper" },
+    ]);
+    const shift2 = new Shift("4am_to_8am", "04:00", "08:00", [
+      { role: "trooper" },
+    ]);
+    const shift3 = new Shift("8am_to_12pm", "08:00", "12:00", [
+      { role: "trooper" },
+    ]);
+    const shift4 = new Shift("12pm_to_4pm", "12:00", "16:00", [
+      { role: "trooper" },
+    ]);
+    const shift5 = new Shift("4pm_to_8pm", "16:00", "20:00", [
+      { role: "trooper" },
+    ]);
+    const shift6 = new Shift("8pm_to_midnight", "20:00", "00:00", [
+      { role: "trooper" },
+    ]);
 
     position.addShift(shift1);
     position.addShift(shift2);
@@ -40,11 +52,14 @@ describe("Position model tests", () => {
   test("Position model addShift - adding shift overlapping shifts, expecting validation to fail", () => {
     const position = new Position("123", "Patrol");
 
-    const shift1 = new Shift("midnight_to_4am", "00:00", "04:00", 1);
-    const shift2 = new Shift("2am_to_8am", "02:00", "08:00", 1); 
+    const shift1 = new Shift("midnight_to_4am", "00:00", "04:00", [
+      { role: "trooper" },
+    ]);
+    const shift2 = new Shift("2am_to_8am", "02:00", "08:00", [
+      { role: "trooper" },
+    ]);
 
     position.addShift(shift1);
     expect(() => position.addShift(shift2)).toThrowError(SchedulerError);
   });
-
 });
