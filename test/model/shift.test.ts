@@ -5,8 +5,8 @@ import { SchedulerError } from "../../src/errors/scheduler-error";
 describe("Shift model tests", () => {
   test("Shift model initiation", () => {
     const shift = new Shift("123", "16:00", "18:00", [
-      { role: "trooper" },
-      { role: "officer" },
+      { roles: ["trooper"] },
+      { roles: ["officer"] },
     ]);
 
     expect(shift.shiftId).toBe("123");
@@ -17,8 +17,8 @@ describe("Shift model tests", () => {
 
   test("Shift model addSoldier", () => {
     const shift = new Shift("123", "16:00", "18:00", [
-      { role: "trooper" },
-      { role: "officer" },
+      { roles: ["trooper"] },
+      { roles: ["officer"] },
     ]);
     const soldier1 = { id: "123", name: "mose ufnik", role: "trooper" };
     const soldier2 = { id: "456", name: "mose ufnik", role: "officer" };
@@ -33,8 +33,8 @@ describe("Shift model tests", () => {
 
   test("Shift model addSoldier add by index", () => {
     const shift = new Shift("123", "16:00", "18:00", [
-      { role: "trooper" },
-      { role: "officer" },
+      { roles: ["trooper"] },
+      { roles: ["officer"] },
     ]);
     const soldier1 = { id: "123", name: "mose ufnik", role: "officer" };
 
@@ -47,9 +47,9 @@ describe("Shift model tests", () => {
 
   test("Shift model addSoldier replace by index", () => {
     const shift = new Shift("123", "16:00", "18:00", [
-      { role: "trooper" },
-      { role: "trooper" },
-      { role: "officer" },
+      { roles: ["trooper"] },
+      { roles: ["trooper"] },
+      { roles: ["officer"] },
     ]);
     const soldier1 = { id: "123", name: "mose ufnik", role: "trooper" };
     const soldier2 = { id: "456", name: "mose ufnik", role: "trooper" };
@@ -66,8 +66,8 @@ describe("Shift model tests", () => {
 
   test("Shift model addSoldier error: adding more than expected", () => {
     const shift = new Shift("123", "16:00", "18:00", [
-      { role: "trooper" },
-      { role: "trooper" },
+      { roles: ["trooper"] },
+      { roles: ["trooper"] },
     ]);
     const soldier1 = { id: "123", name: "mose ufnik", role: "trooper" };
     const soldier2 = { id: "456", name: "mose ufnik", role: "trooper" };
@@ -80,8 +80,8 @@ describe("Shift model tests", () => {
 
   test("Shift model addSoldier error: using exceeds index", () => {
     const shift = new Shift("123", "16:00", "18:00", [
-      { role: "trooper" },
-      { role: "trooper" },
+      { roles: ["trooper"] },
+      { roles: ["trooper"] },
     ]);
     const soldier1 = { id: "123", name: "mose ufnik", role: "officer" };
 
@@ -90,8 +90,8 @@ describe("Shift model tests", () => {
 
   test("Shift model addSoldier error: unexpected soldier role", () => {
     const shift = new Shift("123", "16:00", "18:00", [
-      { role: "trooper" },
-      { role: "trooper" },
+      { roles: ["trooper"] },
+      { roles: ["trooper"] },
     ]);
     const soldier1 = { id: "123", name: "mose ufnik", role: "officer" };
 
