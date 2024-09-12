@@ -28,9 +28,23 @@ describe("Position model tests", () => {
     position.addShift(shift5);
     position.addShift(shift6);
 
-    // expect(position.shifts.length).toBe(2);
+    expect(position.shifts.length).toBe(6);
     expect(position.shifts[0]).toBe(shift1);
     expect(position.shifts[1]).toBe(shift2);
+    expect(position.shifts[2]).toBe(shift3);
+    expect(position.shifts[3]).toBe(shift4);
+    expect(position.shifts[4]).toBe(shift5);
+    expect(position.shifts[5]).toBe(shift6);
+  });
+
+  test("Position model addShift - adding shift overlapping shifts, expecting validation to fail", () => {
+    const position = new Position("123", "Patrol");
+
+    const shift1 = new Shift("midnight_to_4am", "00:00", "04:00", 1);
+    const shift2 = new Shift("2am_to_8am", "02:00", "08:00", 1); 
+
+    position.addShift(shift1);
+    expect(() => position.addShift(shift2)).toThrowError(SchedulerError);
   });
 
 });
