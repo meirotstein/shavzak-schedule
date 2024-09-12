@@ -1,4 +1,4 @@
-export class Soldier {
+export class SoldierModel {
   id: string;
   name: string;
   role: string;

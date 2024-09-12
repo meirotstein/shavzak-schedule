@@ -1,17 +1,17 @@
 import { SchedulerError } from "../errors/scheduler-error";
-import { Shift } from "./shift";
+import { ShiftModel } from "./shift";
 
-export class Position {
-  private _shifts: Shift[] = [];
+export class PositionModel {
+  private _shifts: ShiftModel[] = [];
 
   constructor(private _positionId: string, private _positionName: string) {}
 
-  addShift(shift: Shift) {
+  addShift(shift: ShiftModel) {
     this.validateShifts([...this._shifts, shift]);
     this._shifts.push(shift);
   }
 
-  private validateShifts(shifts: Shift[]) {
+  private validateShifts(shifts: ShiftModel[]) {
     const shiftIds = shifts.map((shift) => shift.shiftId);
     const dailyValidation: Array<boolean> = new Array(96).fill(false);
     const uniqueShiftIds = new Set(shiftIds);
@@ -57,7 +57,7 @@ export class Position {
     return this._positionName;
   }
 
-  get shifts(): Shift[] {
+  get shifts(): ShiftModel[] {
     return this._shifts;
   }
 }

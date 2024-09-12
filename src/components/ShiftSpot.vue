@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { Soldier } from "../model/soldier";
+import { ref } from "vue";
+import { SoldierModel } from "../model/soldier";
 import { useSoldiersStore } from "../store/soldiers";
 import DropZone from "./dragndrop/DropZone.vue";
 import SoldierCard from "./SoldierCard.vue";
@@ -7,29 +8,41 @@ import SoldierCard from "./SoldierCard.vue";
 const store = useSoldiersStore();
 
 const props = defineProps<{
-  soldier?: Soldier;
+  spotIndex: number;
+  soldier?: SoldierModel;
 }>();
 
+const overSoldierId = ref<string | undefined>();
+
 const emit = defineEmits<{
-  'drag-enter': [event: DragEvent, soldier?: Soldier]
-  'drag-leave': [event: DragEvent, soldier?: Soldier]
+  'drag-enter': [spotIndex: number, soldierId: string | undefined]
+  'drag-leave': [spotIndex: number, soldierId: string | undefined]
+  'drop': [spotIndex: number, soldierId: string]
 }>()
 
-function dragEnter(e: DragEvent) {
-  emit('drag-enter', e, store.draggedSoldier);
+function dragEnter() {
+  overSoldierId.value = store.draggedSoldier?.id;
+  console.log('enter on spot', overSoldierId.value);
+  emit('drag-enter', props.spotIndex, overSoldierId.value);
 }
 
-function dragLeave(e: DragEvent) {
-  emit('drag-leave', e, store.draggedSoldier);
+function dragLeave() {
+  console.log('leave on spot', overSoldierId.value);
+  emit('drag-leave', props.spotIndex, overSoldierId.value);
+  overSoldierId.value = undefined;
+}
+
+function drop() {
+  console.log('dropped on spot', overSoldierId.value);
+  emit('drop', props.spotIndex, overSoldierId.value!);
 }
 
 </script>
 
 <template>
-  <DropZone @drag-enter="dragEnter" @drag-leave="dragLeave">
+  <DropZone @drag-enter="dragEnter" @drag-leave="dragLeave" @drop="drop">
     <SoldierCard v-if="props.soldier" :soldier="props.soldier" />
     <span v-else>[+]</span>
-    {{ store.draggedSoldier ?? 'nada' }}
   </DropZone>
 </template>
 

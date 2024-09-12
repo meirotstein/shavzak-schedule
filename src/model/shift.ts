@@ -1,15 +1,11 @@
 import { SchedulerError } from "../errors/scheduler-error";
-import { Soldier } from "./soldier";
+import { ShiftHours } from "../types/shift-hours";
+import { SoldierModel } from "./soldier";
 
-type ShiftHours = `${0 | 1 | 2}${0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}:${
-  | "00"
-  | 15
-  | 30
-  | 45}`; // e.g. "16:00"
 type AssignmentDefinition = { roles: string[] };
 
-export class Shift {
-  private _soldiers: Soldier[] = [];
+export class ShiftModel {
+  private _soldiers: SoldierModel[] = [];
 
   constructor(
     private _shiftId: string,
@@ -34,11 +30,11 @@ export class Shift {
     return this._assignmentDefs;
   }
 
-  get soldiers(): Soldier[] {
+  get soldiers(): SoldierModel[] {
     return this._soldiers;
   }
 
-  addSoldier(soldier: Soldier, index?: number) {
+  addSoldier(soldier: SoldierModel, index?: number) {
     if (typeof index === "undefined") {
       index = this._soldiers.length;
     }

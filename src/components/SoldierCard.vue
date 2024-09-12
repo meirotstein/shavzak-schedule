@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import Card from "primevue/card";
-import { Soldier } from "../model/soldier";
+import { SoldierModel } from "../model/soldier";
 import { useSoldiersStore } from "../store/soldiers";
 import Draggable from "./dragndrop/Draggable.vue";
 
 const store = useSoldiersStore();
 
 const props = defineProps<{
-  soldier: Soldier;
+  soldier: SoldierModel;
 }>();
 
 const emit = defineEmits<{
-  'drag-start': [event: DragEvent, soldier: Soldier]
-  'drag-end': [event: DragEvent, soldier: Soldier]
-  'drag-over': [event: DragEvent, soldier: Soldier]
+  'drag-start': [event: DragEvent, soldier: SoldierModel]
+  'drag-end': [event: DragEvent, soldier: SoldierModel]
+  'drag-over': [event: DragEvent, soldier: SoldierModel]
 }>()
 
 function dragOver(e: DragEvent) {
@@ -32,7 +32,7 @@ function dragEnd(e: DragEvent) {
 </script>
 
 <template>
-  <Draggable @drag-over="dragOver" @drag-end="dragEnd" @drag-start="dragStart">
+  <Draggable @drag-over="dragOver" @drag-end="dragEnd" @drag-start="dragStart" @drop="() => console.log('dropped')">
     <Card>
       <template #title>{{ props.soldier.name }}</template>
       <template #content #item="{ option }">

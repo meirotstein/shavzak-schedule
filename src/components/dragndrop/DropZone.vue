@@ -2,11 +2,31 @@
 const emit = defineEmits<{
   'drag-enter': [event: DragEvent]
   'drag-leave': [event: DragEvent]
+  'drop': [event: DragEvent]
 }>()
+
+function drop(e: DragEvent) {
+  e.preventDefault();
+  emit('drop', e);
+}
+
+function dragEnter(e: DragEvent) {
+  e.preventDefault();
+  emit('drag-enter', e);
+}
+
+function dragLeave(e: DragEvent) {
+  e.preventDefault();
+  emit('drag-leave', e);
+}
+
+function dragOver(e: DragEvent) {
+  e.preventDefault();
+}
 </script>
 
 <template>
-  <div class="dropzone" @dragenter="(e) => $emit('drag-enter', e)" @dragleave="(e) => $emit('drag-leave', e)">
+  <div class="dropzone" @drop="drop" @dragenter="dragEnter" @dragleave="dragLeave" @dragover="dragOver">
     <slot>
       Drop here!
     </slot>

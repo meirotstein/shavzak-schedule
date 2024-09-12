@@ -1,10 +1,10 @@
 import { describe, expect, test } from "vitest";
-import { Shift } from "../../src/model/shift";
+import { ShiftModel } from "../../src/model/shift";
 import { SchedulerError } from "../../src/errors/scheduler-error";
 
 describe("Shift model tests", () => {
   test("Shift model initiation", () => {
-    const shift = new Shift("123", "16:00", "18:00", [
+    const shift = new ShiftModel("123", "16:00", "18:00", [
       { roles: ["trooper"] },
       { roles: ["officer"] },
     ]);
@@ -16,7 +16,7 @@ describe("Shift model tests", () => {
   });
 
   test("Shift model addSoldier", () => {
-    const shift = new Shift("123", "16:00", "18:00", [
+    const shift = new ShiftModel("123", "16:00", "18:00", [
       { roles: ["trooper"] },
       { roles: ["officer"] },
     ]);
@@ -32,7 +32,7 @@ describe("Shift model tests", () => {
   });
 
   test("Shift model addSoldier add by index", () => {
-    const shift = new Shift("123", "16:00", "18:00", [
+    const shift = new ShiftModel("123", "16:00", "18:00", [
       { roles: ["trooper"] },
       { roles: ["officer"] },
     ]);
@@ -46,7 +46,7 @@ describe("Shift model tests", () => {
   });
 
   test("Shift model addSoldier replace by index", () => {
-    const shift = new Shift("123", "16:00", "18:00", [
+    const shift = new ShiftModel("123", "16:00", "18:00", [
       { roles: ["trooper"] },
       { roles: ["trooper"] },
       { roles: ["officer"] },
@@ -65,7 +65,7 @@ describe("Shift model tests", () => {
   });
 
   test("Shift model addSoldier error: adding more than expected", () => {
-    const shift = new Shift("123", "16:00", "18:00", [
+    const shift = new ShiftModel("123", "16:00", "18:00", [
       { roles: ["trooper"] },
       { roles: ["trooper"] },
     ]);
@@ -79,7 +79,7 @@ describe("Shift model tests", () => {
   });
 
   test("Shift model addSoldier error: using exceeds index", () => {
-    const shift = new Shift("123", "16:00", "18:00", [
+    const shift = new ShiftModel("123", "16:00", "18:00", [
       { roles: ["trooper"] },
       { roles: ["trooper"] },
     ]);
@@ -89,7 +89,7 @@ describe("Shift model tests", () => {
   });
 
   test("Shift model addSoldier error: unexpected soldier role", () => {
-    const shift = new Shift("123", "16:00", "18:00", [
+    const shift = new ShiftModel("123", "16:00", "18:00", [
       { roles: ["trooper"] },
       { roles: ["trooper"] },
     ]);

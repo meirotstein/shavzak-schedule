@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import ShiftSpot from './components/ShiftSpot.vue';
+import Position from './components/Position.vue';
 import SoldierList from './components/SoldierList.vue';
 </script>
 
 <template>
   <SoldierList />
-  <ShiftSpot />
+  <Position />
 </template>
 
 <style scoped></style>
