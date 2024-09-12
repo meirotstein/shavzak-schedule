@@ -33,7 +33,7 @@ function dragEnd(e: DragEvent) {
 
 <template>
   <Draggable @drag-over="dragOver" @drag-end="dragEnd" @drag-start="dragStart">
-    <Card class="cursor-move" draggable="true">
+    <Card>
       <template #title>{{ props.soldier.name }}</template>
       <template #content #item="{ option }">
         <p class="m-0">

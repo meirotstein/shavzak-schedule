@@ -6,7 +6,7 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div @dragenter="(e) => $emit('drag-enter', e)" @dragleave="(e) => $emit('drag-leave', e)">
+  <div class="dropzone" @dragenter="(e) => $emit('drag-enter', e)" @dragleave="(e) => $emit('drag-leave', e)">
     <slot>
       Drop here!
     </slot>
