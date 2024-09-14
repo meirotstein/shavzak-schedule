@@ -1,13 +1,13 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import { GAPIClient } from "../clients/gapi-client";
-import { SoldierModel } from "../model/soldier";
+import { ISoldier, SoldierModel } from "../model/soldier";
 
 export const useSoldiersStore = defineStore("soldiers", () => {
-  const soldiers = ref<SoldierModel[]>([]);
-  const draggedSoldier = ref<SoldierModel | undefined>();
+  const soldiers = ref<ISoldier[]>([]);
+  const draggedSoldier = ref<ISoldier | undefined>();
 
-  function setDraggedSoldier(soldier?: SoldierModel) {
+  function setDraggedSoldier(soldier?: ISoldier) {
     draggedSoldier.value = soldier;
   }
 
@@ -15,13 +15,21 @@ export const useSoldiersStore = defineStore("soldiers", () => {
     const gapi = new GAPIClient();
     const soldiersData = await gapi.getSoldiers();
     soldiersData.forEach((soldier) =>
-      soldiers.value.push(new SoldierModel(soldier.id, soldier.name, soldier.role))
+      soldiers.value.push(
+        new SoldierModel(soldier.id, soldier.name, soldier.role)
+      )
     );
   }
 
-  function findSoldierById(id: string): SoldierModel | undefined {
+  function findSoldierById(id: string): ISoldier | undefined {
     return soldiers.value.find((soldier) => soldier.id === id);
   }
 
-  return { soldiers, draggedSoldier, setDraggedSoldier, fetchSoldiers, findSoldierById };
+  return {
+    soldiers,
+    draggedSoldier,
+    setDraggedSoldier,
+    fetchSoldiers,
+    findSoldierById,
+  };
 });

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { SoldierModel } from "../model/soldier";
+import { ISoldier } from "../model/soldier";
 import { useSoldiersStore } from "../store/soldiers";
 import DropZone from "./dragndrop/DropZone.vue";
 import SoldierCard from "./SoldierCard.vue";
@@ -9,7 +9,7 @@ const store = useSoldiersStore();
 
 const props = defineProps<{
   spotIndex: number;
-  soldier?: SoldierModel;
+  soldier?: ISoldier;
 }>();
 
 const overSoldierId = ref<string | undefined>();

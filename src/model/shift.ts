@@ -1,17 +1,26 @@
 import { SchedulerError } from "../errors/scheduler-error";
 import { ShiftHours } from "../types/shift-hours";
-import { SoldierModel } from "./soldier";
+import { ISoldier } from "./soldier";
 
 type AssignmentDefinition = { roles: string[] };
 
-export class ShiftModel {
-  private _soldiers: SoldierModel[] = [];
+export interface IShift {
+  shiftId: string;
+  startTime: ShiftHours;
+  endTime: ShiftHours;
+  assignmentDefinitions: AssignmentDefinition[];
+  soldiers: ISoldier[];
+  addSoldier(soldier: ISoldier, index?: number): void;
+}
+
+export class ShiftModel implements IShift {
+  private _soldiers: ISoldier[] = [];
 
   constructor(
     private _shiftId: string,
     private _startTime: ShiftHours,
     private _endTime: ShiftHours,
-    private _assignmentDefs: AssignmentDefinition[]
+    private _assignmentDefs: AssignmentDefinition[] // assignment definitions indexed by soldier index
   ) {}
 
   get shiftId(): string {
@@ -30,11 +39,11 @@ export class ShiftModel {
     return this._assignmentDefs;
   }
 
-  get soldiers(): SoldierModel[] {
+  get soldiers(): ISoldier[] {
     return this._soldiers;
   }
 
-  addSoldier(soldier: SoldierModel, index?: number) {
+  addSoldier(soldier: ISoldier, index?: number): void {
     if (typeof index === "undefined") {
       index = this._soldiers.length;
     }

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import Listbox from "primevue/listbox";
-import { PositionModel } from "../model/position";
+import { IPosition } from "../model/position";
 import Shift from "./Shift.vue";
 
 const props = defineProps<{
-  position: PositionModel;
+  position: IPosition;
 }>();
 
 const emit = defineEmits<{

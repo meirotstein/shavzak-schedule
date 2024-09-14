@@ -1,17 +1,24 @@
 import { SchedulerError } from "../errors/scheduler-error";
-import { ShiftModel } from "./shift";
+import { IShift } from "./shift";
 
-export class PositionModel {
-  private _shifts: ShiftModel[] = [];
+export interface IPosition {
+  positionId: string;
+  positionName: string;
+  shifts: IShift[];
+  addShift(shift: IShift): void;
+}
+
+export class PositionModel implements IPosition {
+  private _shifts: IShift[] = [];
 
   constructor(private _positionId: string, private _positionName: string) {}
 
-  addShift(shift: ShiftModel) {
+  addShift(shift: IShift): void {
     this.validateShifts([...this._shifts, shift]);
     this._shifts.push(shift);
   }
 
-  private validateShifts(shifts: ShiftModel[]) {
+  private validateShifts(shifts: IShift[]) {
     const shiftIds = shifts.map((shift) => shift.shiftId);
     const dailyValidation: Array<boolean> = new Array(96).fill(false);
     const uniqueShiftIds = new Set(shiftIds);
@@ -57,7 +64,7 @@ export class PositionModel {
     return this._positionName;
   }
 
-  get shifts(): ShiftModel[] {
+  get shifts(): IShift[] {
     return this._shifts;
   }
 }

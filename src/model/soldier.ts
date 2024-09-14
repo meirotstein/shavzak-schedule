@@ -1,4 +1,10 @@
-export class SoldierModel {
+export interface ISoldier {
+  id: string;
+  name: string;
+  role: string;
+}
+
+export class SoldierModel implements ISoldier {
   id: string;
   name: string;
   role: string;

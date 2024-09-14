@@ -2,13 +2,13 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import { GAPIClient } from "../clients/gapi-client";
 import { SchedulerError } from "../errors/scheduler-error";
-import { PositionModel } from "../model/position";
+import { IPosition, PositionModel } from "../model/position";
 import { ShiftModel } from "../model/shift";
 import { useSoldiersStore } from "./soldiers";
 
 export const usePositionsStore = defineStore("positions", () => {
   const soldiers = useSoldiersStore();
-  const positions = ref<PositionModel[]>([]);
+  const positions = ref<IPosition[]>([]);
 
   async function fetchPositions() {
     const gapi = new GAPIClient();

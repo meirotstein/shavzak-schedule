@@ -4,8 +4,10 @@ import SoldierList from './components/SoldierList.vue';
 </script>
 
 <template>
-  <SoldierList />
-  <PositionList />
+  <div class="grid grid-cols-2">
+    <SoldierList />
+    <PositionList />
+  </div>
 </template>
 
 <style scoped></style>
