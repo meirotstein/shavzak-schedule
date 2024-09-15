@@ -17,7 +17,9 @@ function dragEnter(e: DragEvent) {
 
 function dragLeave(e: DragEvent) {
   e.preventDefault();
-  emit('drag-leave', e);
+  if (e.currentTarget && e.target && !Array.from((e.currentTarget as HTMLElement).childNodes).includes(e.target as HTMLElement)) {
+    emit('drag-leave', e);
+  }
 }
 
 function dragOver(e: DragEvent) {
