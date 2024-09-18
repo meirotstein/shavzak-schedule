@@ -13,13 +13,13 @@ const emit = defineEmits<{
   'drop': [shiftId: string, spotIndex: number, soldierId: string]
 }>()
 
-function dragEnter(spotIndex: number, soldierId: string) {
-  emit('drag-enter', props.shift.shiftId, spotIndex, soldierId);
-}
+// function dragEnter(spotIndex: number, soldierId: string) {
+//   emit('drag-enter', props.shift.shiftId, spotIndex, soldierId);
+// }
 
-function dragLeave(spotIndex: number, soldierId: string) {
-  emit('drag-leave', props.shift.shiftId, spotIndex, soldierId);
-}
+// function dragLeave(spotIndex: number, soldierId: string) {
+//   emit('drag-leave', props.shift.shiftId, spotIndex, soldierId);
+// }
 
 function drop(spotIndex: number, soldierId: string) {
   emit('drop', props.shift.shiftId, spotIndex, soldierId);
@@ -29,7 +29,7 @@ function drop(spotIndex: number, soldierId: string) {
 
 <template>
   <Listbox :options="shift.assignmentDefinitions" option-label="name" option-value="name">
-    <template #option="{ option, index }">
+    <template #option="{ /* option, */ index }">
       <ShiftSpot :spotIndex="index" :soldier="shift.soldiers[index]" @drop="drop" />
     </template>
   </Listbox>
