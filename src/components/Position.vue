@@ -23,7 +23,6 @@ function drop(shiftId: string, spotIndex: number, soldierId: string) {
   <h2>{{ props.position?.positionName }}</h2>
   <Listbox :options="props.position?.shifts" option-label="name" option-value="name">
     <template #option="{ option }">
-      <h1>{{ option.name }}</h1>
       <Shift :shift="option" @drop="drop" />
     </template>
   </Listbox>

@@ -42,8 +42,19 @@ function drop() {
 <template>
   <DropZone @drag-enter="dragEnter" @drag-leave="dragLeave" @drop="drop">
     <SoldierCard v-if="props.soldier" :soldier="props.soldier" />
-    <span v-else>[+]</span>
+    <div class="spot-empty" v-else>
+      <span>[+]</span>
+    </div>
   </DropZone>
 </template>
 
-<style scoped></style>
+<style scoped>
+.spot-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  padding: 1rem;
+  border: 1px dashed #ccc;
+}
+</style>
