@@ -33,10 +33,13 @@ function dragEnd(e: DragEvent) {
 
 <template>
   <Draggable @drag-over="dragOver" @drag-end="dragEnd" @drag-start="dragStart" @drop="() => console.log('dropped')">
-    <Card>
-      <template #title>{{ props.soldier.name }}</template>
+    <Card class="soldier-card">
+      <!-- <template #title>{{ props.soldier.name }}</template> -->
       <template #content #item="{ option }">
-        <p class="m-0">
+        <p class="m-1">
+          {{ props.soldier.name }}
+        </p>
+        <p class="m-1">
           {{ props.soldier.role }}
         </p>
       </template>
@@ -44,4 +47,8 @@ function dragEnd(e: DragEvent) {
   </Draggable>
 </template>
 
-<style scoped></style>
+<style scoped>
+.soldier-card {
+  border-radius: 2px;
+}
+</style>

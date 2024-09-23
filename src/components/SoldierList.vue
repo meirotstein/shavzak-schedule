@@ -13,11 +13,15 @@ onMounted(() => {
 </script>
 
 <template>
-  <Listbox :options="store.soldiers" option-label="name" option-value="name">
+  <Listbox :options="store.soldiers" option-label="name" option-value="name" class="soldier-list">
     <template #option="{ option }">
       <SoldierCard :soldier="option" />
     </template>
   </Listbox>
 </template>
 
-<style scoped></style>
+<style scoped>
+.soldier-list {
+  width: 14rem;
+}
+</style>

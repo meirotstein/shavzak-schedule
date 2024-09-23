@@ -1,14 +1,13 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
+import { ShiftDto } from "../clients/dto";
 import { GAPIClient } from "../clients/gapi-client";
 import { SchedulerError } from "../errors/scheduler-error";
 import { IPosition, PositionModel } from "../model/position";
 import { ShiftModel } from "../model/shift";
-import { useSoldiersStore } from "./soldiers";
 import { ShiftHours } from "../types/shift-hours";
-import { ShiftDto } from "../clients/dto";
-
-const dayStart: ShiftHours = "14:00"; // TODO: fetch from config store
+import { useSoldiersStore } from "./soldiers";
+import { dayStart } from "../app-config";
 
 const timeToMinutes = (time: ShiftHours): number => {
   const [hours, minutes] = time.split(":").map(Number);

@@ -28,7 +28,7 @@ function drop(spotIndex: number, soldierId: string) {
 </script>
 
 <template>
-  <Listbox :options="shift.assignmentDefinitions" option-label="name" option-value="name">
+  <Listbox :options="shift.assignmentDefinitions" option-label="name" option-value="name" class="shift-spot">
     <template #option="{ /* option, */ index }">
       <ShiftSpot :spotIndex="index" :soldier="shift.soldiers[index]" @drop="drop" />
     </template>

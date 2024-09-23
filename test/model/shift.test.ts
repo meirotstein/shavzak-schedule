@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { ShiftModel } from "../../src/model/shift";
+import { ShiftModel, UnAssignableShift } from "../../src/model/shift";
 import { SchedulerError } from "../../src/errors/scheduler-error";
 
 describe("Shift model tests", () => {
@@ -13,6 +13,7 @@ describe("Shift model tests", () => {
     expect(shift.startTime).toBe("16:00");
     expect(shift.endTime).toBe("18:00");
     expect(shift.assignmentDefinitions.length).toBe(2);
+    expect(shift.isAssignable).toBe(true);
   });
 
   test("Shift model addSoldier", () => {
@@ -62,6 +63,12 @@ describe("Shift model tests", () => {
     expect(shift.soldiers.length).toBe(2);
     expect(shift.soldiers[0]).toBe(soldier1);
     expect(shift.soldiers[1]).toBe(soldier3);
+  });
+
+  test("Shift model - non assignable shift", () => {
+    const shift = new UnAssignableShift("123", "16:00", "18:00");
+
+    expect(shift.isAssignable).toBe(false);
   });
 
   test("Shift model addSoldier error: adding more than expected", () => {

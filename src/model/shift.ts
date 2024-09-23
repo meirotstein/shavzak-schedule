@@ -20,7 +20,7 @@ export class ShiftModel implements IShift {
     private _shiftId: string,
     private _startTime: ShiftHours,
     private _endTime: ShiftHours,
-    private _assignmentDefs: AssignmentDefinition[] // assignment definitions indexed by soldier index
+    private _assignmentDefs: AssignmentDefinition[] // assignment definitions indexed by soldier index, // no assignment definition means that the time slot is not required
   ) {}
 
   get shiftId(): string {
@@ -41,6 +41,10 @@ export class ShiftModel implements IShift {
 
   get soldiers(): ISoldier[] {
     return this._soldiers;
+  }
+
+  get isAssignable(): boolean {
+    return !!this._assignmentDefs.length;
   }
 
   addSoldier(soldier: ISoldier, index?: number): void {
@@ -65,5 +69,15 @@ export class ShiftModel implements IShift {
       assignmentDefinitions: this.assignmentDefinitions,
       index,
     });
+  }
+}
+
+export class UnAssignableShift extends ShiftModel {
+  constructor(_shiftId: string, _startTime: ShiftHours, _endTime: ShiftHours) {
+    super(_shiftId, _startTime, _endTime, []);
+  }
+
+  addSoldier(soldier: ISoldier, index?: number): void {
+    throw new SchedulerError("Cannot add soldier to unassignable shift");
   }
 }
