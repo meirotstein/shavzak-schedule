@@ -4,7 +4,7 @@ import SoldierList from './components/SoldierList.vue';
 </script>
 
 <template>
-  <div class="grid grid-cols-2">
+  <div class="flex">
     <SoldierList />
     <PositionList />
   </div>

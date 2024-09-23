@@ -71,3 +71,11 @@
 
   }
 }
+
+.p-card {
+  border-radius: 1px;
+}
+
+.p-card .p-card-body {
+  padding: 4px;
+}
