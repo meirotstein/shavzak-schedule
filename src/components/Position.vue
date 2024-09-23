@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import Listbox from "primevue/listbox";
-import { IPosition } from "../model/position";
-import Shift from "./Shift.vue";
-import { IShift, ShiftModel, UnAssignableShift } from "../model/shift";
 import { dayStart } from "../app-config";
+import { IPosition } from "../model/position";
+import { IShift, UnAssignableShift } from "../model/shift";
+import Shift from "./Shift.vue";
 
 const props = defineProps<{
   position: IPosition;

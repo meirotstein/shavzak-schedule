@@ -77,7 +77,7 @@ export class UnAssignableShift extends ShiftModel {
     super(_shiftId, _startTime, _endTime, []);
   }
 
-  addSoldier(soldier: ISoldier, index?: number): void {
+  addSoldier(): void {
     throw new SchedulerError("Cannot add soldier to unassignable shift");
   }
 }
