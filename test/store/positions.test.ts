@@ -50,6 +50,43 @@ const testPositionsData = [
     ],
   },
 ];
+
+const testPositionsDataUnsorted = [
+  {
+    id: "1",
+    name: "patrol",
+    shifts: [
+      {
+        id: "4",
+        startTime: "02:00",
+        endTime: "04:00",
+        assignmentDefs: [{ roles: ["officer"] }],
+      },
+      {
+        id: "1",
+        startTime: "14:00",
+        endTime: "18:00",
+        assignmentDefs: [{ roles: ["officer"] }],
+        soldierIds: ["123"],
+      },
+      {
+        id: "3",
+        startTime: "00:00",
+        endTime: "02:00",
+        assignmentDefs: [{ roles: ["officer"] }],
+        soldierIds: ["123"],
+      },
+      {
+        id: "2",
+        startTime: "20:15",
+        endTime: "21:45",
+        assignmentDefs: [{ roles: ["officer"] }],
+        soldierIds: ["123"],
+      },
+    ],
+  },
+];
+
 describe("positions store tests", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
@@ -98,6 +135,36 @@ describe("positions store tests", () => {
     expect(store.positions[1].shifts[1].assignmentDefinitions).toEqual([
       { roles: ["officer"] },
     ]);
+  });
+
+  test("fetchPositions from backend unsorted - expected to sort starting from the day start hour (14:00)", async () => {
+    vi.spyOn(GAPIClient.prototype, "getPositions").mockResolvedValue(
+      testPositionsDataUnsorted as any
+    );
+
+    const store = usePositionsStore();
+    await store.fetchPositions();
+
+    expect(store.positions.length).toBe(1);
+
+    expect(store.positions[0]).toBeInstanceOf(PositionModel);
+    
+    expect(store.positions[0].shifts[0].shiftId).toBe("1");
+    expect(store.positions[0].shifts[0].startTime).toBe("14:00");
+    expect(store.positions[0].shifts[0].endTime).toBe("18:00");
+    
+    expect(store.positions[0].shifts[1].shiftId).toBe("2");
+    expect(store.positions[0].shifts[1].startTime).toBe("20:15");
+    expect(store.positions[0].shifts[1].endTime).toBe("21:45");
+    
+    expect(store.positions[0].shifts[2].shiftId).toBe("3");
+    expect(store.positions[0].shifts[2].startTime).toBe("00:00");
+    expect(store.positions[0].shifts[2].endTime).toBe("02:00");
+    
+    expect(store.positions[0].shifts[3].shiftId).toBe("4");
+    expect(store.positions[0].shifts[3].startTime).toBe("02:00");
+    expect(store.positions[0].shifts[3].endTime).toBe("04:00");
+    
   });
 
   test("assignSoldiersToShift", async () => {
