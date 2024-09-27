@@ -22,7 +22,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div :class="`grid grid-cols-${numOfPositions}`">
+  <div class="flex">
     <div v-for="position in positions" :key="position.positionId">
       <Position :position="position" @drop="drop" />
     </div>

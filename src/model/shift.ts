@@ -20,7 +20,7 @@ export class ShiftModel implements IShift {
     private _shiftId: string,
     private _startTime: ShiftHours,
     private _endTime: ShiftHours,
-    private _assignmentDefs: AssignmentDefinition[] // assignment definitions indexed by soldier index, // no assignment definition means that the time slot is not required
+    private _assignmentDefs: AssignmentDefinition[] // assignment definitions indexed by soldier index, no assignment definition means that the time slot is not required
   ) {}
 
   get shiftId(): string {
