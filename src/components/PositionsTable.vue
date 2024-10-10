@@ -2,7 +2,7 @@
 import Column from "primevue/column";
 import DataTable from "primevue/datatable";
 import { computed, onMounted, ref } from "vue";
-import { getNextHour, hoursBetween } from '../date-utils';
+import { getNextHour, hoursBetween } from '../utils/date-utils';
 import { IPosition } from "../model/position";
 import { IShift } from "../model/shift";
 import { usePositionsStore } from "../store/positions";

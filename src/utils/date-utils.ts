@@ -1,5 +1,5 @@
 import { parse, addDays, differenceInHours, addHours, format } from "date-fns";
-import { ShiftHours } from "./types/shift-hours";
+import { ShiftHours } from "../types/shift-hours";
 
 export function timeToDate(time: ShiftHours): Date {
   const today = new Date();
@@ -18,7 +18,6 @@ export function hoursBetween(time1: ShiftHours, time2: ShiftHours): number {
 }
 
 export function getNextHour(time: ShiftHours, next = 1): ShiftHours {
-
   if (!next) {
     return time;
   }
