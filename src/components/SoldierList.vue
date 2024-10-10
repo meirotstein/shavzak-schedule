@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Listbox from "primevue/listbox";
 import { onMounted } from "vue";
 import { useSoldiersStore } from "../store/soldiers";
 import SoldierCard from "./SoldierCard.vue";
@@ -13,11 +12,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <Listbox :options="store.soldiers" option-label="name" option-value="name" class="soldier-list">
-    <template #option="{ option }">
-      <SoldierCard :soldier="option" />
-    </template>
-  </Listbox>
+  <ul class="soldier-list">
+    <li v-for="(soldier, index) in store.soldiers" :key="index" >
+      <SoldierCard :soldier="soldier" />
+    </li>
+  </ul>
 </template>
 
 <style scoped>

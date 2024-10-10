@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import PositionList from './components/PositionList.vue';
+import PositionsTable from './components/PositionsTable.vue';
 import SoldierList from './components/SoldierList.vue';
 </script>
 
 <template>
   <div class="flex">
     <SoldierList />
-    <PositionList />
+    <PositionsTable />
   </div>
 </template>
 

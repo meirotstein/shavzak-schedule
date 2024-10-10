@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import Listbox from "primevue/listbox";
-import { ShiftModel } from "../model/shift";
+import { IShift } from "../model/shift";
 import ShiftSpot from "./ShiftSpot.vue";
 
 const props = defineProps<{
-  shift: ShiftModel;
+  shift: IShift;
 }>();
 
 const emit = defineEmits<{
@@ -28,11 +27,15 @@ function drop(spotIndex: number, soldierId: string) {
 </script>
 
 <template>
-  <Listbox :options="shift.assignmentDefinitions" option-label="name" option-value="name" class="shift-spot">
-    <template #option="{ /* option, */ index }">
+  <ul>
+    <li v-for="(_, index) in shift.assignmentDefinitions" :key="index">
       <ShiftSpot :spotIndex="index" :soldier="shift.soldiers[index]" @drop="drop" />
-    </template>
-  </Listbox>
+    </li>
+  </ul>
 </template>
 
-<style scoped></style>
+<style scoped>
+ul {
+  border: solid 1px black;
+}
+</style>

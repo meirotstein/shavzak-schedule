@@ -24,6 +24,13 @@ export class GAPIClient {
             assignmentDefs: [{ roles: ["קצין", "לוחם"] }, { roles: ["לוחם"] }],
             // soldierIds: ['123', '456']
           },
+          {
+            id: "2",
+            startTime: "13:00",
+            endTime: "15:00",
+            assignmentDefs: [{ roles: ["קצין", "לוחם"] }, { roles: ["לוחם"] }],
+            // soldierIds: ['123', '456']
+          },
         ],
       },
       {
