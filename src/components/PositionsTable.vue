@@ -11,7 +11,7 @@ import Shift from "./Shift.vue";
 const store = usePositionsStore();
 const positions = ref<IPosition[]>([]);
 const numOfPositions = ref(0);
-const scheduleStartHour = ref(0); // TODO: get from config
+const scheduleStartHour = ref(14); // TODO: get from config
 
 const hours = computed(() => {
   const start = scheduleStartHour.value;
@@ -50,12 +50,9 @@ const tableData = computed(() => {
     });
   });
 
-  const start = scheduleStartHour.value;
   const dataByHourArray = Object.values(dataByHour);
-  const dataByHourArraySorted = [...dataByHourArray.slice(start), ...dataByHourArray.slice(0, start)]
-  console.log('dataByHour', dataByHourArraySorted);
-  return dataByHourArraySorted;
-
+  console.log('dataByHour', dataByHourArray);
+  return dataByHourArray;
 });
 
 function getShift(slotData: any, cloField: string): IShift | undefined {
@@ -100,15 +97,15 @@ onMounted(async () => {
 
 <template>
   <div class="flex">
-    <DataTable :value="tableData" tableStyle="min-width: 50rem" rowGroupMode="rowspan"
-      :groupRowsBy="tableColumns.map(col => col.posId)">
+    <DataTable :value="tableData" rowGroupMode="rowspan" :groupRowsBy="tableColumns.map(col => col.posId)">
       <Column field="hour" header="" style="width: 1rem"></Column>
       <Column v-for="(col, index) of tableColumns" :field="col.posId" :header="col.posName"
-        :key="col.posId + '_' + index">
+        style="min-width: 10rem; position: relative;" :key="col.posId + '_' + index">
         <template #body="slotProps">
-          <div v-if="hasShiftData(slotProps.data, col.posId)">
+          <div v-if="hasShiftData(slotProps.data, col.posId)" class="column-content shift">
             <Shift :shift="getShift(slotProps.data, col.posId)!" @drop="(...args) => drop(col.posId, ...args)" />
           </div>
+          <div v-else class="column-content no-shift"></div>
         </template>
       </Column>
     </DataTable>
@@ -116,4 +113,23 @@ onMounted(async () => {
 
 </template>
 
-<style scoped></style>
+<style scoped lang="scss">
+.column-content {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  border-radius: 3px;
+}
+
+.shift {
+  border: solid 1px black;
+  box-shadow: -1px 2px 0px 0px rgba(0, 0, 0, 0.3);
+}
+
+.no-shift {
+  border: solid 1px black;
+  background-color: #524f4f;
+}
+</style>
