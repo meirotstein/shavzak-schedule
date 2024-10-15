@@ -28,14 +28,14 @@ function drop(spotIndex: number, soldierId: string) {
 
 <template>
   <div class="flex">
-    <div v-for="(_, index) in shift.assignmentDefinitions" :key="index">
+    <div v-for="(_, index) in shift.assignmentDefinitions" :key="index" class="shift-spot">
       <ShiftSpot :spotIndex="index" :soldier="shift.soldiers[index]" @drop="drop" />
     </div>
   </div>
 </template>
 
 <style scoped>
-ul {
-  border: solid 1px black;
+.shift-spot {
+  width: 100%;
 }
 </style>

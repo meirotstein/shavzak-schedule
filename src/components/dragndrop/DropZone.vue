@@ -15,6 +15,7 @@ const emit = defineEmits<{
 
 function drop(e: DragEvent) {
   e.preventDefault();
+  state.isOver = false;
   emit('drop', e);
 }
 
@@ -51,7 +52,8 @@ function dragOver(e: DragEvent) {
 </script>
 
 <template>
-  <div class="dropzone" @drop="drop" @dragenter="dragEnter" @dragleave="dragLeave" @dragover="dragOver">
+  <div :class="{ 'dropzone': true, 'over': state.isOver }" @drop="drop" @dragenter="dragEnter" @dragleave="dragLeave"
+    @dragover="dragOver">
     <slot>
       Drop here!
     </slot>
@@ -60,8 +62,12 @@ function dragOver(e: DragEvent) {
 
 <style scoped>
 .dropzone {
-  border: 2px dashed #ccc;
-  padding: 5px;
+  border: 3px dashed #ccc;
+  /* padding: 5px; */
   text-align: center;
+}
+
+.over {
+  border: 3px solid blue;
 }
 </style>

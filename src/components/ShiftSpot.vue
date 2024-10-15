@@ -54,7 +54,6 @@ function drop() {
   justify-content: center;
   align-items: center;
   height: 100%;
-  padding: 1rem;
   border: 1px dashed #ccc;
 }
 </style>

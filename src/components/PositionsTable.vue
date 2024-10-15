@@ -97,7 +97,7 @@ onMounted(async () => {
 
 <template>
   <div class="flex">
-    <DataTable :value="tableData" rowGroupMode="rowspan" :groupRowsBy="tableColumns.map(col => col.posId)">
+    <DataTable :value="tableData" rowGroupMode="rowspan" :groupRowsBy="tableColumns.map(col => col.posId)" size="small">
       <Column field="hour" header="" style="width: 1rem"></Column>
       <Column v-for="(col, index) of tableColumns" :field="col.posId" :header="col.posName"
         style="min-width: 10rem; position: relative;" :key="col.posId + '_' + index">
