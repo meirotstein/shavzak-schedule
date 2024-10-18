@@ -5,4 +5,7 @@ import vue from "@vitejs/plugin-vue";
 export default defineConfig({
   plugins: [vue()],
   base: "/shavzak-schedule",
+  server: {
+    port: 3000,
+  },
 });
