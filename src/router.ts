@@ -13,6 +13,10 @@ const routes: Array<RouteRecordRaw> = [
     name: "Schedule",
     component: SchedulePage,
   },
+  {
+    path: "/:pathMatch(.*)*",
+    redirect: "/",
+  },
 ];
 
 const router = createRouter({
