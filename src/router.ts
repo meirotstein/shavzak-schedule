@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from "vue-router";
+import { createRouter, createWebHashHistory, RouteRecordRaw } from "vue-router";
 import AddSPIDPage from "./pages/AddSPIDPage.vue";
 import SchedulePage from "./pages/SchedulePage.vue";
 
@@ -20,7 +20,7 @@ const routes: Array<RouteRecordRaw> = [
 ];
 
 const router = createRouter({
-  history: createWebHistory("/shavzak-schedule"),
+  history: createWebHashHistory("/shavzak-schedule"),
   routes,
 });
 
