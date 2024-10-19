@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { useRoute } from 'vue-router';
+// import { useRoute } from 'vue-router';
 import { decodeCredential, GoogleLogin } from 'vue3-google-login';
 import PositionsTable from '../components/PositionsTable.vue';
 import SoldierList from '../components/SoldierList.vue';
 
-const route = useRoute();
-const spid = route.params.id;
+// const route = useRoute();
+// const spid = route.params.id;
 
 const callback = (response: any) => {
   const userData = decodeCredential(response.credential);
