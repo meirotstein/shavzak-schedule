@@ -1,13 +1,13 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { ShiftDto } from "../clients/dto";
-import { GAPIClient } from "../clients/gapi-client";
+import { dayStart } from "../app-config";
+import { ShiftDto } from "../types/client-dto";
 import { SchedulerError } from "../errors/scheduler-error";
 import { IPosition, PositionModel } from "../model/position";
 import { ShiftModel } from "../model/shift";
 import { ShiftHours } from "../types/shift-hours";
 import { useSoldiersStore } from "./soldiers";
-import { dayStart } from "../app-config";
+import { useGAPIStore } from "./gapi";
 
 const timeToMinutes = (time: ShiftHours): number => {
   const [hours, minutes] = time.split(":").map(Number);
@@ -27,11 +27,11 @@ const shiftsByStartTimeCompare = (
 };
 
 export const usePositionsStore = defineStore("positions", () => {
+  const gapi = useGAPIStore();
   const soldiers = useSoldiersStore();
   const positions = ref<IPosition[]>([]);
 
   async function fetchPositions() {
-    const gapi = new GAPIClient();
     const positionsData = await gapi.getPositions();
 
     const dayStartMinutes = timeToMinutes(dayStart);

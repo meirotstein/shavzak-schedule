@@ -1,4 +1,4 @@
-import { ShiftHours } from "../types/shift-hours";
+import { ShiftHours } from "./shift-hours";
 
 export type SoldierDto = { id: string; name: string; role: string };
 export type AssignmentDefDto = { roles: string[] };

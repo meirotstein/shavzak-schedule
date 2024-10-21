@@ -1,6 +1,5 @@
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { GAPIClient } from "../../src/clients/gapi-client";
 import { PositionModel } from "../../src/model/position";
 import { SoldierModel } from "../../src/model/soldier";
 import { usePositionsStore } from "../../src/store/positions";
@@ -11,6 +10,17 @@ vi.mock("../../src/store/soldiers", () => {
     useSoldiersStore: () => {
       return {
         findSoldierById: findSoldierByIdMock,
+      };
+    },
+  };
+});
+
+const getPositionsMock = vi.fn();
+vi.mock("../../src/store/gapi", () => {
+  return {
+    useGAPIStore: () => {
+      return {
+        getPositions: getPositionsMock,
       };
     },
   };
@@ -91,13 +101,12 @@ describe("positions store tests", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     findSoldierByIdMock.mockClear();
+    getPositionsMock.mockClear();
     vi.resetAllMocks();
   });
 
   test("fetchPositions from backend", async () => {
-    vi.spyOn(GAPIClient.prototype, "getPositions").mockResolvedValue(
-      testPositionsData as any
-    );
+    getPositionsMock.mockResolvedValue(testPositionsData as any);
 
     const store = usePositionsStore();
     await store.fetchPositions();
@@ -138,9 +147,7 @@ describe("positions store tests", () => {
   });
 
   test("fetchPositions from backend unsorted - expected to sort starting from the day start hour (14:00)", async () => {
-    vi.spyOn(GAPIClient.prototype, "getPositions").mockResolvedValue(
-      testPositionsDataUnsorted as any
-    );
+    getPositionsMock.mockResolvedValue(testPositionsDataUnsorted as any);
 
     const store = usePositionsStore();
     await store.fetchPositions();
@@ -148,29 +155,26 @@ describe("positions store tests", () => {
     expect(store.positions.length).toBe(1);
 
     expect(store.positions[0]).toBeInstanceOf(PositionModel);
-    
+
     expect(store.positions[0].shifts[0].shiftId).toBe("1");
     expect(store.positions[0].shifts[0].startTime).toBe("14:00");
     expect(store.positions[0].shifts[0].endTime).toBe("18:00");
-    
+
     expect(store.positions[0].shifts[1].shiftId).toBe("2");
     expect(store.positions[0].shifts[1].startTime).toBe("20:15");
     expect(store.positions[0].shifts[1].endTime).toBe("21:45");
-    
+
     expect(store.positions[0].shifts[2].shiftId).toBe("3");
     expect(store.positions[0].shifts[2].startTime).toBe("00:00");
     expect(store.positions[0].shifts[2].endTime).toBe("02:00");
-    
+
     expect(store.positions[0].shifts[3].shiftId).toBe("4");
     expect(store.positions[0].shifts[3].startTime).toBe("02:00");
     expect(store.positions[0].shifts[3].endTime).toBe("04:00");
-    
   });
 
   test("assignSoldiersToShift", async () => {
-    vi.spyOn(GAPIClient.prototype, "getPositions").mockResolvedValue(
-      testPositionsData as any
-    );
+    getPositionsMock.mockResolvedValue(testPositionsData as any);
 
     findSoldierByIdMock.mockReturnValue(
       new SoldierModel("123", "mose ufnik", "officer")

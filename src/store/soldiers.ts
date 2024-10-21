@@ -1,9 +1,10 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { GAPIClient } from "../clients/gapi-client";
 import { ISoldier, SoldierModel } from "../model/soldier";
+import { useGAPIStore } from "./gapi";
 
 export const useSoldiersStore = defineStore("soldiers", () => {
+  const gapi = useGAPIStore();
   const soldiers = ref<ISoldier[]>([]);
   const draggedSoldier = ref<ISoldier | undefined>();
 
@@ -12,7 +13,6 @@ export const useSoldiersStore = defineStore("soldiers", () => {
   }
 
   async function fetchSoldiers() {
-    const gapi = new GAPIClient();
     const soldiersData = await gapi.getSoldiers();
     soldiersData.forEach((soldier) =>
       soldiers.value.push(

@@ -1,17 +1,28 @@
+import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { setActivePinia, createPinia } from "pinia";
-import { GAPIClient } from "../../src/clients/gapi-client";
-import { useSoldiersStore } from "../../src/store/soldiers";
 import { SoldierModel } from "../../src/model/soldier";
+import { useSoldiersStore } from "../../src/store/soldiers";
+
+const getSoldiersMock = vi.fn();
+vi.mock("../../src/store/gapi", () => {
+  return {
+    useGAPIStore: () => {
+      return {
+        getSoldiers: getSoldiersMock,
+      };
+    },
+  };
+});
 
 describe("soldiers store tests", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+    getSoldiersMock.mockClear();
     vi.resetAllMocks();
   });
 
   test("fetchSoldiers from backend", async () => {
-    vi.spyOn(GAPIClient.prototype, "getSoldiers").mockResolvedValue([
+    getSoldiersMock.mockResolvedValue([
       { id: "123", name: "משה אופניק", role: "קצין" },
       { id: "456", name: "בוב ספוג", role: "לוחם" },
       { id: "789", name: "ג'ורג קונסטנזה", role: "לוחם" },
@@ -40,7 +51,7 @@ describe("soldiers store tests", () => {
   });
 
   test("findSoldierById", async () => {
-    vi.spyOn(GAPIClient.prototype, "getSoldiers").mockResolvedValue([
+    getSoldiersMock.mockResolvedValue([
       { id: "123", name: "משה אופניק", role: "קצין" },
       { id: "456", name: "בוב ספוג", role: "לוחם" },
       { id: "789", name: "ג'ורג קונסטנזה", role: "לוחם" },

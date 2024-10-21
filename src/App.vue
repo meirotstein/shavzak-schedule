@@ -1,4 +1,13 @@
 <script setup lang="ts">
+import { onMounted } from 'vue';
+import { useGAPIStore } from './store/gapi';
+
+const store = useGAPIStore();
+
+onMounted(async () => {
+  await store.load();
+});
+
 </script>
 
 <template>

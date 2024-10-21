@@ -2,7 +2,6 @@ import Lara from "@primevue/themes/lara";
 import { createPinia } from "pinia";
 import PrimeVue from "primevue/config";
 import { createApp } from "vue";
-import vue3GoogleLogin from "vue3-google-login";
 import App from "./App.vue";
 import router from "./router";
 import "./style.css";
@@ -11,9 +10,6 @@ const pinia = createPinia();
 const app = createApp(App);
 app.use(router);
 app.use(pinia);
-app.use(vue3GoogleLogin, {
-  clientId: import.meta.env.VITE_APP_GOOGLE_CLIENT_ID,
-});
 app.use(PrimeVue, {
   theme: {
     preset: Lara,
