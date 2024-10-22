@@ -46,7 +46,7 @@ export const useGAPIStore = defineStore("gapi", () => {
 
     const settingsRaw = await fetchSheetValues(SHEETS.SETTINGS, "A1", "L50");
     if (!settingsRaw.length) {
-      console.error('unexpected settings response');
+      console.error("unexpected settings response");
       return;
     }
     settings.soldiersMaxAmount = settingsRaw[0][5];
@@ -86,7 +86,7 @@ export const useGAPIStore = defineStore("gapi", () => {
   async function updateSignInStatus(signedIn: boolean) {
     isSignedIn.value = signedIn;
     console.log(`user is ${signedIn ? "signed in" : "signed out"}`);
-    
+
     if (signedIn) {
       await loadSettings();
       await Promise.all([loadSoldiers()]);
@@ -105,7 +105,7 @@ export const useGAPIStore = defineStore("gapi", () => {
 
     console.log("soldiers loaded", soldiersRaw.length);
 
-    const soldiresArr = soldiersRaw as Array<
+    const soldiersArr = soldiersRaw as Array<
       Array<
         [
           /* id */ number,
@@ -117,7 +117,7 @@ export const useGAPIStore = defineStore("gapi", () => {
       >
     >;
 
-    soldiers.value = soldiresArr
+    soldiers.value = soldiersArr
       .filter((soldier) => soldier.length === 5) // filter empty rows
       .map((soldier) => ({
         id: soldier[0] + "",
