@@ -1,24 +1,20 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { ISoldier, SoldierModel } from "../model/soldier";
 import { useGAPIStore } from "./gapi";
 
 export const useSoldiersStore = defineStore("soldiers", () => {
   const gapi = useGAPIStore();
-  const soldiers = ref<ISoldier[]>([]);
   const draggedSoldier = ref<ISoldier | undefined>();
+
+  const soldiers = computed(() => {
+    return gapi.soldiers.map(
+      (soldier) => new SoldierModel(soldier.id, soldier.name, soldier.role)
+    );
+  });
 
   function setDraggedSoldier(soldier?: ISoldier) {
     draggedSoldier.value = soldier;
-  }
-
-  async function fetchSoldiers() {
-    const soldiersData = await gapi.getSoldiers();
-    soldiersData.forEach((soldier) =>
-      soldiers.value.push(
-        new SoldierModel(soldier.id, soldier.name, soldier.role)
-      )
-    );
   }
 
   function findSoldierById(id: string): ISoldier | undefined {
@@ -29,7 +25,6 @@ export const useSoldiersStore = defineStore("soldiers", () => {
     soldiers,
     draggedSoldier,
     setDraggedSoldier,
-    fetchSoldiers,
     findSoldierById,
   };
 });

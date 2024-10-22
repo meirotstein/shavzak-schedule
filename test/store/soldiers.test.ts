@@ -2,13 +2,14 @@ import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { SoldierModel } from "../../src/model/soldier";
 import { useSoldiersStore } from "../../src/store/soldiers";
+import { SoldierDto } from "../../src/types/client-dto";
 
-const getSoldiersMock = vi.fn();
+let soldiersMock: SoldierDto[] = [];
 vi.mock("../../src/store/gapi", () => {
   return {
     useGAPIStore: () => {
       return {
-        getSoldiers: getSoldiersMock,
+        soldiers: soldiersMock,
       };
     },
   };
@@ -17,20 +18,18 @@ vi.mock("../../src/store/gapi", () => {
 describe("soldiers store tests", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    getSoldiersMock.mockClear();
+    soldiersMock = [];
     vi.resetAllMocks();
   });
 
   test("fetchSoldiers from backend", async () => {
-    getSoldiersMock.mockResolvedValue([
+    soldiersMock = [
       { id: "123", name: "משה אופניק", role: "קצין" },
       { id: "456", name: "בוב ספוג", role: "לוחם" },
       { id: "789", name: "ג'ורג קונסטנזה", role: "לוחם" },
-    ]);
+    ];
 
     const store = useSoldiersStore();
-
-    await store.fetchSoldiers();
 
     expect(store.soldiers.length).toBe(3);
 
@@ -51,15 +50,13 @@ describe("soldiers store tests", () => {
   });
 
   test("findSoldierById", async () => {
-    getSoldiersMock.mockResolvedValue([
+    soldiersMock = [
       { id: "123", name: "משה אופניק", role: "קצין" },
       { id: "456", name: "בוב ספוג", role: "לוחם" },
       { id: "789", name: "ג'ורג קונסטנזה", role: "לוחם" },
-    ]);
+    ];
 
     const store = useSoldiersStore();
-
-    await store.fetchSoldiers();
 
     const soldier = store.findSoldierById("123");
 

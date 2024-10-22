@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { reactive, ref } from "vue";
 import { useRoute } from "vue-router";
 import { PositionDto, SoldierDto } from "../types/client-dto";
 
@@ -11,8 +11,19 @@ export const useGAPIStore = defineStore("gapi", () => {
   const SCOPE =
     "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.metadata.readonly";
 
+  const SHEETS = {
+    SETTINGS: "settings",
+    SOLDIERS: "חיילים",
+  };
+
   const route = useRoute();
   const isSignedIn = ref<boolean>(false);
+
+  const settings = reactive({
+    soldiersMaxAmount: 200,
+  });
+
+  const soldiers = ref<SoldierDto[]>([]);
 
   async function load(): Promise<void> {
     return new Promise((resolve) => {
@@ -24,10 +35,17 @@ export const useGAPIStore = defineStore("gapi", () => {
           scope: SCOPE,
         });
         gapi.auth2.getAuthInstance().isSignedIn.listen(updateSignInStatus);
-        updateSignInStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+        await updateSignInStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
         resolve();
       });
     });
+  }
+
+  async function loadSettings(): Promise<void> {
+    verifyReadiness();
+
+    const settingsRaw = await fetchSheetValues(SHEETS.SETTINGS, "A1", "L50");
+    settings.soldiersMaxAmount = settingsRaw[0][5];
   }
 
   function login() {
@@ -38,6 +56,21 @@ export const useGAPIStore = defineStore("gapi", () => {
     gapi.auth2.getAuthInstance().signOut();
   }
 
+  async function fetchSheetValues(
+    name: string,
+    fromCell: string,
+    toCell: string
+  ) {
+    const { body } = await gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId: route.params.id as string,
+      valueRenderOption: "UNFORMATTED_VALUE",
+      range: `${name}!${fromCell}:${toCell}`,
+    });
+
+    const response = JSON.parse(body);
+    return response.values;
+  }
+
   function verifyReadiness() {
     if (!isSignedIn.value || !route.params.id) {
       throw new Error(
@@ -46,35 +79,47 @@ export const useGAPIStore = defineStore("gapi", () => {
     }
   }
 
-  function updateSignInStatus(signedIn: boolean) {
+  async function updateSignInStatus(signedIn: boolean) {
     isSignedIn.value = signedIn;
+    console.log(`user is ${signedIn ? "signed in" : "signed out"}`);
+
+    if (signedIn) {
+      await loadSettings();
+      await Promise.all([loadSoldiers()]);
+    }
   }
 
-  // DATA FETCH Functions
+  async function loadSoldiers(): Promise<void> {
+    if (!isSignedIn.value) return;
 
-  async function getData() {
-    verifyReadiness();
+    const soldiersListOffset = 3;
+    const soldiersRaw = await fetchSheetValues(
+      SHEETS.SOLDIERS,
+      "A3",
+      `E${settings.soldiersMaxAmount + soldiersListOffset}`
+    );
 
-    return gapi.client.sheets.spreadsheets
-      .get({
-        spreadsheetId: route.params.id as string,
-      })
-      .then(function (resp) {
-        var r = JSON.parse(resp.body);
-        console.log(r);
-        return r;
-      })
-      .catch(function (err) {
-        throw { error: err.body };
-      });
-  }
+    console.log(soldiersRaw);
 
-  async function getSoldiers(): Promise<SoldierDto[]> {
-    return Promise.resolve([
-      { id: "123", name: "משה אופניק", role: "קצין" },
-      { id: "456", name: "בוב ספוג", role: "לוחם" },
-      { id: "789", name: "ג'ורג קונסטנזה", role: "לוחם" },
-    ]);
+    const soldiresArr = soldiersRaw as Array<
+      Array<
+        [
+          /* id */ number,
+          /* full name */ string,
+          /* platoon */ number | string,
+          /* role */ string,
+          /* description */ string
+        ]
+      >
+    >;
+
+    soldiers.value = soldiresArr
+      .filter((soldier) => soldier.length === 5) // filter empty rows
+      .map((soldier) => ({
+        id: soldier[0] + "",
+        name: soldier[1] + "",
+        role: soldier[3] + "",
+      }));
   }
 
   async function getPositions(): Promise<PositionDto[]> {
@@ -147,9 +192,8 @@ export const useGAPIStore = defineStore("gapi", () => {
     load,
     login,
     logout,
+    soldiers,
     isSignedIn,
-    getData,
     getPositions,
-    getSoldiers,
   };
 });
