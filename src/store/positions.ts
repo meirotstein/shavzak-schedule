@@ -35,18 +35,22 @@ export const usePositionsStore = defineStore("positions", () => {
     const compareFn = shiftsByStartTimeCompare.bind({}, dayStartMinutes);
     return gapi.positions.map((positionData) => {
       const position = new PositionModel(positionData.id, positionData.name);
-      positionData.shifts.sort(compareFn).forEach(
-        (shiftData) =>
-          position.shifts.push(
-            new ShiftModel(
-              shiftData.id,
-              shiftData.startTime,
-              shiftData.endTime,
-              shiftData.assignmentDefs
-            )
-          )
-        // TODO: add soldiers - fetch from soldiers store
-      );
+      positionData.shifts.sort(compareFn).forEach((shiftData) => {
+        const shift = new ShiftModel(
+          shiftData.id,
+          shiftData.startTime,
+          shiftData.endTime,
+          shiftData.assignmentDefs
+        );
+        shiftData.soldierIds?.forEach((soldierId) => {
+          const soldier = soldiersStore.findSoldierById(soldierId);
+          if (!soldier) {
+            throw new SchedulerError(`Soldier with id ${soldierId} not found`);
+          }
+          shift.addSoldier(soldier);
+        });
+        position.shifts.push(shift);
+      });
       return position;
     });
   });

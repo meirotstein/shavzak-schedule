@@ -108,6 +108,9 @@ describe("positions store tests", () => {
 
   test("fetchPositions from backend", async () => {
     positionsMock = testPositionsData as any;
+    findSoldierByIdMock.mockReturnValue(
+      new SoldierModel("123", "mose ufnik", "officer")
+    );
 
     const store = usePositionsStore();
 
@@ -123,10 +126,12 @@ describe("positions store tests", () => {
     expect(store.positions[0].shifts[0].assignmentDefinitions).toEqual([
       { roles: ["officer"] },
     ]);
-    // TODO: enable when soldier is added to shift
-    // expect(store.positions[0].shifts[0].soldiers.length).toBe(1);
-    // expect(store.positions[0].shifts[0].soldiers[0]).toBeInstanceOf(SoldierModel);
-    // expect(store.positions[0].shifts[0].soldiers[0].id).toBe("123");
+
+    expect(store.positions[0].shifts[0].soldiers.length).toBe(1);
+    expect(store.positions[0].shifts[0].soldiers[0]).toBeInstanceOf(
+      SoldierModel
+    );
+    expect(store.positions[0].shifts[0].soldiers[0].id).toBe("123");
 
     expect(store.positions[1]).toBeInstanceOf(PositionModel);
     expect(store.positions[1].positionId).toBe("2");
@@ -148,6 +153,9 @@ describe("positions store tests", () => {
 
   test("fetchPositions from backend unsorted - expected to sort starting from the day start hour (14:00)", async () => {
     positionsMock = testPositionsDataUnsorted as any;
+    findSoldierByIdMock.mockReturnValue(
+      new SoldierModel("123", "mose ufnik", "officer")
+    );
 
     const store = usePositionsStore();
 
