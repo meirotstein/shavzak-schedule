@@ -36,12 +36,12 @@ function dragEnd(e: DragEvent) {
     <Card class="soldier-card">
       <!-- <template #title>{{ props.soldier.name }}</template> -->
       <template #content #item="{ option }">
-        <p class="m-1">
+        <p class="text-xs">
           {{ props.soldier.name }}
         </p>
-        <p class="m-1">
+        <!-- <p class="m-1">
           {{ props.soldier.role }}
-        </p>
+        </p> -->
       </template>
     </Card>
   </Draggable>

@@ -93,7 +93,7 @@ function drop(colField: string, shiftId: string, spotIndex: number, soldierId: s
       <Column v-for="(col, index) of tableColumns" :field="col.posId" :header="col.posName"
         style="width: 5rem; position: relative;" :key="col.posId + '_' + index">
         <template #body="slotProps">
-          <div v-if="hasShiftData(slotProps.data, col.posId)" class="column-content shift">
+          <div v-if="hasShiftData(slotProps.data, col.posId)" class="column-content shift flex flex-col justify-center">
             <Shift :shift="getShift(slotProps.data, col.posId)!" @drop="(...args) => drop(col.posId, ...args)" />
           </div>
           <div v-else class="column-content no-shift"></div>
