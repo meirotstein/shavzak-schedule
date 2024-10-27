@@ -91,7 +91,7 @@ function drop(colField: string, shiftId: string, spotIndex: number, soldierId: s
     <DataTable :value="tableData" rowGroupMode="rowspan" :groupRowsBy="tableColumns.map(col => col.posId)" size="small">
       <Column field="hour" header="" style="width: 1rem"></Column>
       <Column v-for="(col, index) of tableColumns" :field="col.posId" :header="col.posName"
-        style="min-width: 10rem; position: relative;" :key="col.posId + '_' + index">
+        style="width: 5rem; position: relative;" :key="col.posId + '_' + index">
         <template #body="slotProps">
           <div v-if="hasShiftData(slotProps.data, col.posId)" class="column-content shift">
             <Shift :shift="getShift(slotProps.data, col.posId)!" @drop="(...args) => drop(col.posId, ...args)" />
