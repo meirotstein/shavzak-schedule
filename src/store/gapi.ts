@@ -158,6 +158,7 @@ export const useGAPIStore = defineStore("gapi", () => {
       position: PositionDto;
       currentTitle?: string;
       currentShiftId?: string;
+      overrideAssignments?: boolean;
       defaultAssignments: AssignmentDefDto[];
     };
 
@@ -189,6 +190,16 @@ export const useGAPIStore = defineStore("gapi", () => {
             state.currentTitle = TITLES.ROLE;
             if (!state.currentShiftId) {
               state.defaultAssignments.push({ roles: [] });
+            } else {
+              const shift = state.position.shifts.find(
+                (s) => s.id === state!.currentShiftId
+              )!;
+              if (!state.overrideAssignments) {
+                state.overrideAssignments = true;
+                shift.assignmentDefs = [{ roles: [] }];
+              } else {
+                shift.assignmentDefs.push({ roles: [] });
+              }
             }
             break;
           case TITLES.SHIFT:
@@ -198,6 +209,7 @@ export const useGAPIStore = defineStore("gapi", () => {
                 `positions: wrong ${TITLES.SHIFT} index`
               );
             }
+            state.overrideAssignments = false;
             state.currentTitle = TITLES.SHIFT;
             state.currentShiftId = `${state.position.id}-shift-${rowIdx}`;
             state.position.shifts.push({
@@ -211,9 +223,18 @@ export const useGAPIStore = defineStore("gapi", () => {
           default:
             if (!state || !row[i]) break;
             if (state.currentTitle === TITLES.ROLE) {
-              const defaultAssignments =
-                state.defaultAssignments[state.defaultAssignments.length - 1];
-              defaultAssignments.roles.push(row[i]);
+              if (state.currentShiftId) {
+                const shift = state.position.shifts.find(
+                  (s) => s.id === state!.currentShiftId
+                )!;
+                const assignment =
+                  shift.assignmentDefs[shift.assignmentDefs.length - 1];
+                assignment.roles.push(row[i]);
+              } else {
+                const defaultAssignments =
+                  state.defaultAssignments[state.defaultAssignments.length - 1];
+                defaultAssignments.roles.push(row[i]);
+              }
             }
         }
       }
