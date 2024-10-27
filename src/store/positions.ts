@@ -1,13 +1,13 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { computed } from "vue";
 import { dayStart } from "../app-config";
-import { ShiftDto } from "../types/client-dto";
 import { SchedulerError } from "../errors/scheduler-error";
-import { IPosition, PositionModel } from "../model/position";
+import { PositionModel } from "../model/position";
 import { ShiftModel } from "../model/shift";
+import { ShiftDto } from "../types/client-dto";
 import { ShiftHours } from "../types/shift-hours";
-import { useSoldiersStore } from "./soldiers";
 import { useGAPIStore } from "./gapi";
+import { useSoldiersStore } from "./soldiers";
 
 const timeToMinutes = (time: ShiftHours): number => {
   const [hours, minutes] = time.split(":").map(Number);
@@ -28,16 +28,12 @@ const shiftsByStartTimeCompare = (
 
 export const usePositionsStore = defineStore("positions", () => {
   const gapi = useGAPIStore();
-  const soldiers = useSoldiersStore();
-  const positions = ref<IPosition[]>([]);
+  const soldiersStore = useSoldiersStore();
 
-  async function fetchPositions() {
-    const positionsData = await gapi.getPositions();
-
+  const positions = computed(() => {
     const dayStartMinutes = timeToMinutes(dayStart);
     const compareFn = shiftsByStartTimeCompare.bind({}, dayStartMinutes);
-
-    positionsData.forEach((positionData) => {
+    return gapi.positions.map((positionData) => {
       const position = new PositionModel(positionData.id, positionData.name);
       positionData.shifts.sort(compareFn).forEach(
         (shiftData) =>
@@ -51,9 +47,9 @@ export const usePositionsStore = defineStore("positions", () => {
           )
         // TODO: add soldiers - fetch from soldiers store
       );
-      positions.value.push(position);
+      return position;
     });
-  }
+  });
 
   function assignSoldiersToShift(
     positionId: string,
@@ -73,12 +69,12 @@ export const usePositionsStore = defineStore("positions", () => {
         `Shift with id ${shiftsId} not found in position with id ${positionId}`
       );
     }
-    const soldier = soldiers.findSoldierById(soldierId);
+    const soldier = soldiersStore.findSoldierById(soldierId);
     if (!soldier) {
       throw new SchedulerError(`Soldier with id ${soldierId} not found`);
     }
     shift.addSoldier(soldier, shiftSpotIndex);
   }
 
-  return { positions, fetchPositions, assignSoldiersToShift };
+  return { positions, assignSoldiersToShift };
 });

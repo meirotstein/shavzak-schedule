@@ -63,15 +63,19 @@ describe("google api client store tests", () => {
     // expect load of settings from sheet
     expect(gapiMock.client.sheets.spreadsheets.values.get).toBeCalledWith({
       spreadsheetId: "123",
-      valueRenderOption: "UNFORMATTED_VALUE",
       range: expect.stringMatching(/^settings/),
     });
 
     // expect load of soldiers from sheet
     expect(gapiMock.client.sheets.spreadsheets.values.get).toBeCalledWith({
       spreadsheetId: "123",
-      valueRenderOption: "UNFORMATTED_VALUE",
       range: expect.stringMatching(/^חיילים/),
+    });
+
+    // expect load of positions from sheet
+    expect(gapiMock.client.sheets.spreadsheets.values.get).toBeCalledWith({
+      spreadsheetId: "123",
+      range: expect.stringMatching(/^עמדות/),
     });
   });
 

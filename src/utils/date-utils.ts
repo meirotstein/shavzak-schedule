@@ -18,12 +18,12 @@ export function hoursBetween(time1: ShiftHours, time2: ShiftHours): number {
 }
 
 export function getNextHour(time: ShiftHours, next = 1): ShiftHours {
-  if (!next) {
-    return time;
-  }
-
   const today = new Date();
   const timeDate = parse(time, "HH:mm", today);
+
+  if (!next) {
+    return format(timeDate, "HH:mm") as ShiftHours;
+  }
 
   const nextHour = addHours(timeDate, next);
 

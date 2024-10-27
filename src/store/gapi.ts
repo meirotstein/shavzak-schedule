@@ -1,7 +1,9 @@
 import { defineStore } from "pinia";
 import { reactive, ref } from "vue";
 import { useRoute } from "vue-router";
-import { PositionDto, SoldierDto } from "../types/client-dto";
+import { SchedulerError } from "../errors/scheduler-error";
+import { AssignmentDefDto, PositionDto, SoldierDto } from "../types/client-dto";
+import { ShiftHours } from "../types/shift-hours";
 
 export const useGAPIStore = defineStore("gapi", () => {
   const DISCOVERY_DOCS = [
@@ -14,6 +16,7 @@ export const useGAPIStore = defineStore("gapi", () => {
   const SHEETS = {
     SETTINGS: "settings",
     SOLDIERS: "חיילים",
+    POSITIONS: "עמדות",
   };
 
   const route = useRoute();
@@ -24,6 +27,7 @@ export const useGAPIStore = defineStore("gapi", () => {
   });
 
   const soldiers = ref<SoldierDto[]>([]);
+  const positions = ref<PositionDto[]>([]);
 
   async function load(): Promise<void> {
     return new Promise((resolve) => {
@@ -67,7 +71,6 @@ export const useGAPIStore = defineStore("gapi", () => {
   ) {
     const { body } = await gapi.client.sheets.spreadsheets.values.get({
       spreadsheetId: route.params.id as string,
-      valueRenderOption: "UNFORMATTED_VALUE",
       range: `${name}!${fromCell}:${toCell}`,
     });
 
@@ -89,7 +92,8 @@ export const useGAPIStore = defineStore("gapi", () => {
 
     if (signedIn) {
       await loadSettings();
-      await Promise.all([loadSoldiers()]);
+      await loadSoldiers();
+      await loadPositions();
     }
   }
 
@@ -126,70 +130,99 @@ export const useGAPIStore = defineStore("gapi", () => {
       }));
   }
 
-  async function getPositions(): Promise<PositionDto[]> {
-    return Promise.resolve([
-      {
-        id: "1",
-        name: "ש.ג.",
-        shifts: [
-          {
-            id: "1",
-            startTime: "00:00",
-            endTime: "02:00",
-            assignmentDefs: [{ roles: ["קצין", "לוחם"] }, { roles: ["לוחם"] }],
-            // soldierIds: ['123', '456']
+  async function loadPositions(): Promise<void> {
+    if (!isSignedIn.value) return;
+
+    const TITLES = {
+      POSITION: "עמדה",
+      ROLE: "תפקיד",
+      SHIFT: "משמרת",
+      ASSIGNMENT: "שיבוץ",
+    };
+
+    const positionsRaw: Array<Array<string>> = await fetchSheetValues(
+      SHEETS.POSITIONS,
+      "A1",
+      "AZ100"
+    );
+
+    console.log("positions loaded", positionsRaw);
+
+    if (!positionsRaw.length) {
+      console.warn("no positions def found");
+      return;
+    }
+
+    type positionState = {
+      index: number;
+      position: PositionDto;
+      currentTitle?: string;
+      currentShiftId?: string;
+      defaultAssignments: AssignmentDefDto[];
+    };
+
+    const positionsState: Array<positionState> = [];
+    const positionsRow = positionsRaw[0];
+    for (let i = 0; i < positionsRow.length; ++i) {
+      if (positionsRow[i] === TITLES.POSITION) {
+        positionsState.push({
+          index: i,
+          position: {
+            id: `pos-${i}`,
+            name: positionsRow[i + 1],
+            shifts: [],
           },
-          {
-            id: "2",
-            startTime: "14:00",
-            endTime: "16:00",
-            assignmentDefs: [{ roles: ["קצין", "לוחם"] }, { roles: ["לוחם"] }],
-            // soldierIds: ['123', '456']
-          },
-        ],
-      },
-      {
-        id: "2",
-        name: "סיור",
-        shifts: [
-          {
-            id: "1",
-            startTime: "00:00",
-            endTime: "04:00",
-            assignmentDefs: [{ roles: ["קצין"] }],
-            // soldierIds: ['123', '789']
-          },
-          {
-            id: "2",
-            startTime: "04:00",
-            endTime: "08:00",
-            assignmentDefs: [{ roles: ["לוחם"] }],
-            // soldierIds: ['123', '789']
-          },
-          {
-            id: "3",
-            startTime: "08:00",
-            endTime: "12:00",
-            assignmentDefs: [{ roles: ["לוחם"] }],
-            // soldierIds: ['123', '789']
-          },
-          {
-            id: "4",
-            startTime: "16:00",
-            endTime: "20:00",
-            assignmentDefs: [{ roles: ["לוחם"] }],
-            // soldierIds: ['123', '789']
-          },
-          {
-            id: "5",
-            startTime: "20:00",
-            endTime: "00:00",
-            assignmentDefs: [{ roles: ["לוחם"] }],
-            // soldierIds: ['123', '789']
-          },
-        ],
-      },
-    ]);
+          defaultAssignments: [],
+        });
+      }
+    }
+
+    positionsRaw.slice(1).forEach((row, rowIdx) => {
+      let state: positionState | undefined;
+      for (let i = 0; i < row.length; ++i) {
+        switch (row[i]) {
+          case TITLES.ROLE:
+            state = positionsState.find((p) => p.index === i);
+            if (!state) {
+              throw new SchedulerError(`positions: wrong ${TITLES.ROLE} index`);
+            }
+            state.currentTitle = TITLES.ROLE;
+            if (!state.currentShiftId) {
+              state.defaultAssignments.push({ roles: [] });
+            }
+            break;
+          case TITLES.SHIFT:
+            state = positionsState.find((p) => p.index === i);
+            if (!state) {
+              throw new SchedulerError(
+                `positions: wrong ${TITLES.SHIFT} index`
+              );
+            }
+            state.currentTitle = TITLES.SHIFT;
+            state.currentShiftId = `${state.position.id}-shift-${rowIdx}`;
+            state.position.shifts.push({
+              id: state.currentShiftId,
+              startTime: row[i + 1] as ShiftHours,
+              endTime: row[i + 2] as ShiftHours,
+              assignmentDefs: state.defaultAssignments,
+              soldierIds: [],
+            });
+            break;
+          default:
+            if (!state || !row[i]) break;
+            if (state.currentTitle === TITLES.ROLE) {
+              const defaultAssignments =
+                state.defaultAssignments[state.defaultAssignments.length - 1];
+              defaultAssignments.roles.push(row[i]);
+            }
+        }
+      }
+    });
+
+    console.log("positions data", positionsState);
+
+    positions.value = positionsState.map((p) => p.position);
+    console.log("positions store", positions.value);
   }
 
   return {
@@ -197,8 +230,8 @@ export const useGAPIStore = defineStore("gapi", () => {
     login,
     logout,
     soldiers,
+    positions,
     isSignedIn,
     settings,
-    getPositions,
   };
 });

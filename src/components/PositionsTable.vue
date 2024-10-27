@@ -1,16 +1,13 @@
 <script setup lang="ts">
 import Column from "primevue/column";
 import DataTable from "primevue/datatable";
-import { computed, onMounted, ref } from "vue";
-import { getNextHour, hoursBetween } from '../utils/date-utils';
-import { IPosition } from "../model/position";
+import { computed, ref } from "vue";
 import { IShift } from "../model/shift";
 import { usePositionsStore } from "../store/positions";
+import { getNextHour, hoursBetween } from '../utils/date-utils';
 import Shift from "./Shift.vue";
 
 const store = usePositionsStore();
-const positions = ref<IPosition[]>([]);
-const numOfPositions = ref(0);
 const scheduleStartHour = ref(14); // TODO: get from config
 
 const hours = computed(() => {
@@ -20,7 +17,7 @@ const hours = computed(() => {
 });
 
 const tableColumns = computed(() => {
-  return positions.value.map((position) => {
+  return store.positions.map((position) => {
     return {
       posId: `${position.positionId}.shiftSlot`,
       posName: position.positionName,
@@ -35,7 +32,7 @@ const tableData = computed(() => {
     };
     return obj;
   }, {});
-  positions.value.forEach((position) => {
+  store.positions.forEach((position) => {
     position.shifts.forEach((shift) => {
       const shiftHourLength = hoursBetween(shift.startTime, shift.endTime);
       for (let i = 0; i < shiftHourLength; i++) {
@@ -57,7 +54,7 @@ const tableData = computed(() => {
 
 function getShift(slotData: any, cloField: string): IShift | undefined {
   const { positionId, shiftId } = getShiftDataFromColumn(cloField, slotData);
-  return positions.value.find(p => p.positionId === positionId)?.shifts.find(s => s.shiftId === shiftId);
+  return store.positions.find(p => p.positionId === positionId)?.shifts.find(s => s.shiftId === shiftId);
 }
 
 function hasShiftData(slotData: any, cloField: string): boolean {
@@ -86,12 +83,6 @@ function drop(colField: string, shiftId: string, spotIndex: number, soldierId: s
   }
   store.assignSoldiersToShift(positionId, shiftId, spotIndex, soldierId);
 }
-
-onMounted(async () => {
-  await store.fetchPositions();
-  positions.value = store.positions;
-  numOfPositions.value = store.positions.length;
-});
 
 </script>
 

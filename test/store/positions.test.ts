@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { PositionModel } from "../../src/model/position";
 import { SoldierModel } from "../../src/model/soldier";
 import { usePositionsStore } from "../../src/store/positions";
+import { PositionDto } from "../../src/types/client-dto";
 
 const findSoldierByIdMock = vi.fn();
 vi.mock("../../src/store/soldiers", () => {
@@ -15,12 +16,12 @@ vi.mock("../../src/store/soldiers", () => {
   };
 });
 
-const getPositionsMock = vi.fn();
+let positionsMock: PositionDto[] = [];
 vi.mock("../../src/store/gapi", () => {
   return {
     useGAPIStore: () => {
       return {
-        getPositions: getPositionsMock,
+        positions: positionsMock,
       };
     },
   };
@@ -101,15 +102,14 @@ describe("positions store tests", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     findSoldierByIdMock.mockClear();
-    getPositionsMock.mockClear();
+    positionsMock = [];
     vi.resetAllMocks();
   });
 
   test("fetchPositions from backend", async () => {
-    getPositionsMock.mockResolvedValue(testPositionsData as any);
+    positionsMock = testPositionsData as any;
 
     const store = usePositionsStore();
-    await store.fetchPositions();
 
     expect(store.positions.length).toBe(2);
 
@@ -147,10 +147,9 @@ describe("positions store tests", () => {
   });
 
   test("fetchPositions from backend unsorted - expected to sort starting from the day start hour (14:00)", async () => {
-    getPositionsMock.mockResolvedValue(testPositionsDataUnsorted as any);
+    positionsMock = testPositionsDataUnsorted as any;
 
     const store = usePositionsStore();
-    await store.fetchPositions();
 
     expect(store.positions.length).toBe(1);
 
@@ -174,14 +173,13 @@ describe("positions store tests", () => {
   });
 
   test("assignSoldiersToShift", async () => {
-    getPositionsMock.mockResolvedValue(testPositionsData as any);
+    positionsMock = testPositionsData as any;
 
     findSoldierByIdMock.mockReturnValue(
       new SoldierModel("123", "mose ufnik", "officer")
     );
 
     const store = usePositionsStore();
-    await store.fetchPositions();
 
     store.assignSoldiersToShift("1", "1", 0, "123");
 
