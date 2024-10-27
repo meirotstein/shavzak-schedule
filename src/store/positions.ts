@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { computed } from "vue";
+import { computed, reactive } from "vue";
 import { dayStart } from "../app-config";
 import { SchedulerError } from "../errors/scheduler-error";
 import { PositionModel } from "../model/position";
@@ -34,13 +34,17 @@ export const usePositionsStore = defineStore("positions", () => {
     const dayStartMinutes = timeToMinutes(dayStart);
     const compareFn = shiftsByStartTimeCompare.bind({}, dayStartMinutes);
     return gapi.positions.map((positionData) => {
-      const position = new PositionModel(positionData.id, positionData.name);
+      const position = reactive(
+        new PositionModel(positionData.id, positionData.name)
+      );
       positionData.shifts.sort(compareFn).forEach((shiftData) => {
-        const shift = new ShiftModel(
-          shiftData.id,
-          shiftData.startTime,
-          shiftData.endTime,
-          shiftData.assignmentDefs
+        const shift = reactive(
+          new ShiftModel(
+            shiftData.id,
+            shiftData.startTime,
+            shiftData.endTime,
+            shiftData.assignmentDefs
+          )
         );
         shiftData.soldierIds?.forEach((soldierId) => {
           const soldier = soldiersStore.findSoldierById(soldierId);
