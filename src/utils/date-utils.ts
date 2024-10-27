@@ -1,4 +1,4 @@
-import { parse, addDays, differenceInHours, addHours, format } from "date-fns";
+import { addDays, addHours, differenceInHours, format, parse } from "date-fns";
 import { ShiftHours } from "../types/shift-hours";
 
 export function timeToDate(time: ShiftHours): Date {
@@ -10,7 +10,7 @@ export function hoursBetween(time1: ShiftHours, time2: ShiftHours): number {
   const date1 = timeToDate(time1);
   let date2 = timeToDate(time2);
 
-  if (date2 < date1) {
+  if (date2 <= date1) {
     date2 = addDays(date2, 1);
   }
 
