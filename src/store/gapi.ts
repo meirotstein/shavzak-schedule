@@ -220,6 +220,19 @@ export const useGAPIStore = defineStore("gapi", () => {
               soldierIds: [],
             });
             break;
+          case TITLES.ASSIGNMENT:
+            state = positionsState.find((p) => p.index === i);
+            if (!state) {
+              throw new SchedulerError(
+                `positions: wrong ${TITLES.ASSIGNMENT} index`
+              );
+            }
+            state.currentTitle = TITLES.ASSIGNMENT;
+            const nextUnassignedShift = state.position.shifts.find(
+              (s) => (s.soldierIds || []).length < s.assignmentDefs.length
+            );
+            state.currentShiftId = nextUnassignedShift?.id;
+            break;
           default:
             if (!state || !row[i]) break;
             if (state.currentTitle === TITLES.ROLE) {
@@ -235,6 +248,12 @@ export const useGAPIStore = defineStore("gapi", () => {
                   state.defaultAssignments[state.defaultAssignments.length - 1];
                 defaultAssignments.roles.push(row[i]);
               }
+            }
+            if (state.currentTitle === TITLES.ASSIGNMENT) {
+              const shift = state.position.shifts.find(
+                (s) => s.id === state!.currentShiftId
+              )!;
+              shift.soldierIds!.push(row[i]);
             }
         }
       }

@@ -198,7 +198,7 @@ describe("google api client store tests", () => {
             ],
             endTime: "22:00",
             id: "pos-0-shift-4",
-            soldierIds: [],
+            soldierIds: ["8155316", "7233957"],
             startTime: "14:00",
           },
           {
@@ -252,7 +252,7 @@ describe("google api client store tests", () => {
             ],
             endTime: "18:00",
             id: "pos-3-shift-2",
-            soldierIds: [],
+            soldierIds: ["6097455", "8689463"],
             startTime: "14:00",
           },
           {
