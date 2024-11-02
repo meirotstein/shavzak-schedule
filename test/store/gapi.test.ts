@@ -81,12 +81,17 @@ describe("google api client store tests", () => {
 
   test("load of settings", async () => {
     const soldiersMaxAmountMock = 42;
+    const presenceNameColumnMock = 4;
+    const presenceNameFirstRowMock = 20;
     gapiMock.client.sheets.spreadsheets.values.get.mockImplementation(
       (params: { range: string }) => {
         if (params.range.startsWith("settings")) {
           return {
             body: JSON.stringify({
-              values: [[, , , , , soldiersMaxAmountMock]],
+              values: [
+                [, presenceNameColumnMock, , , , soldiersMaxAmountMock],
+                [, presenceNameFirstRowMock, , , ,],
+              ],
             }),
           };
         }
@@ -101,6 +106,8 @@ describe("google api client store tests", () => {
     await store.load();
 
     expect(store.settings.soldiersMaxAmount).toBe(soldiersMaxAmountMock);
+    expect(store.settings.presenceNameColumn).toBe(presenceNameColumnMock);
+    expect(store.settings.presenceNameFirstRow).toBe(presenceNameFirstRowMock);
   });
 
   test("load of soldiers", async () => {

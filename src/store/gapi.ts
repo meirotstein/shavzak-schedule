@@ -24,6 +24,8 @@ export const useGAPIStore = defineStore("gapi", () => {
 
   const settings = reactive({
     soldiersMaxAmount: 200,
+    presenceNameColumn: 2,
+    presenceNameFirstRow: 13,
   });
 
   const soldiers = ref<SoldierDto[]>([]);
@@ -54,6 +56,8 @@ export const useGAPIStore = defineStore("gapi", () => {
       return;
     }
     settings.soldiersMaxAmount = settingsRaw[0][5];
+    settings.presenceNameColumn = settingsRaw[0][1];
+    settings.presenceNameFirstRow = settingsRaw[1][1];
   }
 
   function login() {
