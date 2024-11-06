@@ -1,8 +1,16 @@
+import { addDays, parse } from "date-fns";
 import { defineStore } from "pinia";
 import { reactive, ref } from "vue";
 import { useRoute } from "vue-router";
 import { SchedulerError } from "../errors/scheduler-error";
-import { AssignmentDefDto, PositionDto, SoldierDto } from "../types/client-dto";
+import {
+  AssignmentDefDto,
+  PositionDto,
+  PresenceDto,
+  PresenceStateDto,
+  SoldierDto,
+  SoldierPresenceDto,
+} from "../types/client-dto";
 import { ShiftHours } from "../types/shift-hours";
 
 export const useGAPIStore = defineStore("gapi", () => {
@@ -17,6 +25,7 @@ export const useGAPIStore = defineStore("gapi", () => {
     SETTINGS: "settings",
     SOLDIERS: "חיילים",
     POSITIONS: "עמדות",
+    PRESENCE: "נוכחות",
   };
 
   const route = useRoute();
@@ -30,6 +39,7 @@ export const useGAPIStore = defineStore("gapi", () => {
 
   const soldiers = ref<SoldierDto[]>([]);
   const positions = ref<PositionDto[]>([]);
+  const presence = ref<PresenceDto | undefined>(undefined);
 
   async function load(): Promise<void> {
     return new Promise((resolve) => {
@@ -98,6 +108,7 @@ export const useGAPIStore = defineStore("gapi", () => {
       await loadSettings();
       await loadSoldiers();
       await loadPositions();
+      await loadPresence();
     }
   }
 
@@ -269,12 +280,103 @@ export const useGAPIStore = defineStore("gapi", () => {
     console.log("positions store", positions.value);
   }
 
+  async function loadPresence(): Promise<void> {
+    verifyReadiness();
+
+    const presenceRaw = await fetchSheetValues(
+      SHEETS.PRESENCE,
+      "A1",
+      // TODO: calculate the end column by fetching dates and calculate period length (require additional API call)
+      `ZA${
+        Number(settings.soldiersMaxAmount) +
+        Number(settings.presenceNameFirstRow)
+      }`
+    );
+
+    console.log("presence loaded", presenceRaw);
+
+    if (!presenceRaw.length) {
+      console.error("unexpected presence response");
+      return;
+    }
+
+    presence.value = {
+      start: parse(presenceRaw[0][1], "yyyy-MM-dd", new Date()),
+      end: parse(presenceRaw[1][1], "yyyy-MM-dd", new Date()),
+      soldiersPresence: [],
+    };
+
+    for (
+      let i = settings.presenceNameFirstRow - 1;
+      i < presenceRaw.length;
+      ++i
+    ) {
+      const row = presenceRaw[i];
+      const soldierDescription = row[settings.presenceNameColumn - 1];
+      if (!soldierDescription) {
+        continue;
+      }
+
+      const nameRegex = /^([^[]+)\s*(?:\[(.*?)\])?\s*(.*)?$/;
+
+      const match = soldierDescription.match(nameRegex);
+
+      if (!match) {
+        console.error("failed to parse soldier name", soldierDescription);
+        continue;
+      }
+
+      const [, name, role /* platoon */] = match; //TODO: handle platoon
+
+      const soldier = soldiers.value.find(
+        (s) => s.name.trim() === name.trim() && s.role.trim() === role.trim()
+      );
+
+      if (!soldier) {
+        console.error("soldier not found", soldierDescription);
+        continue;
+      }
+
+      const soldierPresence: SoldierPresenceDto = {
+        soldierId: soldier.id,
+        presence: [],
+      };
+
+      let currentDay = presence.value.start;
+
+      for (let j = settings.presenceNameColumn; j < row.length; ++j) {
+        const presenceStateValue = row[j];
+        let presenceState: PresenceStateDto = PresenceStateDto.DISCHARGED;
+
+        if (presenceStateValue === "1") {
+          presenceState = PresenceStateDto.PRESENT;
+        } else if (presenceStateValue === "0") {
+          presenceState = PresenceStateDto.HOME;
+        } else if (presenceStateValue === "2") {
+          presenceState = PresenceStateDto.SICK;
+        }
+
+        soldierPresence.presence.push({
+          day: currentDay,
+          presence: presenceState,
+        });
+
+        currentDay = addDays(currentDay, 1);
+      }
+
+      presence.value.soldiersPresence.push(soldierPresence);
+    }
+
+    console.log("presence parsed", presence.value);
+  }
+
   return {
     load,
     login,
     logout,
     soldiers,
     positions,
+    presence,
     isSignedIn,
     settings,
   };

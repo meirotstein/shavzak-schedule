@@ -1,6 +1,8 @@
+import { parse } from "date-fns";
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { useGAPIStore } from "../../src/store/gapi";
+import { presenceDto, presenceRaw } from "./rowdata/presence";
 
 vi.mock("vue-router", () => {
   return {
@@ -76,6 +78,12 @@ describe("google api client store tests", () => {
     expect(gapiMock.client.sheets.spreadsheets.values.get).toBeCalledWith({
       spreadsheetId: "123",
       range: expect.stringMatching(/^עמדות/),
+    });
+
+    // expect load of positions from sheet
+    expect(gapiMock.client.sheets.spreadsheets.values.get).toBeCalledWith({
+      spreadsheetId: "123",
+      range: expect.stringMatching(/^נוכחות/),
     });
   });
 
@@ -335,5 +343,52 @@ describe("google api client store tests", () => {
         ],
       },
     ]);
+  });
+
+  test("load of presence", async () => {
+    gapiMock.client.sheets.spreadsheets.values.get.mockImplementation(
+      (params: { range: string }) => {
+        if (params.range.startsWith("חיילים")) {
+          return {
+            body: JSON.stringify({
+              values: [
+                ["123", "משה אופניק", "1", "לוחם", "משה אופניק [לוחם] 1"],
+                ["456", "בוב ספוג", "2", "לוחם", "בוב ספוג [לוחם] 2"],
+                [
+                  "789",
+                  "ג׳ורג קוסטנזה",
+                  "מפלג",
+                  "סמבצ",
+                  "ג׳ורג קוסטנזה [סמבצ] מפלג",
+                ],
+              ],
+            }),
+          };
+        }
+        if (params.range.startsWith("נוכחות")) {
+          return {
+            body: JSON.stringify({
+              values: presenceRaw,
+            }),
+          };
+        }
+        return {
+          body: JSON.stringify({ values: [] }),
+        };
+      }
+    );
+
+    const store = useGAPIStore();
+
+    store.settings.presenceNameFirstRow = 13;
+    store.settings.presenceNameColumn = 2;
+
+    await store.load();
+
+    expect(store.presence).toStrictEqual({
+      start: parse("2024-10-27", "yyyy-MM-dd", new Date()),
+      end: parse("2024-12-31", "yyyy-MM-dd", new Date()),
+      soldiersPresence: presenceDto,
+    });
   });
 });
