@@ -319,19 +319,8 @@ export const useGAPIStore = defineStore("gapi", () => {
         continue;
       }
 
-      const nameRegex = /^([^[]+)\s*(?:\[(.*?)\])?\s*(.*)?$/;
-
-      const match = soldierDescription.match(nameRegex);
-
-      if (!match) {
-        console.error("failed to parse soldier name", soldierDescription);
-        continue;
-      }
-
-      const [, name, role /* platoon */] = match; //TODO: handle platoon
-
       const soldier = soldiers.value.find(
-        (s) => s.name.trim() === name.trim() && s.role.trim() === role.trim()
+        (s) => s.description.trim() === soldierDescription.trim()
       );
 
       if (!soldier) {
