@@ -9,7 +9,13 @@ export const useSoldiersStore = defineStore("soldiers", () => {
 
   const soldiers = computed(() => {
     return gapi.soldiers.map(
-      (soldier) => new SoldierModel(soldier.id, soldier.name, soldier.role)
+      (soldier) =>
+        new SoldierModel(
+          soldier.id,
+          soldier.name,
+          soldier.role,
+          soldier.platoon
+        )
     );
   });
 
