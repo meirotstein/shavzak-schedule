@@ -141,7 +141,9 @@ export const useGAPIStore = defineStore("gapi", () => {
       .map((soldier) => ({
         id: soldier[0] + "",
         name: soldier[1] + "",
+        platoon: soldier[2] + "",
         role: soldier[3] + "",
+        description: soldier[4] + "",
       }));
   }
 

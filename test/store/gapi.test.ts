@@ -155,7 +155,13 @@ describe("google api client store tests", () => {
     await store.load();
 
     expect(store.soldiers).toStrictEqual([
-      { id: mockData.id + "", name: mockData.name, role: mockData.role },
+      {
+        id: mockData.id + "",
+        name: mockData.name,
+        role: mockData.role,
+        platoon: mockData.platoon + "",
+        description: mockData.description,
+      },
     ]);
   });
 
