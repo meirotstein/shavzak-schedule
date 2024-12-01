@@ -30,8 +30,8 @@ export const presenceRaw = [
   ["42", "ג׳ורג קוסטנזה [סמבצ] מפלג", "", "", "", "1", "1", "0", "0", "1", "1"],
 ];
 
-export const presenceDto = [
-  {
+export const presenceDto = {
+  "123": {
     presence: [
       {
         day: parse("2024-10-27", "yyyy-MM-dd", new Date()),
@@ -70,9 +70,8 @@ export const presenceDto = [
         presence: "sick",
       },
     ],
-    soldierId: "123",
   },
-  {
+  "456": {
     presence: [
       {
         day: parse("2024-10-27", "yyyy-MM-dd", new Date()),
@@ -111,9 +110,8 @@ export const presenceDto = [
         presence: "present",
       },
     ],
-    soldierId: "456",
   },
-  {
+  "789": {
     presence: [
       {
         day: parse("2024-10-27", "yyyy-MM-dd", new Date()),
@@ -152,6 +150,5 @@ export const presenceDto = [
         presence: "present",
       },
     ],
-    soldierId: "789",
   },
-];
+};

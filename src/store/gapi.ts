@@ -305,7 +305,7 @@ export const useGAPIStore = defineStore("gapi", () => {
     presence.value = {
       start: parse(presenceRaw[0][1], "yyyy-MM-dd", new Date()),
       end: parse(presenceRaw[1][1], "yyyy-MM-dd", new Date()),
-      soldiersPresence: [],
+      soldiersPresence: {},
     };
 
     for (
@@ -329,7 +329,6 @@ export const useGAPIStore = defineStore("gapi", () => {
       }
 
       const soldierPresence: SoldierPresenceDto = {
-        soldierId: soldier.id,
         presence: [],
       };
 
@@ -355,7 +354,7 @@ export const useGAPIStore = defineStore("gapi", () => {
         currentDay = addDays(currentDay, 1);
       }
 
-      presence.value.soldiersPresence.push(soldierPresence);
+      presence.value.soldiersPresence[soldier.id] = soldierPresence;
     }
 
     console.log("presence parsed", presence.value);

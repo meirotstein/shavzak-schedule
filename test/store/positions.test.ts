@@ -109,7 +109,7 @@ describe("positions store tests", () => {
   test("fetchPositions from backend", async () => {
     positionsMock = testPositionsData as any;
     findSoldierByIdMock.mockReturnValue(
-      new SoldierModel("123", "mose ufnik", "officer")
+      new SoldierModel("123", "mose ufnik", "officer", "1")
     );
 
     const store = usePositionsStore();
@@ -154,7 +154,7 @@ describe("positions store tests", () => {
   test("fetchPositions from backend unsorted - expected to sort starting from the day start hour (14:00)", async () => {
     positionsMock = testPositionsDataUnsorted as any;
     findSoldierByIdMock.mockReturnValue(
-      new SoldierModel("123", "mose ufnik", "officer")
+      new SoldierModel("123", "mose ufnik", "officer", "2")
     );
 
     const store = usePositionsStore();
@@ -184,7 +184,7 @@ describe("positions store tests", () => {
     positionsMock = testPositionsData as any;
 
     findSoldierByIdMock.mockReturnValue(
-      new SoldierModel("123", "mose ufnik", "officer")
+      new SoldierModel("123", "mose ufnik", "officer", "3")
     );
 
     const store = usePositionsStore();

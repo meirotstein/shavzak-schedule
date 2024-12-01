@@ -25,9 +25,8 @@ export enum PresenceStateDto {
 export type PresenceDto = {
   start: Date;
   end: Date;
-  soldiersPresence: SoldierPresenceDto[];
+  soldiersPresence: Record<string /* soldierId */, SoldierPresenceDto>;
 };
 export type SoldierPresenceDto = {
-  soldierId: string;
   presence: Array<{ day: Date; presence: PresenceStateDto }>;
 };
