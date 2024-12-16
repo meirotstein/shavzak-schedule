@@ -79,3 +79,7 @@
 .p-card .p-card-body {
   padding: 4px;
 }
+
+.datepicker-btn-rtl {
+  transform: rotate(180deg);
+}

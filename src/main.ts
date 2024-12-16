@@ -3,6 +3,7 @@ import { createPinia } from "pinia";
 import PrimeVue from "primevue/config";
 import { createApp } from "vue";
 import App from "./App.vue";
+import he_il from "./locale/he-IL";
 import router from "./router";
 import "./style.css";
 
@@ -17,6 +18,7 @@ app.use(PrimeVue, {
       darkModeSelector: ".fake-dark-selector", // force a non-usage of the dark mode
     },
   },
+  locale: he_il,
   pt: {
     listbox: {
       listContainer: {
