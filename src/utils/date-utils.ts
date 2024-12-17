@@ -40,11 +40,8 @@ export function getNextHour(time: ShiftHours, next = 1): ShiftHours {
 
 export function getClosestDate(
   date: Date,
-  interval: { start?: Date; end?: Date }
+  interval: { start: Date; end: Date }
 ): Date {
-  if (!interval.start || !interval.end) {
-    return date;
-  }
   const { start, end } = interval;
 
   if (isWithinInterval(date, { start, end })) {
