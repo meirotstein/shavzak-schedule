@@ -7,7 +7,6 @@ import {
   AssignmentDefDto,
   PositionDto,
   PresenceDto,
-  PresenceStateDto,
   SoldierDto,
   SoldierPresenceDto,
 } from "../types/client-dto";
@@ -336,19 +335,10 @@ export const useGAPIStore = defineStore("gapi", () => {
 
       for (let j = settings.presenceNameColumn; j < row.length; ++j) {
         const presenceStateValue = row[j];
-        let presenceState: PresenceStateDto = PresenceStateDto.DISCHARGED;
-
-        if (presenceStateValue === "1") {
-          presenceState = PresenceStateDto.PRESENT;
-        } else if (presenceStateValue === "0") {
-          presenceState = PresenceStateDto.HOME;
-        } else if (presenceStateValue === "2") {
-          presenceState = PresenceStateDto.SICK;
-        }
 
         soldierPresence.presence.push({
           day: currentDay,
-          presence: presenceState,
+          presence: presenceStateValue,
         });
 
         currentDay = addDays(currentDay, 1);

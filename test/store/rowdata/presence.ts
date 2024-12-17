@@ -35,39 +35,39 @@ export const presenceDto = {
     presence: [
       {
         day: parse("2024-10-27", "yyyy-MM-dd", new Date()),
-        presence: "discharged",
+        presence: "",
       },
       {
         day: parse("2024-10-28", "yyyy-MM-dd", new Date()),
-        presence: "discharged",
+        presence: "",
       },
       {
         day: parse("2024-10-29", "yyyy-MM-dd", new Date()),
-        presence: "discharged",
+        presence: "",
       },
       {
         day: parse("2024-10-30", "yyyy-MM-dd", new Date()),
-        presence: "present",
+        presence: "1",
       },
       {
         day: parse("2024-10-31", "yyyy-MM-dd", new Date()),
-        presence: "present",
+        presence: "1",
       },
       {
         day: parse("2024-11-01", "yyyy-MM-dd", new Date()),
-        presence: "home",
+        presence: "0",
       },
       {
         day: parse("2024-11-02", "yyyy-MM-dd", new Date()),
-        presence: "home",
+        presence: "0",
       },
       {
         day: parse("2024-11-03", "yyyy-MM-dd", new Date()),
-        presence: "sick",
+        presence: "2",
       },
       {
         day: parse("2024-11-04", "yyyy-MM-dd", new Date()),
-        presence: "sick",
+        presence: "2",
       },
     ],
   },
@@ -75,39 +75,39 @@ export const presenceDto = {
     presence: [
       {
         day: parse("2024-10-27", "yyyy-MM-dd", new Date()),
-        presence: "discharged",
+        presence: "",
       },
       {
         day: parse("2024-10-28", "yyyy-MM-dd", new Date()),
-        presence: "discharged",
+        presence: "",
       },
       {
         day: parse("2024-10-29", "yyyy-MM-dd", new Date()),
-        presence: "discharged",
+        presence: "",
       },
       {
         day: parse("2024-10-30", "yyyy-MM-dd", new Date()),
-        presence: "present",
+        presence: "1",
       },
       {
         day: parse("2024-10-31", "yyyy-MM-dd", new Date()),
-        presence: "present",
+        presence: "1",
       },
       {
         day: parse("2024-11-01", "yyyy-MM-dd", new Date()),
-        presence: "home",
+        presence: "0",
       },
       {
         day: parse("2024-11-02", "yyyy-MM-dd", new Date()),
-        presence: "home",
+        presence: "0",
       },
       {
         day: parse("2024-11-03", "yyyy-MM-dd", new Date()),
-        presence: "present",
+        presence: "1",
       },
       {
         day: parse("2024-11-04", "yyyy-MM-dd", new Date()),
-        presence: "present",
+        presence: "1",
       },
     ],
   },
@@ -115,39 +115,39 @@ export const presenceDto = {
     presence: [
       {
         day: parse("2024-10-27", "yyyy-MM-dd", new Date()),
-        presence: "discharged",
+        presence: "",
       },
       {
         day: parse("2024-10-28", "yyyy-MM-dd", new Date()),
-        presence: "discharged",
+        presence: "",
       },
       {
         day: parse("2024-10-29", "yyyy-MM-dd", new Date()),
-        presence: "discharged",
+        presence: "",
       },
       {
         day: parse("2024-10-30", "yyyy-MM-dd", new Date()),
-        presence: "present",
+        presence: "1",
       },
       {
         day: parse("2024-10-31", "yyyy-MM-dd", new Date()),
-        presence: "present",
+        presence: "1",
       },
       {
         day: parse("2024-11-01", "yyyy-MM-dd", new Date()),
-        presence: "home",
+        presence: "0",
       },
       {
         day: parse("2024-11-02", "yyyy-MM-dd", new Date()),
-        presence: "home",
+        presence: "0",
       },
       {
         day: parse("2024-11-03", "yyyy-MM-dd", new Date()),
-        presence: "present",
+        presence: "1",
       },
       {
         day: parse("2024-11-04", "yyyy-MM-dd", new Date()),
-        presence: "present",
+        presence: "1",
       },
     ],
   },

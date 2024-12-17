@@ -16,17 +16,12 @@ export type ShiftDto = {
   soldierIds?: string[];
 };
 export type PositionDto = { id: string; name: string; shifts: ShiftDto[] };
-export enum PresenceStateDto {
-  PRESENT = "present", // 1
-  HOME = "home", // 0
-  SICK = "sick", // 2
-  DISCHARGED = "discharged", // ""
-}
+
 export type PresenceDto = {
   start: Date;
   end: Date;
   soldiersPresence: Record<string /* soldierId */, SoldierPresenceDto>;
 };
 export type SoldierPresenceDto = {
-  presence: Array<{ day: Date; presence: PresenceStateDto }>;
+  presence: Array<{ day: Date; presence: string }>;
 };
