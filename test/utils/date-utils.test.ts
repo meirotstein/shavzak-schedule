@@ -92,5 +92,27 @@ describe("date utils tests", () => {
 
       expect(closestDate).toStrictEqual(interval.end);
     });
+
+    test(" expect to return the given date when the end date is not given", () => {
+      const date = new Date("2021-02-15T00:00:00");
+      const interval = {
+        start: new Date("2021-01-01T00:00:00"),
+      };
+
+      const closestDate = getClosestDate(date, interval);
+
+      expect(closestDate).toStrictEqual(date);
+    });
+
+    test(" expect to return the given date when the start date is not given", () => {
+      const date = new Date("2021-02-15T00:00:00");
+      const interval = {
+        end: new Date("2021-01-30T23:59:59"),
+      };
+
+      const closestDate = getClosestDate(date, interval);
+
+      expect(closestDate).toStrictEqual(date);
+    });
   });
 });
