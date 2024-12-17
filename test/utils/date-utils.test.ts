@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import {
+  getClosestDate,
   getNextHour,
   hoursBetween,
   timeToDate,
@@ -52,6 +53,44 @@ describe("date utils tests", () => {
       const nextHour = getNextHour("22:00", 4);
 
       expect(nextHour).toBe("02:00");
+    });
+  });
+
+  describe("getClosestDate", () => {
+    test(" expect to return the given date is within the interval", () => {
+      const date = new Date("2021-01-15T12:00:00");
+      const interval = {
+        start: new Date("2021-01-01T00:00:00"),
+        end: new Date("2021-01-30T23:59:59"),
+      };
+
+      const closestDate = getClosestDate(date, interval);
+
+      expect(closestDate).toStrictEqual(date);
+    });
+
+    test(" expect to return the start date when the given date is closer to it", () => {
+      const date = new Date("2020-12-15T00:00:00");
+      const interval = {
+        start: new Date("2021-01-01T00:00:00"),
+        end: new Date("2021-01-30T23:59:59"),
+      };
+
+      const closestDate = getClosestDate(date, interval);
+
+      expect(closestDate).toStrictEqual(interval.start);
+    });
+
+    test(" expect to return the end date when the given date is closer to it", () => {
+      const date = new Date("2021-02-15T00:00:00");
+      const interval = {
+        start: new Date("2021-01-01T00:00:00"),
+        end: new Date("2021-01-30T23:59:59"),
+      };
+
+      const closestDate = getClosestDate(date, interval);
+
+      expect(closestDate).toStrictEqual(interval.end);
     });
   });
 });

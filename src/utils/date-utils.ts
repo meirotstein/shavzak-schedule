@@ -1,4 +1,12 @@
-import { addDays, addHours, differenceInHours, format, parse } from "date-fns";
+import {
+  addDays,
+  addHours,
+  differenceInHours,
+  differenceInMilliseconds,
+  format,
+  isWithinInterval,
+  parse,
+} from "date-fns";
 import { ShiftHours } from "../types/shift-hours";
 
 export function timeToDate(time: ShiftHours): Date {
@@ -28,4 +36,20 @@ export function getNextHour(time: ShiftHours, next = 1): ShiftHours {
   const nextHour = addHours(timeDate, next);
 
   return format(nextHour, "HH:mm") as ShiftHours;
+}
+
+export function getClosestDate(
+  date: Date,
+  interval: { start: Date; end: Date }
+): Date {
+  const { start, end } = interval;
+
+  if (isWithinInterval(date, { start, end })) {
+    return date;
+  }
+
+  const diffToStart = Math.abs(differenceInMilliseconds(date, start));
+  const diffToEnd = Math.abs(differenceInMilliseconds(date, end));
+
+  return diffToStart < diffToEnd ? start : end; // Return the closest boundary
 }
