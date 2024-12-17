@@ -21,8 +21,18 @@ describe("Shift model tests", () => {
       { roles: ["trooper"] },
       { roles: ["officer"] },
     ]);
-    const soldier1 = { id: "123", name: "mose ufnik", role: "trooper" };
-    const soldier2 = { id: "456", name: "mose ufnik", role: "officer" };
+    const soldier1 = {
+      id: "123",
+      name: "mose ufnik",
+      role: "trooper",
+      platoon: "1",
+    };
+    const soldier2 = {
+      id: "456",
+      name: "mose ufnik",
+      role: "officer",
+      platoon: "1",
+    };
 
     shift.addSoldier(soldier1);
     shift.addSoldier(soldier2);
@@ -37,7 +47,12 @@ describe("Shift model tests", () => {
       { roles: ["trooper"] },
       { roles: ["officer"] },
     ]);
-    const soldier1 = { id: "123", name: "mose ufnik", role: "officer" };
+    const soldier1 = {
+      id: "123",
+      name: "mose ufnik",
+      role: "officer",
+      platoon: "1",
+    };
 
     shift.addSoldier(soldier1, 1);
 
@@ -52,9 +67,24 @@ describe("Shift model tests", () => {
       { roles: ["trooper"] },
       { roles: ["officer"] },
     ]);
-    const soldier1 = { id: "123", name: "mose ufnik", role: "trooper" };
-    const soldier2 = { id: "456", name: "mose ufnik", role: "trooper" };
-    const soldier3 = { id: "789", name: "mose ufnik", role: "trooper" };
+    const soldier1 = {
+      id: "123",
+      name: "mose ufnik",
+      role: "trooper",
+      platoon: "1",
+    };
+    const soldier2 = {
+      id: "456",
+      name: "mose ufnik",
+      role: "trooper",
+      platoon: "1",
+    };
+    const soldier3 = {
+      id: "789",
+      name: "mose ufnik",
+      role: "trooper",
+      platoon: "1",
+    };
 
     shift.addSoldier(soldier1);
     shift.addSoldier(soldier2);
@@ -76,9 +106,24 @@ describe("Shift model tests", () => {
       { roles: ["trooper"] },
       { roles: ["trooper"] },
     ]);
-    const soldier1 = { id: "123", name: "mose ufnik", role: "trooper" };
-    const soldier2 = { id: "456", name: "mose ufnik", role: "trooper" };
-    const soldier3 = { id: "789", name: "mose ufnik", role: "trooper" };
+    const soldier1 = {
+      id: "123",
+      name: "mose ufnik",
+      role: "trooper",
+      platoon: "1",
+    };
+    const soldier2 = {
+      id: "456",
+      name: "mose ufnik",
+      role: "trooper",
+      platoon: "1",
+    };
+    const soldier3 = {
+      id: "789",
+      name: "mose ufnik",
+      role: "trooper",
+      platoon: "1",
+    };
 
     shift.addSoldier(soldier1);
     shift.addSoldier(soldier2);
@@ -90,7 +135,12 @@ describe("Shift model tests", () => {
       { roles: ["trooper"] },
       { roles: ["trooper"] },
     ]);
-    const soldier1 = { id: "123", name: "mose ufnik", role: "officer" };
+    const soldier1 = {
+      id: "123",
+      name: "mose ufnik",
+      role: "officer",
+      platoon: "1",
+    };
 
     expect(() => shift.addSoldier(soldier1, 3)).toThrowError(SchedulerError);
   });
@@ -100,7 +150,12 @@ describe("Shift model tests", () => {
       { roles: ["trooper"] },
       { roles: ["trooper"] },
     ]);
-    const soldier1 = { id: "123", name: "mose ufnik", role: "officer" };
+    const soldier1 = {
+      id: "123",
+      name: "mose ufnik",
+      role: "officer",
+      platoon: "1",
+    };
 
     expect(() => shift.addSoldier(soldier1, 0)).toThrowError(SchedulerError);
   });
