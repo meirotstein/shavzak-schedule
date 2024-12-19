@@ -13,7 +13,7 @@ watch(selectedDate, (newValue) => {
 });
 
 </script>
-o
+
 <template>
   <div class="card flex flex-wrap gap-4" dir="ltr">
     <div class="flex-auto">
