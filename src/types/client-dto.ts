@@ -18,8 +18,8 @@ export type ShiftDto = {
 export type PositionDto = { id: string; name: string; shifts: ShiftDto[] };
 
 export type PresenceDto = {
-  start: Date;
-  end: Date;
+  start?: Date;
+  end?: Date;
   soldiersPresence: Record<string /* soldierId */, SoldierPresenceDto>;
 };
 export type SoldierPresenceDto = {

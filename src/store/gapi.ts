@@ -36,9 +36,13 @@ export const useGAPIStore = defineStore("gapi", () => {
     presenceNameFirstRow: 13,
   });
 
-  const soldiers = ref<SoldierDto[]>([]);
-  const positions = ref<PositionDto[]>([]);
-  const presence = ref<PresenceDto | undefined>(undefined);
+  const soldiers = reactive<SoldierDto[]>([]);
+  const positions = reactive<PositionDto[]>([]);
+  const presence = reactive<PresenceDto>({
+    start: undefined,
+    end: undefined,
+    soldiersPresence: {},
+  });
 
   async function load(): Promise<void> {
     return new Promise((resolve) => {
@@ -135,15 +139,17 @@ export const useGAPIStore = defineStore("gapi", () => {
       >
     >;
 
-    soldiers.value = soldiersArr
-      .filter((soldier) => soldier.length === 5) // filter empty rows
-      .map((soldier) => ({
-        id: soldier[0] + "",
-        name: soldier[1] + "",
-        platoon: soldier[2] + "",
-        role: soldier[3] + "",
-        description: soldier[4] + "",
-      }));
+    soldiers.push(
+      ...soldiersArr
+        .filter((soldier) => soldier.length === 5) // filter empty rows
+        .map((soldier) => ({
+          id: soldier[0] + "",
+          name: soldier[1] + "",
+          platoon: soldier[2] + "",
+          role: soldier[3] + "",
+          description: soldier[4] + "",
+        }))
+    );
   }
 
   async function loadPositions(): Promise<void> {
@@ -277,8 +283,8 @@ export const useGAPIStore = defineStore("gapi", () => {
 
     console.log("positions data", positionsState);
 
-    positions.value = positionsState.map((p) => p.position);
-    console.log("positions store", positions.value);
+    positions.push(...positionsState.map((p) => p.position));
+    console.log("positions store", positions);
   }
 
   async function loadPresence(): Promise<void> {
@@ -301,11 +307,8 @@ export const useGAPIStore = defineStore("gapi", () => {
       return;
     }
 
-    presence.value = {
-      start: parse(presenceRaw[0][1], "yyyy-MM-dd", new Date()),
-      end: parse(presenceRaw[1][1], "yyyy-MM-dd", new Date()),
-      soldiersPresence: {},
-    };
+    presence.start = parse(presenceRaw[0][1], "yyyy-MM-dd", new Date());
+    presence.end = parse(presenceRaw[1][1], "yyyy-MM-dd", new Date());
 
     for (
       let i = settings.presenceNameFirstRow - 1;
@@ -318,7 +321,7 @@ export const useGAPIStore = defineStore("gapi", () => {
         continue;
       }
 
-      const soldier = soldiers.value.find(
+      const soldier = soldiers.find(
         (s) => s.description.trim() === soldierDescription.trim()
       );
 
@@ -331,7 +334,7 @@ export const useGAPIStore = defineStore("gapi", () => {
         presence: [],
       };
 
-      let currentDay = presence.value.start;
+      let currentDay = presence.start;
 
       for (let j = settings.presenceNameColumn; j < row.length; ++j) {
         const presenceStateValue = row[j];
@@ -344,10 +347,10 @@ export const useGAPIStore = defineStore("gapi", () => {
         currentDay = addDays(currentDay, 1);
       }
 
-      presence.value.soldiersPresence[soldier.id] = soldierPresence;
+      presence.soldiersPresence[soldier.id] = soldierPresence;
     }
 
-    console.log("presence parsed", presence.value);
+    console.log("presence parsed", presence);
   }
 
   return {
