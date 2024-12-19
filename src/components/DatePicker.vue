@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import DatePicker from "primevue/datepicker";
-import { ref, watch } from "vue";
 import { useGAPIStore } from "../store/gapi";
 import { useScheduleStore } from "../store/schedule";
+import { computed } from "vue";
 
 const gapi = useGAPIStore();
 const scheduleStore = useScheduleStore();
-const selectedDate = ref();
 
-watch(selectedDate, (newValue) => {
-  scheduleStore.setScheduleDate(newValue);
+const currentDate = computed({
+  get: () => scheduleStore.scheduleDate,
+  set: (value: Date) => scheduleStore.setScheduleDate(value),
 });
 
 </script>
@@ -17,7 +17,7 @@ watch(selectedDate, (newValue) => {
 <template>
   <div class="card flex flex-wrap gap-4" dir="ltr">
     <div class="flex-auto">
-      <DatePicker v-model="selectedDate" :minDate="gapi.presence?.start" :maxDate="gapi.presence?.end" showIcon fluid
+      <DatePicker v-model="currentDate" :minDate="gapi.presence?.start" :maxDate="gapi.presence?.end" showIcon fluid
         :showOnFocus="false" inputId="selectedDate" :pt="{
           pcPrevButton: {
             root: 'datepicker-btn-rtl'

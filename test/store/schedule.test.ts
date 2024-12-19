@@ -25,7 +25,11 @@ describe("schedule store tests", () => {
   describe("schedule date", () => {
     beforeEach(() => {
       setActivePinia(createPinia());
-      presenceMock = undefined as any;
+      presenceMock = {
+        start: undefined,
+        end: undefined,
+        soldiersPresence: {},
+      };
       vi.resetAllMocks();
     });
 
