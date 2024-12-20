@@ -8,7 +8,7 @@ const store = useSoldiersStore();
 
 <template>
   <ul class="soldier-list">
-    <li v-for="(soldier, index) in store.soldiers" :key="index">
+    <li v-for="(soldier, index) in store.availableSoldiers" :key="index">
       <SoldierCard :soldier="soldier" />
     </li>
   </ul>

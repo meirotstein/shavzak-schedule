@@ -1,11 +1,14 @@
+import { isSameDay } from "date-fns";
 import { defineStore } from "pinia";
 import { computed, reactive, ref } from "vue";
-import { PresenceModel } from "../model/presence";
+import { PresenceModel, PresenceState } from "../model/presence";
 import { ISoldier, SoldierModel } from "../model/soldier";
 import { useGAPIStore } from "./gapi";
+import { useScheduleStore } from "./schedule";
 
 export const useSoldiersStore = defineStore("soldiers", () => {
   const gapi = useGAPIStore();
+  const scheduleStore = useScheduleStore();
   const draggedSoldier = ref<ISoldier | undefined>();
 
   const soldiers = computed(() => {
@@ -29,6 +32,18 @@ export const useSoldiersStore = defineStore("soldiers", () => {
     });
   });
 
+  const availableSoldiers = computed(() => {
+    if (!gapi.presence.start || !scheduleStore.scheduleDate) return [];
+
+    return soldiers.value.filter((soldier) => {
+      return (
+        soldier.presence.find(
+          (p) => p.date && isSameDay(p.date, scheduleStore.scheduleDate!)
+        )?.presence === PresenceState.PRESENT
+      );
+    });
+  });
+
   function setDraggedSoldier(soldier?: ISoldier) {
     draggedSoldier.value = soldier;
   }
@@ -39,6 +54,7 @@ export const useSoldiersStore = defineStore("soldiers", () => {
 
   return {
     soldiers,
+    availableSoldiers,
     draggedSoldier,
     setDraggedSoldier,
     findSoldierById,

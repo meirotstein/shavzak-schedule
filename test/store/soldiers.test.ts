@@ -22,11 +22,23 @@ vi.mock("../../src/store/gapi", () => {
   };
 });
 
+let scheduleDateMock;
+vi.mock("../../src/store/schedule", () => {
+  return {
+    useScheduleStore: () => {
+      return {
+        scheduleDate: scheduleDateMock,
+      };
+    },
+  };
+});
+
 describe("soldiers store tests", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     soldiersMock = [];
     presenceDtoMock.soldiersPresence = {};
+    scheduleDateMock = undefined;
     vi.resetAllMocks();
   });
 
@@ -197,5 +209,81 @@ describe("soldiers store tests", () => {
     expect(store.soldiers[2]).toBeInstanceOf(SoldierModel);
     expect(store.soldiers[2].id).toBe("789");
     expect(store.soldiers[2].presence.length).toBe(0);
+  });
+
+  test("load available soldiers for schedule date", async () => {
+    soldiersMock = [
+      {
+        id: "123",
+        name: "משה אופניק",
+        role: "קצין",
+        platoon: "1",
+        description: "משה אופניק [קצין] 1",
+      },
+      {
+        id: "456",
+        name: "בוב ספוג",
+        role: "לוחם",
+        platoon: "2",
+        description: "בוב ספוג [לוחם] 2",
+      },
+      {
+        id: "789",
+        name: "ג'ורג קונסטנזה",
+        role: "לוחם",
+        platoon: "מפלג",
+        description: "ג'ורג קונסטנזה [לוחם] מפלג",
+      },
+      {
+        id: "101112",
+        name: "צנדלר בינג",
+        role: "לוחם",
+        platoon: "מפלג",
+        description: "צנדלר בינג [לוחם] מפלג",
+      },
+    ];
+
+    presenceDtoMock.soldiersPresence = {
+      "123": {
+        presence: [
+          {
+            day: parse("2024-10-27", "yyyy-MM-dd", new Date()),
+            presence: "1",
+          },
+          {
+            day: parse("2024-10-28", "yyyy-MM-dd", new Date()),
+            presence: "0",
+          },
+        ],
+      },
+      "456": {
+        presence: [
+          {
+            day: parse("2024-10-27", "yyyy-MM-dd", new Date()),
+            presence: "2",
+          },
+        ],
+      },
+      "789": {
+        presence: [
+          {
+            day: parse("2024-10-27", "yyyy-MM-dd", new Date()),
+            presence: "1",
+          },
+        ],
+      },
+    };
+
+    scheduleDateMock = parse("2024-10-27", "yyyy-MM-dd", new Date());
+
+    const store = useSoldiersStore();
+
+    expect(store.availableSoldiers.length).toBe(2);
+
+    expect(store.availableSoldiers[0]).toBeInstanceOf(SoldierModel);
+    expect(store.availableSoldiers[0].id).toBe("123");
+
+    expect(store.availableSoldiers[1]).toBeInstanceOf(SoldierModel);
+    expect(store.availableSoldiers[1].id).toBe("789");
   });
 });
