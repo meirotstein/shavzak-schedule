@@ -28,7 +28,7 @@ const filteredSoldiers = computed(() => {
       class="w-full md:w-56" />
     <ul class="soldier-list">
       <li v-for="(soldier, index) in filteredSoldiers" :key="index">
-        <SoldierCard :soldier="soldier" />
+        <SoldierCard :soldier="soldier" target="list" />
       </li>
     </ul>
   </div>

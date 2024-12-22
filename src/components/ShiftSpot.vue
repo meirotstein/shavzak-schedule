@@ -42,8 +42,8 @@ function drop() {
 </script>
 
 <template>
-  <DropZone @drag-enter="dragEnter" @drag-leave="dragLeave" @drop="drop">
-    <SoldierCard v-if="props.soldier" :soldier="props.soldier" />
+  <DropZone @drag-enter="dragEnter" @drag-leave="dragLeave" @drop="drop" :isEmpty="!props.soldier">
+    <SoldierCard v-if="props.soldier" :soldier="props.soldier" target="shift" />
     <div class="spot-empty" v-else>
       <span>[{{ props.assignmentDefinition.roles[0] }}]</span>
     </div>

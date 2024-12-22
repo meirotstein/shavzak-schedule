@@ -8,6 +8,7 @@ const store = useSoldiersStore();
 
 const props = defineProps<{
   soldier: ISoldier;
+  target: 'list' | 'shift';
 }>();
 
 const emit = defineEmits<{
@@ -34,14 +35,17 @@ function dragEnd(e: DragEvent) {
 <template>
   <Draggable @drag-over="dragOver" @drag-end="dragEnd" @drag-start="dragStart" @drop="() => console.log('dropped')">
     <Card class="soldier-card">
-      <!-- <template #title>{{ props.soldier.name }}</template> -->
       <template #content #item="{ option }">
-        <p class="text-xs">
-          {{ `${props.soldier.name} [${props.soldier.role}] ${props.soldier.platoon}` }}
-        </p>
-        <!-- <p class="m-1">
-          {{ props.soldier.role }}
-        </p> -->
+        <div v-if="props.target === 'list'">
+          <p class="text-xs">
+            {{ `${props.soldier.name} [${props.soldier.role}] ${props.soldier.platoon}` }}
+          </p>
+        </div>
+        <div v-if="props.target === 'shift'">
+          <p class="text-xs">
+            {{ props.soldier.name }}
+          </p>
+        </div>
       </template>
     </Card>
   </Draggable>

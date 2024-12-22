@@ -1,10 +1,15 @@
 <script setup lang="ts">
 import { reactive } from 'vue';
 
+const props = withDefaults(defineProps<{
+  isEmpty: boolean;
+}>(), {
+  isEmpty: true,
+});
+
 const state = reactive({
   isOver: false,
   isEntered: false,
-
 });
 
 const emit = defineEmits<{
@@ -52,8 +57,8 @@ function dragOver(e: DragEvent) {
 </script>
 
 <template>
-  <div :class="{ 'dropzone': true, 'over': state.isOver }" @drop="drop" @dragenter="dragEnter" @dragleave="dragLeave"
-    @dragover="dragOver">
+  <div :class="['dropzone', props.isEmpty ? 'empty' : 'occupied', { over: state.isOver }]" @drop="drop"
+    @dragenter="dragEnter" @dragleave="dragLeave" @dragover="dragOver">
     <slot>
       Drop here!
     </slot>
@@ -62,12 +67,18 @@ function dragOver(e: DragEvent) {
 
 <style scoped>
 .dropzone {
-  border: 3px dashed #ccc;
-  /* padding: 5px; */
   text-align: center;
 }
 
 .over {
-  border: 3px solid blue;
+  border: 3px solid blue !important;
+}
+
+.empty {
+  border: 3px dashed #ccc;
+}
+
+.occupied {
+  border: 1px solid #ccc;
 }
 </style>
