@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import Select from "primevue/select";
+import { computed, ref } from "vue";
 import { useSoldiersStore } from "../store/soldiers";
 import SoldierCard from "./SoldierCard.vue";
-import { computed, ref } from "vue";
 
 const store = useSoldiersStore();
 const allPlatoonsOption = { id: "all", name: "כל המחלקות" };
@@ -37,5 +37,7 @@ const filteredSoldiers = computed(() => {
 <style scoped>
 .soldier-list {
   width: 14rem;
+  max-height: 86vh;
+  overflow: auto;
 }
 </style>

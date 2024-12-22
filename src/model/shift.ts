@@ -2,7 +2,7 @@ import { SchedulerError } from "../errors/scheduler-error";
 import { ShiftHours } from "../types/shift-hours";
 import { ISoldier } from "./soldier";
 
-type AssignmentDefinition = { roles: string[] };
+export type AssignmentDefinition = { roles: string[] };
 
 export interface IShift {
   shiftId: string;

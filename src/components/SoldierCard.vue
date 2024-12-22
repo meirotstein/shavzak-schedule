@@ -37,7 +37,7 @@ function dragEnd(e: DragEvent) {
       <!-- <template #title>{{ props.soldier.name }}</template> -->
       <template #content #item="{ option }">
         <p class="text-xs">
-          {{ props.soldier.name }}
+          {{ `${props.soldier.name} [${props.soldier.role}] ${props.soldier.platoon}` }}
         </p>
         <!-- <p class="m-1">
           {{ props.soldier.role }}
