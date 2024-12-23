@@ -8,8 +8,8 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div draggable="true" class="draggable" @dragstart="(e) => $emit('drag-start', e)"
-    @dragend="(e) => $emit('drag-end', e)" @dragover="(e) => $emit('drag-over', e)">
+  <div draggable="true" class="draggable" @dragstart="(e: DragEvent) => emit('drag-start', e)"
+    @dragend="(e: DragEvent) => emit('drag-end', e)" @dragover="(e: DragEvent) => emit('drag-over', e)">
     <slot>
       Drag me!
     </slot>
