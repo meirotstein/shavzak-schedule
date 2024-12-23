@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { AssignmentDefinition } from "../model/shift";
-import { ISoldier } from "../model/soldier";
+import { Assignment } from "../model/shift";
 import { useSoldiersStore } from "../store/soldiers";
 import DropZone from "./dragndrop/DropZone.vue";
 import SoldierCard from "./SoldierCard.vue";
@@ -10,8 +9,7 @@ const store = useSoldiersStore();
 
 const props = defineProps<{
   spotIndex: number;
-  assignmentDefinition: AssignmentDefinition;
-  soldier?: ISoldier;
+  assignment: Assignment;
 }>();
 
 const overSoldierId = ref<string | undefined>();
@@ -42,10 +40,10 @@ function drop() {
 </script>
 
 <template>
-  <DropZone @drag-enter="dragEnter" @drag-leave="dragLeave" @drop="drop" :isEmpty="!props.soldier">
-    <SoldierCard v-if="props.soldier" :soldier="props.soldier" target="shift" />
+  <DropZone @drag-enter="dragEnter" @drag-leave="dragLeave" @drop="drop" :isEmpty="!props.assignment.soldier">
+    <SoldierCard v-if="props.assignment.soldier" :soldier="props.assignment.soldier" target="shift" />
     <div class="spot-empty" v-else>
-      <span>[{{ props.assignmentDefinition.roles[0] }}]</span>
+      <span>[{{ props.assignment.roles[0] }}]</span>
     </div>
   </DropZone>
 </template>

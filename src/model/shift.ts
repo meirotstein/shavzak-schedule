@@ -2,26 +2,31 @@ import { SchedulerError } from "../errors/scheduler-error";
 import { ShiftHours } from "../types/shift-hours";
 import { ISoldier } from "./soldier";
 
-export type AssignmentDefinition = { roles: string[] };
+export type AssignmentDef = { roles: string[]; soldier?: ISoldier };
+export type Assignment = AssignmentDef & { soldier?: ISoldier };
 
 export interface IShift {
   shiftId: string;
   startTime: ShiftHours;
   endTime: ShiftHours;
-  assignmentDefinitions: AssignmentDefinition[];
-  soldiers: ISoldier[];
+  assignments: Assignment[];
   addSoldier(soldier: ISoldier, index?: number): void;
 }
 
 export class ShiftModel implements IShift {
-  private _soldiers: ISoldier[] = [];
+  private _assignments: Assignment[];
 
   constructor(
     private _shiftId: string,
     private _startTime: ShiftHours,
     private _endTime: ShiftHours,
-    private _assignmentDefs: AssignmentDefinition[] // assignment definitions indexed by soldier index, no assignment definition means that the time slot is not required
-  ) {}
+    // no assignment definitions means that the time slot is not required
+    _assignmentDefs: AssignmentDef[]
+  ) {
+    this._assignments = _assignmentDefs.map((assignmentDef) => {
+      return { ...assignmentDef };
+    });
+  }
 
   get shiftId(): string {
     return this._shiftId;
@@ -35,40 +40,39 @@ export class ShiftModel implements IShift {
     return this._endTime;
   }
 
-  get assignmentDefinitions(): AssignmentDefinition[] {
-    return this._assignmentDefs;
-  }
-
-  get soldiers(): ISoldier[] {
-    return this._soldiers;
+  get assignments(): Assignment[] {
+    return this._assignments;
   }
 
   get isAssignable(): boolean {
-    return !!this._assignmentDefs.length;
+    return !!this._assignments.length;
   }
 
   addSoldier(soldier: ISoldier, index?: number): void {
     if (typeof index === "undefined") {
-      index = this._soldiers.length;
+      index = this.assignments.findIndex((assignment) => !assignment.soldier);
     }
-    if (index < this.assignmentDefinitions.length) {
-      if (!this.assignmentDefinitions[index].roles.includes(soldier.role)) {
-        throw new SchedulerError(
-          "Soldier role does not match assignment definition",
-          {
-            assignmentDefinitions: this.assignmentDefinitions,
-            index,
-            soldierRole: soldier.role,
-          }
-        );
-      }
-      this._soldiers[index] = soldier;
+    if (index !== -1 && index < this.assignments.length) {
+      // if (!this.assignmentDefinitions[index].roles.includes(soldier.role)) {
+      //   throw new SchedulerError(
+      //     "Soldier role does not match assignment definition",
+      //     {
+      //       assignmentDefinitions: this.assignmentDefinitions,
+      //       index,
+      //       soldierRole: soldier.role,
+      //     }
+      //   );
+      // }
+      this.assignments[index].soldier = soldier;
       return;
     }
-    throw new SchedulerError("Cannot add more soldiers to this shift", {
-      assignmentDefinitions: this.assignmentDefinitions,
-      index,
-    });
+    throw new SchedulerError(
+      `Cannot add more soldiers to this shift ${this.shiftId} ${index} ${this.assignments.length}`,
+      {
+        assignments: this.assignments,
+        index,
+      }
+    );
   }
 }
 

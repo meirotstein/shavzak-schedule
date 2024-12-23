@@ -123,15 +123,15 @@ describe("positions store tests", () => {
     expect(store.positions[0].shifts[0].shiftId).toBe("1");
     expect(store.positions[0].shifts[0].startTime).toBe("00:00");
     expect(store.positions[0].shifts[0].endTime).toBe("02:00");
-    expect(store.positions[0].shifts[0].assignmentDefinitions).toEqual([
-      { roles: ["officer"] },
+    expect(store.positions[0].shifts[0].assignments.length).toBe(1);
+    expect(store.positions[0].shifts[0].assignments[0].roles).toEqual([
+      "officer",
     ]);
 
-    expect(store.positions[0].shifts[0].soldiers.length).toBe(1);
-    expect(store.positions[0].shifts[0].soldiers[0]).toBeInstanceOf(
+    expect(store.positions[0].shifts[0].assignments[0].soldier).toBeInstanceOf(
       SoldierModel
     );
-    expect(store.positions[0].shifts[0].soldiers[0].id).toBe("123");
+    expect(store.positions[0].shifts[0].assignments[0].soldier!.id).toBe("123");
 
     expect(store.positions[1]).toBeInstanceOf(PositionModel);
     expect(store.positions[1].positionId).toBe("2");
@@ -140,15 +140,18 @@ describe("positions store tests", () => {
     expect(store.positions[1].shifts[0].shiftId).toBe("1");
     expect(store.positions[1].shifts[0].startTime).toBe("00:00");
     expect(store.positions[1].shifts[0].endTime).toBe("02:00");
-    expect(store.positions[1].shifts[0].assignmentDefinitions).toEqual([
-      { roles: ["officer"] },
-    ]);
+    expect(store.positions[1].shifts[0].assignments.length).toBe(1);
+    expect(store.positions[1].shifts[0].assignments[0].roles).toEqual(["officer"]);
+    expect(store.positions[1].shifts[0].assignments[0].soldier).toBeInstanceOf(
+      SoldierModel
+    );
+
     expect(store.positions[1].shifts[1].shiftId).toBe("2");
     expect(store.positions[1].shifts[1].startTime).toBe("02:00");
     expect(store.positions[1].shifts[1].endTime).toBe("04:00");
-    expect(store.positions[1].shifts[1].assignmentDefinitions).toEqual([
-      { roles: ["officer"] },
-    ]);
+    expect(store.positions[1].shifts[1].assignments.length).toBe(1);
+    expect(store.positions[1].shifts[1].assignments[0].roles).toEqual(["officer"]);
+    expect(store.positions[1].shifts[1].assignments[0].soldier).toBeUndefined();
   });
 
   test("fetchPositions from backend unsorted - expected to sort starting from the day start hour (14:00)", async () => {
@@ -191,12 +194,15 @@ describe("positions store tests", () => {
 
     store.assignSoldiersToShift("1", "1", 0, "123");
 
-    expect(store.positions[0].shifts[0].soldiers.length).toBe(1);
-    expect(store.positions[0].shifts[0].soldiers[0]).toBeInstanceOf(
+    expect(store.positions[0].shifts[0].assignments[0].soldier).toBeInstanceOf(
       SoldierModel
     );
-    expect(store.positions[0].shifts[0].soldiers[0].id).toBe("123");
-    expect(store.positions[0].shifts[0].soldiers[0].name).toBe("mose ufnik");
-    expect(store.positions[0].shifts[0].soldiers[0].role).toBe("officer");
+    expect(store.positions[0].shifts[0].assignments[0].soldier!.id).toBe("123");
+    expect(store.positions[0].shifts[0].assignments[0].soldier!.name).toBe(
+      "mose ufnik"
+    );
+    expect(store.positions[0].shifts[0].assignments[0].soldier!.role).toBe(
+      "officer"
+    );
   });
 });
