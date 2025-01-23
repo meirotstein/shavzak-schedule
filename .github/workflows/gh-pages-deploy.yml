@@ -35,5 +35,5 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist  # Vite outputs the build to the 'dist' folder by default
-          publish_branch: gh-pages  # The branch where the built files will be pushed
+          publish_dir: ./dist
+          publish_branch: gh-pages
