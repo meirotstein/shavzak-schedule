@@ -11,9 +11,21 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div id="app">
+  <div id="app" class="rtl-support">
     <router-view />
   </div>
 </template>
 
-<style scoped></style>
+<style scoped lang="scss">
+/* Main RTL container */
+.rtl-support {
+  direction: rtl;
+  text-align: right;
+  
+  /* Override LTR-specific elements */
+  :deep(.ltr-element) {
+    direction: ltr;
+    text-align: left;
+  }
+}
+</style>

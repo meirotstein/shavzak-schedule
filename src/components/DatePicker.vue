@@ -39,23 +39,133 @@ function handleDateInQuery(dateStr: string) {
   }
 }
 
-
+// Format date range for display
+function formatDateRange() {
+  if (!gapi.presence?.start || !gapi.presence?.end) return '';
+  return `${format(gapi.presence.start, 'MMM d')} - ${format(gapi.presence.end, 'MMM d, yyyy')}`;
+}
 </script>
 
 <template>
-  <div class="card flex flex-wrap gap-4" dir="ltr">
-    <div class="flex-auto">
-      <DatePicker v-model="currentDate" :minDate="gapi.presence?.start" :maxDate="gapi.presence?.end" showIcon fluid
-        :showOnFocus="false" inputId="selectedDate" :pt="{
+  <!-- Keep dir="ltr" to ensure calendar displays correctly -->
+  <div class="date-picker-container ltr-element" dir="ltr">
+    <div class="date-picker-wrapper">
+      <label for="selectedDate" class="date-picker-label">Schedule Date</label>
+      <DatePicker
+        v-model="currentDate"
+        :minDate="gapi.presence?.start"
+        :maxDate="gapi.presence?.end"
+        showIcon
+        fluid
+        :showOnFocus="false"
+        inputId="selectedDate"
+        :pt="{
+          root: { class: 'w-full' },
+          input: { class: 'date-input' },
+          panel: { class: 'date-panel' },
           pcPrevButton: {
             root: 'datepicker-btn-rtl'
           },
           pcNextButton: {
             root: 'datepicker-btn-rtl'
-          }
-        }" />
+          },
+          header: { class: 'date-header' },
+          footer: { class: 'date-footer' },
+          today: { class: 'date-today-btn' },
+          clear: { class: 'date-clear-btn' }
+        }"
+      />
+      <div class="date-range-info" v-if="gapi.presence?.start && gapi.presence?.end">
+        <span>Available range: {{ formatDateRange() }}</span>
+      </div>
     </div>
   </div>
 </template>
 
-<style scoped></style>
+
+<style scoped lang="scss">
+.date-picker-container {
+  background-color: rgb(var(--surface-50));
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgb(var(--surface-200));
+  max-width: 20rem;
+  /* RTL comment: This component uses dir="ltr" and ltr-element class to maintain proper calendar display */
+}
+
+.date-picker-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.date-picker-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgb(var(--primary-700));
+  margin-bottom: 0.5rem;
+}
+
+.date-range-info {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: rgb(var(--surface-600));
+  font-style: italic;
+}
+
+:deep(.date-input) {
+  border-radius: 6px;
+  border: 1px solid rgb(var(--surface-300));
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: rgb(var(--primary-400));
+  }
+  
+  &:focus {
+    border-color: rgb(var(--primary-500));
+    box-shadow: 0 0 0 2px rgba(var(--primary-300), 0.25);
+  }
+}
+
+:deep(.date-panel) {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgb(var(--surface-300));
+  padding: 0.5rem;
+}
+
+:deep(.date-header) {
+  background-color: rgb(var(--primary-50));
+  border-radius: 6px;
+}
+
+:deep(.date-footer) {
+  background-color: rgb(var(--surface-50));
+  border-top: 1px solid rgb(var(--surface-200));
+  padding-top: 0.5rem;
+}
+
+:deep(.date-today-btn),
+:deep(.date-clear-btn) {
+  background-color: rgb(var(--primary-50));
+  border: 1px solid rgb(var(--primary-200));
+  color: rgb(var(--primary-700));
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: rgb(var(--primary-100));
+    border-color: rgb(var(--primary-300));
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .date-picker-container {
+    max-width: 100%;
+  }
+}
+</style>

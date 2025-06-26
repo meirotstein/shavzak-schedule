@@ -40,20 +40,121 @@ function drop() {
 </script>
 
 <template>
-  <DropZone @drag-enter="dragEnter" @drag-leave="dragLeave" @drop="drop" :isEmpty="!props.assignment.soldier">
-    <SoldierCard v-if="props.assignment.soldier" :soldier="props.assignment.soldier" target="shift" />
-    <div class="spot-empty" v-else>
-      <span>[{{ props.assignment.roles[0] }}]</span>
+  <DropZone
+    @drag-enter="dragEnter"
+    @drag-leave="dragLeave"
+    @drop="drop"
+    :isEmpty="!props.assignment.soldier"
+    class="shift-drop-zone"
+    :class="{ 'drop-zone-active': overSoldierId }"
+  >
+    <SoldierCard
+      v-if="props.assignment.soldier"
+      :soldier="props.assignment.soldier"
+      target="shift"
+    />
+    <div
+      class="spot-empty"
+      v-else
+      :class="{ 'spot-empty-hover': overSoldierId }"
+      role="button"
+      tabindex="0"
+      aria-label="Empty shift spot for role: {{ props.assignment.roles[0] }}"
+    >
+      <div class="role-badge">{{ props.assignment.roles[0] }}</div>
+      <div class="drop-hint" v-if="overSoldierId">שחרר כאן</div> <!-- RTL: Changed to Hebrew "Drop here" -->
     </div>
   </DropZone>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
+.shift-drop-zone {
+  width: 100%;
+  height: 100%;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  
+  &.drop-zone-active {
+    background-color: rgba(var(--primary-100), 0.4);
+    box-shadow: 0 0 0 2px rgb(var(--primary-400));
+  }
+}
+
 .spot-empty {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   height: 100%;
-  border: 1px dashed #ccc;
+  min-height: 1.75rem; /* Reduced height for more compact layout */
+  border: 1px dashed rgb(var(--surface-400));
+  border-radius: 6px;
+  background-color: rgba(var(--surface-100), 0.5);
+  padding: 0.25rem; /* Reduced padding for more compact layout */
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: rgb(var(--primary-400));
+    background-color: rgba(var(--primary-50), 0.3);
+  }
+  
+  &.spot-empty-hover {
+    border: 2px dashed rgb(var(--primary-500));
+    background-color: rgba(var(--primary-100), 0.4);
+    transform: scale(1.02);
+  }
 }
+
+.role-badge {
+  font-size: 0.7rem; /* Smaller font for compact layout */
+  font-weight: 600;
+  color: rgb(var(--primary-700));
+  background-color: rgba(var(--primary-100), 0.7);
+  padding: 0.1rem 0.4rem; /* Reduced padding for compact layout */
+  border-radius: 1rem;
+  margin-bottom: 0.15rem; /* Reduced margin for compact layout */
+  border: 1px solid rgb(var(--primary-200));
+  text-align: center; /* Ensure text is centered for RTL/LTR compatibility */
+}
+
+.drop-hint {
+  font-size: 0.65rem; /* Smaller font for compact layout */
+  color: rgb(var(--primary-600));
+  margin-top: 0.15rem; /* Reduced margin for compact layout */
+  font-style: italic;
+  animation: pulse 1.5s infinite;
+  text-align: center; /* Ensure text is centered for RTL/LTR compatibility */
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .spot-empty {
+    min-height: 1.5rem;
+    padding: 0.15rem;
+  }
+  
+  .role-badge {
+    font-size: 0.65rem;
+    padding: 0.05rem 0.3rem;
+  }
+  
+  .drop-hint {
+    font-size: 0.6rem;
+  }
+}
+
+/* RTL comment: Added text-align center to ensure proper text alignment in both RTL and LTR contexts */
+/* Layout comment: Reduced sizes and spacing for more compact layout to fit within shift boundaries */
 </style>
