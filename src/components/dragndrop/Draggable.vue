@@ -49,6 +49,7 @@ function handleKeyboardDragEnd(e: KeyboardEvent) {
 <style scoped lang="scss">
 .draggable {
   width: 100%;
+  height: 100%;
   cursor: grab;
   position: relative;
   transition: transform 0.2s ease, box-shadow 0.2s ease;

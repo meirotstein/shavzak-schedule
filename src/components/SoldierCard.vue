@@ -64,6 +64,7 @@ function dragEnd(e: DragEvent) {
 .draggable-soldier {
   cursor: grab;
   transition: transform 0.15s ease;
+  width: 100%;
   
   &:active {
     cursor: grabbing;
@@ -96,6 +97,9 @@ function dragEnd(e: DragEvent) {
   border: 1px solid rgb(var(--primary-300));
   /* More compact styling for shift cards */
   max-height: 1.75rem;
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 .soldier-content-list {
@@ -106,6 +110,9 @@ function dragEnd(e: DragEvent) {
 .soldier-content-shift {
   padding: 0.1rem; /* Reduced padding for more compact layout */
   text-align: center; /* Center text for better RTL/LTR compatibility in small spaces */
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 .soldier-name {

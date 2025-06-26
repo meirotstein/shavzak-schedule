@@ -27,12 +27,13 @@ function drop(spotIndex: number, soldierId: string) {
 // Format time for display (e.g., "08:00" to "8")
 function formatShiftTime(time: string): string {
   // Simple formatting to make the time more readable
-  return time.replace(/^0/, '').replace(/:00$/, '');
+  return time.replace(/^:0/, '').replace(/:00$/, '');
 }
 </script>
 
 <template>
   <div class="shift-container">
+    <!-- Floating time label that doesn't take up space -->
     <div class="shift-time-info">
       <span class="shift-time">{{ formatShiftTime(shift.startTime) }} - {{ formatShiftTime(shift.endTime) }}</span>
     </div>
@@ -41,7 +42,7 @@ function formatShiftTime(time: string): string {
     <div class="shift-spots-container" :class="{ 'many-spots': shift.assignments.length > 3 }">
       <!-- Show count badge when there are many spots -->
       <div v-if="shift.assignments.length > 3" class="spots-count-badge">
-        {{ shift.assignments.length }} spots
+        {{ shift.assignments.length }} מקומות
       </div>
       
       <div
@@ -68,17 +69,23 @@ function formatShiftTime(time: string): string {
   height: 100%;
   padding: 0.25rem;
   position: relative; /* For absolute positioning of badges */
+  z-index: 0; /* Establish a stacking context */
+  overflow: visible; /* Ensure content outside the container is visible */
 }
 
 .shift-time-info {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 0.25rem;
-  padding: 0.15rem;
-  background-color: rgba(var(--primary-100), 0.5);
-  border-radius: 4px;
-  border: 1px solid rgba(var(--primary-200), 0.7);
-  direction: ltr; /* Keep time display in LTR format */
+  border-radius: 0px 4px 0px 4px;
+  border-bottom: solid 1px rgb(var(--primary-400));
+  border-left: solid 1px rgb(var(--primary-400));
+  direction: ltr;
+  text-align: center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: rgba(229, 231, 235, 1);//#e5e7eb;
+  font-size: 0.3px;
+  z-index: 10;
 }
 
 .shift-time {
@@ -93,7 +100,7 @@ function formatShiftTime(time: string): string {
   flex: 1;
   gap: 0.25rem;
   overflow-y: auto; /* Enable scrolling for many spots */
-  max-height: calc(100% - 1.5rem); /* Limit height to prevent overflow */
+  max-height: 100%; /* Use full height */
   
   /* Scrollbar styling */
   &::-webkit-scrollbar {
@@ -111,7 +118,6 @@ function formatShiftTime(time: string): string {
   
   /* Special styling for when there are many spots */
   &.many-spots {
-    max-height: 8rem; /* Fixed height when many spots */
     padding-right: 0.25rem; /* Space for scrollbar */
   }
 }
@@ -124,8 +130,8 @@ function formatShiftTime(time: string): string {
 
 .spots-count-badge {
   position: absolute;
-  top: 0.25rem;
-  right: 0.25rem;
+  top: 1px;
+  left: 1px;
   background-color: rgb(var(--primary-600));
   color: white;
   font-size: 0.65rem;
@@ -158,7 +164,7 @@ function formatShiftTime(time: string): string {
   }
   
   .shift-spots-container.many-spots {
-    max-height: 6rem;
+    /* No max-height restriction to allow natural expansion */
   }
 }
 

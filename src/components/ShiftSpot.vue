@@ -73,6 +73,9 @@ function drop() {
   height: 100%;
   transition: all 0.2s ease;
   border-radius: 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   
   &.drop-zone-active {
     background-color: rgba(var(--primary-100), 0.4);
@@ -85,6 +88,7 @@ function drop() {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  width: 100%;
   height: 100%;
   min-height: 1.75rem; /* Reduced height for more compact layout */
   border: 1px dashed rgb(var(--surface-400));
