@@ -84,5 +84,25 @@ export const usePositionsStore = defineStore("positions", () => {
     shift.addSoldier(soldier, shiftSpotIndex);
   }
 
-  return { positions, assignSoldiersToShift };
+  function removeSoldierFromShift(
+    positionId: string,
+    shiftId: string,
+    shiftSpotIndex: number
+  ) {
+    const position = positions.value.find(
+      (position) => position.positionId === positionId
+    );
+    if (!position) {
+      throw new SchedulerError(`Position with id ${positionId} not found`);
+    }
+    const shift = position.shifts.find((shift) => shift.shiftId === shiftId);
+    if (!shift) {
+      throw new SchedulerError(
+        `Shift with id ${shiftId} not found in position with id ${positionId}`
+      );
+    }
+    shift.removeSoldier(shiftSpotIndex);
+  }
+
+  return { positions, assignSoldiersToShift, removeSoldierFromShift };
 });

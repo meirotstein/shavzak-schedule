@@ -169,4 +169,63 @@ describe("Shift model tests", () => {
 
   //   expect(() => shift.addSoldier(soldier1, 0)).toThrowError(SchedulerError);
   // });
+
+  test("Shift model removeSoldier", () => {
+    const shift = new ShiftModel("123", "16:00", "18:00", [
+      { roles: ["trooper"] },
+      { roles: ["officer"] },
+    ]);
+    const soldier1 = {
+      id: "123",
+      name: "mose ufnik",
+      role: "trooper",
+      platoon: "1",
+      presence: [],
+    };
+    const soldier2 = {
+      id: "456",
+      name: "mose ufnik",
+      role: "officer",
+      platoon: "1",
+      presence: [],
+    };
+
+    shift.addSoldier(soldier1);
+    shift.addSoldier(soldier2);
+
+    expect(shift.assignments[0].soldier).toBe(soldier1);
+    expect(shift.assignments[1].soldier).toBe(soldier2);
+
+    shift.removeSoldier(0);
+
+    expect(shift.assignments[0].soldier).toBeUndefined();
+    expect(shift.assignments[1].soldier).toBe(soldier2);
+  });
+
+  test("Shift model removeSoldier error: invalid index", () => {
+    const shift = new ShiftModel("123", "16:00", "18:00", [
+      { roles: ["trooper"] },
+      { roles: ["officer"] },
+    ]);
+
+    expect(() => shift.removeSoldier(-1)).toThrowError(SchedulerError);
+    expect(() => shift.removeSoldier(2)).toThrowError(SchedulerError);
+  });
+
+  test("Shift model removeSoldier from empty spot", () => {
+    const shift = new ShiftModel("123", "16:00", "18:00", [
+      { roles: ["trooper"] },
+      { roles: ["officer"] },
+    ]);
+
+    // Removing from an empty spot should work (set to undefined)
+    shift.removeSoldier(0);
+    expect(shift.assignments[0].soldier).toBeUndefined();
+  });
+
+  test("UnAssignableShift removeSoldier error", () => {
+    const shift = new UnAssignableShift("123", "16:00", "18:00");
+
+    expect(() => shift.removeSoldier(0)).toThrowError(SchedulerError);
+  });
 });

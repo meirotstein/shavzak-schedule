@@ -1,5 +1,6 @@
 import { createPinia, setActivePinia } from "pinia";
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { SchedulerError } from "../../src/errors/scheduler-error";
 import { PositionModel } from "../../src/model/position";
 import { SoldierModel } from "../../src/model/soldier";
 import { usePositionsStore } from "../../src/store/positions";
@@ -204,5 +205,97 @@ describe("positions store tests", () => {
     expect(store.positions[0].shifts[0].assignments[0].soldier!.role).toBe(
       "officer"
     );
+  });
+
+  test("removeSoldierFromShift", async () => {
+    // Use test data without pre-assigned soldiers
+    const testDataWithoutSoldiers = [
+      {
+        id: "1",
+        name: "shin-gimel",
+        shifts: [
+          {
+            id: "1",
+            startTime: "00:00",
+            endTime: "02:00",
+            assignmentDefs: [{ roles: ["officer"] }],
+          },
+        ],
+      },
+    ];
+    positionsMock = testDataWithoutSoldiers as any;
+
+    findSoldierByIdMock.mockReturnValue(
+      new SoldierModel("123", "mose ufnik", "officer", "3")
+    );
+
+    const store = usePositionsStore();
+
+    // First assign a soldier
+    store.assignSoldiersToShift("1", "1", 0, "123");
+    expect(store.positions[0].shifts[0].assignments[0].soldier).toBeInstanceOf(
+      SoldierModel
+    );
+
+    // Then remove the soldier
+    store.removeSoldierFromShift("1", "1", 0);
+    expect(store.positions[0].shifts[0].assignments[0].soldier).toBeUndefined();
+  });
+
+  test("removeSoldierFromShift error: position not found", async () => {
+    positionsMock = testPositionsData as any;
+
+    findSoldierByIdMock.mockReturnValue(
+      new SoldierModel("123", "mose ufnik", "officer", "3")
+    );
+
+    const store = usePositionsStore();
+
+    expect(() => store.removeSoldierFromShift("999", "1", 0)).toThrowError(
+      SchedulerError
+    );
+  });
+
+  test("removeSoldierFromShift error: shift not found", async () => {
+    positionsMock = testPositionsData as any;
+
+    findSoldierByIdMock.mockReturnValue(
+      new SoldierModel("123", "mose ufnik", "officer", "3")
+    );
+
+    const store = usePositionsStore();
+
+    expect(() => store.removeSoldierFromShift("1", "999", 0)).toThrowError(
+      SchedulerError
+    );
+  });
+
+  test("removeSoldierFromShift from empty spot", async () => {
+    // Use test data without pre-assigned soldiers
+    const testDataWithoutSoldiers = [
+      {
+        id: "1",
+        name: "shin-gimel",
+        shifts: [
+          {
+            id: "1",
+            startTime: "00:00",
+            endTime: "02:00",
+            assignmentDefs: [{ roles: ["officer"] }],
+          },
+        ],
+      },
+    ];
+    positionsMock = testDataWithoutSoldiers as any;
+
+    findSoldierByIdMock.mockReturnValue(
+      new SoldierModel("123", "mose ufnik", "officer", "3")
+    );
+
+    const store = usePositionsStore();
+
+    // Remove from an empty spot (should work, sets to undefined)
+    store.removeSoldierFromShift("1", "1", 0);
+    expect(store.positions[0].shifts[0].assignments[0].soldier).toBeUndefined();
   });
 });

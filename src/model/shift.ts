@@ -11,6 +11,7 @@ export interface IShift {
   endTime: ShiftHours;
   assignments: Assignment[];
   addSoldier(soldier: ISoldier, index?: number): void;
+  removeSoldier(index: number): void;
 }
 
 export class ShiftModel implements IShift {
@@ -74,6 +75,19 @@ export class ShiftModel implements IShift {
       }
     );
   }
+
+  removeSoldier(index: number): void {
+    if (index < 0 || index >= this.assignments.length) {
+      throw new SchedulerError(
+        `Invalid index ${index} for removing soldier from shift ${this.shiftId}`,
+        {
+          assignments: this.assignments,
+          index,
+        }
+      );
+    }
+    this.assignments[index].soldier = undefined;
+  }
 }
 
 export class UnAssignableShift extends ShiftModel {
@@ -83,5 +97,9 @@ export class UnAssignableShift extends ShiftModel {
 
   addSoldier(): void {
     throw new SchedulerError("Cannot add soldier to unassignable shift");
+  }
+
+  removeSoldier(/* index: number */): void {
+    throw new SchedulerError("Cannot remove soldier from unassignable shift");
   }
 }
