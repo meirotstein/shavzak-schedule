@@ -4,6 +4,7 @@
 @tailwind variants;
 
 :root {
+  /* Primary color palette - emerald green */
   --primary-50: 236 253 245;
   --primary-100: 209 250 229;
   --primary-200: 167 243 208;
@@ -15,6 +16,8 @@
   --primary-800: 6 95 70;
   --primary-900: 4 78 56;
   --primary-950: 2 44 34;
+  
+  /* Surface/neutral color palette - zinc */
   --surface-0: 255 255 255;
   --surface-50: 250 250 250;
   --surface-100: 244 244 245;
@@ -27,7 +30,14 @@
   --surface-800: 39 39 42;
   --surface-900: 24 24 27;
   --surface-950: 9 9 11;
+  
+  /* Accent colors for status indicators */
+  --success: 34 197 94;
+  --warning: 234 179 8;
+  --danger: 239 68 68;
+  --info: 59 130 246;
 
+  /* Primary color variables */
   --primary: var(--primary-500);
   --primary-inverse: var(--surface-0);
   --primary-hover: var(--primary-600);
@@ -36,8 +46,23 @@
   --primary-highlight-opacity: 0.1;
   --primary-highlight-inverse: var(--primary-700);
   --primary-highlight-hover-opacity: 0.2;
+  
+  /* Font settings */
+  --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  
+  /* Animation speeds */
+  --transition-fast: 150ms;
+  --transition-normal: 250ms;
+  --transition-slow: 350ms;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
-.dark{
+
+/* Dark mode overrides */
+.dark {
   --primary: var(--primary-400);
   --primary-inverse: var(--surface-900);
   --primary-hover: var(--primary-300);
@@ -48,38 +73,238 @@
   --primary-highlight-hover-opacity: 0.3;
 }
 
+/* Custom primary color theme */
 .customized-primary {
-  &:not(.dark){
-      --primary: var(--primary-950);
-      --primary-inverse: var(--surface-0);
-      --primary-hover: var(--primary-800);
-      --primary-active-color: var(--primary-900);
+  &:not(.dark) {
+    --primary: var(--primary-950);
+    --primary-inverse: var(--surface-0);
+    --primary-hover: var(--primary-800);
+    --primary-active-color: var(--primary-900);
 
-      --primary-highlight-opacity: 1;
-      --primary-highlight-inverse: var(--surface-0);
-      --primary-highlight-hover-opacity: 0.8;
+    --primary-highlight-opacity: 1;
+    --primary-highlight-inverse: var(--surface-0);
+    --primary-highlight-hover-opacity: 0.8;
   }
-  &.dark{
-      --primary: var(--primary-50);
-      --primary-inverse: var(--surface-950);
-      --primary-hover: var(--primary-100);
-      --primary-active-color: var(--primary-100);
+  
+  &.dark {
+    --primary: var(--primary-50);
+    --primary-inverse: var(--surface-950);
+    --primary-hover: var(--primary-100);
+    --primary-active-color: var(--primary-100);
 
-      --primary-highlight-opacity: 0.1;
-      --primary-highlight-inverse: var(--surface-0);
-      --primary-highlight-hover-opacity: 0.2;
-
+    --primary-highlight-opacity: 0.1;
+    --primary-highlight-inverse: var(--surface-0);
+    --primary-highlight-hover-opacity: 0.2;
   }
 }
 
+/* Global styles */
+html {
+  font-family: var(--font-family);
+  color: rgb(var(--surface-800));
+  line-height: 1.5;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: rgb(var(--surface-50));
+}
+
+/* Focus styles for accessibility */
+:focus-visible {
+  outline: 2px solid rgb(var(--primary-500));
+  outline-offset: 2px;
+}
+
+/* PrimeVue component overrides */
 .p-card {
-  border-radius: 1px;
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-normal) ease;
+}
+
+.p-card:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .p-card .p-card-body {
-  padding: 4px;
+  padding: 0.75rem;
 }
 
+.p-card .p-card-content {
+  padding: 0.5rem 0;
+}
+
+.p-button {
+  border-radius: 6px;
+  transition: all var(--transition-fast) ease;
+}
+
+.p-button:focus {
+  box-shadow: 0 0 0 2px rgb(var(--surface-0)), 0 0 0 4px rgba(var(--primary-500), 0.5);
+}
+
+.p-datatable {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.p-datatable .p-datatable-header {
+  background-color: rgb(var(--surface-50));
+  border-bottom: 1px solid rgb(var(--surface-200));
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  background-color: rgb(var(--surface-100));
+  color: rgb(var(--surface-700));
+  font-weight: 600;
+}
+
+.p-dropdown {
+  border-radius: 6px;
+}
+
+.p-dropdown:not(.p-disabled).p-focus {
+  border-color: rgb(var(--primary-500));
+  box-shadow: 0 0 0 1px rgba(var(--primary-500), 0.2);
+}
+
+/* RTL support */
 .datepicker-btn-rtl {
   transform: rotate(180deg);
+}
+
+/* Enhanced RTL support */
+html[dir="rtl"],
+.rtl,
+.rtl-support {
+  /* Text alignment */
+  text-align: right;
+  
+  /* Flip margins and paddings */
+  .mr-1, .mr-2, .mr-3, .mr-4, .mr-5, .mr-6 { margin-left: 0.25rem; margin-right: 0 !important; }
+  .ml-1, .ml-2, .ml-3, .ml-4, .ml-5, .ml-6 { margin-right: 0.25rem; margin-left: 0 !important; }
+  .pr-1, .pr-2, .pr-3, .pr-4, .pr-5, .pr-6 { padding-left: 0.25rem; padding-right: 0 !important; }
+  .pl-1, .pl-2, .pl-3, .pl-4, .pl-5, .pl-6 { padding-right: 0.25rem; padding-left: 0 !important; }
+  
+  /* Flip borders */
+  .border-r { border-left: 1px solid; border-right: none !important; }
+  .border-l { border-right: 1px solid; border-left: none !important; }
+  
+  /* Flip floats */
+  .float-right { float: left !important; }
+  .float-left { float: right !important; }
+  
+  /* Flip text alignment */
+  .text-left { text-align: right !important; }
+  .text-right { text-align: left !important; }
+  
+  /* Flip flexbox */
+  .justify-start { justify-content: flex-end !important; }
+  .justify-end { justify-content: flex-start !important; }
+  .items-start { align-items: flex-end !important; }
+  .items-end { align-items: flex-start !important; }
+  
+  /* Flip transforms */
+  .translate-x-1, .translate-x-2, .translate-x-3, .translate-x-4 {
+    transform: translateX(calc(-1 * var(--tw-translate-x))) !important;
+  }
+  
+  /* Flip shadows */
+  .shadow-l { box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1) !important; }
+  .shadow-r { box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1) !important; }
+  
+  /* Flip positions */
+  .left-0 { right: 0; left: auto !important; }
+  .right-0 { left: 0; right: auto !important; }
+  
+  /* Flip icons that need direction change */
+  .icon-arrow-right:before { content: "\e900"; /* Use your icon font's left arrow code */ }
+  .icon-arrow-left:before { content: "\e901"; /* Use your icon font's right arrow code */ }
+}
+
+/* LTR exceptions within RTL context */
+.rtl .ltr-element,
+.rtl-support .ltr-element {
+  direction: ltr;
+  text-align: left;
+}
+
+/* RTL-specific component overrides */
+.rtl-support {
+  .p-datatable {
+    .p-datatable-thead > tr > th {
+      text-align: right;
+    }
+    
+    .p-datatable-tbody > tr > td {
+      text-align: right;
+    }
+  }
+  
+  .p-dropdown {
+    .p-dropdown-label {
+      text-align: right;
+    }
+  }
+  
+  .p-button {
+    .p-button-icon-left {
+      margin-left: 0.5rem;
+      margin-right: 0;
+    }
+    
+    .p-button-icon-right {
+      margin-right: 0.5rem;
+      margin-left: 0;
+    }
+  }
+}
+
+/* Utility classes */
+.card-container {
+  background-color: rgb(var(--surface-0));
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgb(var(--surface-200));
+  padding: 1rem;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: rgb(var(--primary-700));
+  margin-bottom: 1rem;
+}
+
+.text-primary {
+  color: rgb(var(--primary-600));
+}
+
+.bg-primary-light {
+  background-color: rgba(var(--primary-50), 0.5);
+}
+
+.border-primary {
+  border-color: rgb(var(--primary-300));
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn var(--transition-normal) ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.slide-up {
+  animation: slideUp var(--transition-normal) ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
