@@ -99,7 +99,7 @@ export class UnAssignableShift extends ShiftModel {
     throw new SchedulerError("Cannot add soldier to unassignable shift");
   }
 
-  removeSoldier(index: number): void {
+  removeSoldier(/* index: number */): void {
     throw new SchedulerError("Cannot remove soldier from unassignable shift");
   }
 }

@@ -84,6 +84,17 @@ function drop(colField: string, shiftId: string, spotIndex: number, soldierId: s
   store.assignSoldiersToShift(positionId, shiftId, spotIndex, soldierId);
 }
 
+function remove(colField: string, shiftId: string, spotIndex: number) {
+  console.log('remove soldier from pos table', { shiftId, spotIndex });
+  const { positionId } = getShiftDataFromColumn(colField);
+  console.log('remove soldier from pos table', { positionId, shiftId, spotIndex });
+  if (!positionId) {
+    console.error('positionId is not found');
+    return;
+  }
+  store.removeSoldierFromShift(positionId, shiftId, spotIndex);
+}
+
 </script>
 
 <template>
@@ -127,6 +138,7 @@ function drop(colField: string, shiftId: string, spotIndex: number, soldierId: s
             <Shift
               :shift="getShift(slotProps.data, col.posId)!"
               @drop="(...args) => drop(col.posId, ...args)"
+              @remove="(...args) => remove(col.posId, ...args)"
             />
           </div>
           <div

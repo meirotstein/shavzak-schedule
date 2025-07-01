@@ -18,6 +18,7 @@ const emit = defineEmits<{
   'drag-enter': [spotIndex: number, soldierId: string | undefined]
   'drag-leave': [spotIndex: number, soldierId: string | undefined]
   'drop': [spotIndex: number, soldierId: string]
+  'remove': [spotIndex: number]
 }>()
 
 function dragEnter() {
@@ -37,6 +38,11 @@ function drop() {
   emit('drop', props.spotIndex, overSoldierId.value!);
 }
 
+function removeSoldier() {
+  console.log('remove soldier from spot', props.spotIndex);
+  emit('remove', props.spotIndex);
+}
+
 </script>
 
 <template>
@@ -48,11 +54,20 @@ function drop() {
     class="shift-drop-zone"
     :class="{ 'drop-zone-active': overSoldierId }"
   >
-    <SoldierCard
-      v-if="props.assignment.soldier"
-      :soldier="props.assignment.soldier"
-      target="shift"
-    />
+    <div v-if="props.assignment.soldier" class="soldier-with-remove">
+      <SoldierCard
+        :soldier="props.assignment.soldier"
+        target="shift"
+      />
+      <button
+        @click="removeSoldier"
+        class="remove-button"
+        type="button"
+        title="הסר"
+      >
+        <span style="font-size: 14px; font-weight: bold; line-height: 1; color: #000000; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">×</span>
+      </button>
+    </div>
     <div
       class="spot-empty"
       v-else
@@ -160,4 +175,49 @@ function drop() {
 
 /* RTL comment: Added text-align center to ensure proper text alignment in both RTL and LTR contexts */
 /* Layout comment: Reduced sizes and spacing for more compact layout to fit within shift boundaries */
+
+.soldier-with-remove {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.remove-button {
+  position: absolute;
+  top: calc(50% - 4px);
+  left: 6px; /* Position on the left side, middle */
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: rgb(var(--red-500));
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 10;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  
+  &:hover {
+    background-color: rgb(var(--red-600));
+    transform: translateY(-50%) scale(1.1);
+  }
+  
+  &:focus {
+    outline: 2px solid rgb(var(--red-400));
+    outline-offset: 1px;
+  }
+}
+
+.soldier-with-remove:hover .remove-button,
+.remove-button:focus {
+  opacity: 1;
+}
 </style>

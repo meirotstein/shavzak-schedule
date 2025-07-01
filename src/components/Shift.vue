@@ -10,6 +10,7 @@ const emit = defineEmits<{
   'drag-enter': [shiftId: string, spotIndex: number, soldierId: string]
   'drag-leave': [shiftId: string, spotIndex: number, soldierId: string]
   'drop': [shiftId: string, spotIndex: number, soldierId: string]
+  'remove': [shiftId: string, spotIndex: number]
 }>()
 
 // function dragEnter(spotIndex: number, soldierId: string) {
@@ -22,6 +23,10 @@ const emit = defineEmits<{
 
 function drop(spotIndex: number, soldierId: string) {
   emit('drop', props.shift.shiftId, spotIndex, soldierId);
+}
+
+function remove(spotIndex: number) {
+  emit('remove', props.shift.shiftId, spotIndex);
 }
 
 // Format time for display (e.g., "08:00" to "8")
@@ -54,6 +59,7 @@ function formatShiftTime(time: string): string {
           :spotIndex="index"
           :assignment="assignment"
           @drop="drop"
+          @remove="remove"
         />
       </div>
     </div>
