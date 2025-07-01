@@ -62,7 +62,6 @@ function drop() {
       aria-label="Empty shift spot for role: {{ props.assignment.roles[0] }}"
     >
       <div class="role-badge">{{ props.assignment.roles[0] }}</div>
-      <div class="drop-hint" v-if="overSoldierId">שחרר כאן</div> <!-- RTL: Changed to Hebrew "Drop here" -->
     </div>
   </DropZone>
 </template>
