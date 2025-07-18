@@ -34,6 +34,17 @@ const assignmentSummary = computed(() => {
   return `${assignments.length} משימות`;
 });
 
+const assignmentTooltip = computed(() => {
+  if (!isAssigned.value) return '';
+  
+  const assignments = assignmentsStore.getAssignments(props.soldier.id);
+  if (assignments.length <= 1) return '';
+  
+  return assignments.map(assignment => 
+    `${assignment.positionName} (${assignment.startTime}-${assignment.endTime})`
+  ).join('\n');
+});
+
 function dragOver(e: DragEvent) {
   emit('drag-over', e, props.soldier);
 }
@@ -66,14 +77,30 @@ function dragEnd(e: DragEvent) {
         <div v-if="props.target === 'list'" class="soldier-content-list">
           <div class="soldier-header">
             <div class="soldier-name">{{ props.soldier.name }}</div>
-            <div v-if="isAssigned" class="assignment-badge">מוקצה</div>
           </div>
           <div class="soldier-details">
             <span class="soldier-role">{{ props.soldier.role }}</span>
             <span class="soldier-platoon">{{ props.soldier.platoon }}</span>
           </div>
           <div v-if="isAssigned" class="assignment-info">
-            <span class="assignment-summary">{{ assignmentSummary }}</span>
+            <span 
+              class="assignment-summary" 
+              :class="{ 'has-tooltip': assignmentTooltip }"
+              v-tooltip="{
+                value: assignmentTooltip,
+                disabled: !assignmentTooltip,
+                showDelay: 300,
+                hideDelay: 100,
+                position: 'bottom-end',
+                pt: {
+                  text: { 
+                    style: 'max-width: 300px; white-space: pre-line; text-align: right; direction: rtl;' 
+                  }
+                }
+              }"
+            >
+              {{ assignmentSummary }}
+            </span>
           </div>
         </div>
         <div v-if="props.target === 'shift'" class="soldier-content-shift">
@@ -116,11 +143,11 @@ function dragEnd(e: DragEvent) {
   border: 1px solid rgb(var(--primary-200));
   
   &.assigned {
-    background-color: rgba(var(--green-50), 0.8);
-    border: 1px solid rgb(var(--green-300));
+    background-color: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgb(34, 197, 94);
     
     &:hover {
-      background-color: rgba(var(--green-100), 0.9);
+      background-color: rgba(34, 197, 94, 0.2);
     }
   }
   
@@ -170,28 +197,27 @@ function dragEnd(e: DragEvent) {
   color: rgb(var(--surface-900));
 }
 
-.assignment-badge {
-  background-color: rgb(var(--green-500));
-  color: white;
-  font-size: 0.625rem;
-  font-weight: 600;
-  padding: 0.125rem 0.375rem;
-  border-radius: 12px;
-  white-space: nowrap;
-}
+
 
 .assignment-info {
   margin-top: 0.25rem;
   padding-top: 0.25rem;
-  border-top: 1px solid rgba(var(--green-300), 0.3);
+  border-top: 1px solid rgba(34, 197, 94, 0.3);
 }
 
 .assignment-summary {
   font-size: 0.6875rem;
-  color: rgb(var(--green-700));
+  color: rgb(21, 128, 61);
   font-weight: 500;
-  display: block;
+  display: inline-block;
   text-align: right;
+  
+  &.has-tooltip {
+    cursor: help;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+  }
 }
 
 /* Make shift soldier name smaller */
