@@ -39,16 +39,9 @@ function handleDateInQuery(dateStr: string) {
   }
 }
 
-// Format date range for display
-function formatDateRange() {
-  if (!gapi.presence?.start || !gapi.presence?.end) return '';
-  return `${format(gapi.presence.start, 'MMM d')} - ${format(gapi.presence.end, 'MMM d, yyyy')}`;
-}
 </script>
 
 <template>
-  <!-- Keep dir="ltr" to ensure calendar displays correctly -->
-  <!-- <div class="date-picker-container ltr-element" dir="ltr"> -->
   <div class="date-picker-wrapper">
     <DatePicker v-model="currentDate" :minDate="gapi.presence?.start" :maxDate="gapi.presence?.end" showIcon fluid
       :showOnFocus="false" inputId="selectedDate" :pt="{
@@ -68,7 +61,6 @@ function formatDateRange() {
       }" />
 
   </div>
-  <!-- </div> -->
 </template>
 
 
