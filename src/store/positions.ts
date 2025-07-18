@@ -119,6 +119,12 @@ export const usePositionsStore = defineStore("positions", () => {
       throw new SchedulerError(`Soldier with id ${soldierId} not found`);
     }
     
+    // Check if there's already a soldier in this spot and remove their assignment
+    const existingSoldier = shift.assignments[shiftSpotIndex].soldier;
+    if (existingSoldier) {
+      assignmentsStore.removeAssignment(existingSoldier.id, positionId, shiftsId);
+    }
+    
     // Add to shift
     shift.addSoldier(soldier, shiftSpotIndex);
     
