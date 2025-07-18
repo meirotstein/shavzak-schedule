@@ -1,11 +1,12 @@
 import { defineStore } from "pinia";
-import { computed, reactive } from "vue";
+import { computed, reactive, watch } from "vue";
 import { dayStart } from "../app-config";
 import { SchedulerError } from "../errors/scheduler-error";
 import { PositionModel } from "../model/position";
 import { ShiftModel } from "../model/shift";
 import { ShiftDto } from "../types/client-dto";
 import { ShiftHours } from "../types/shift-hours";
+import { useAssignmentsStore } from "./assignments";
 import { useGAPIStore } from "./gapi";
 import { useSoldiersStore } from "./soldiers";
 
@@ -29,6 +30,7 @@ const shiftsByStartTimeCompare = (
 export const usePositionsStore = defineStore("positions", () => {
   const gapi = useGAPIStore();
   const soldiersStore = useSoldiersStore();
+  const assignmentsStore = useAssignmentsStore();
 
   const positions = computed(() => {
     const dayStartMinutes = timeToMinutes(dayStart);
@@ -59,6 +61,41 @@ export const usePositionsStore = defineStore("positions", () => {
     });
   });
 
+  // Watch for changes in gapi.positions to initialize soldier assignments
+  watch(
+    () => ({ positions: gapi.positions, soldiers: gapi.soldiers }),
+    ({ positions: newPositions, soldiers: newSoldiers }) => {
+      if (newPositions.length > 0 && newSoldiers && newSoldiers.length > 0) {
+        // Clear and repopulate soldier assignments in the assignments store
+        const processedSoldiers = new Set<string>();
+        
+        positions.value.forEach(position => {
+          position.shifts.forEach(shift => {
+            shift.assignments.forEach((assignment, index) => {
+              if (assignment.soldier) {
+                // Clear assignments only once per soldier
+                if (!processedSoldiers.has(assignment.soldier.id)) {
+                  assignmentsStore.clearAssignments(assignment.soldier.id);
+                  processedSoldiers.add(assignment.soldier.id);
+                }
+                
+                assignmentsStore.addAssignment(assignment.soldier.id, {
+                  positionId: position.positionId,
+                  positionName: position.positionName,
+                  shiftId: shift.shiftId,
+                  startTime: shift.startTime,
+                  endTime: shift.endTime,
+                  assignmentIndex: index
+                });
+              }
+            });
+          });
+        });
+      }
+    },
+    { immediate: true }
+  );
+
   function assignSoldiersToShift(
     positionId: string,
     shiftsId: string,
@@ -81,7 +118,25 @@ export const usePositionsStore = defineStore("positions", () => {
     if (!soldier) {
       throw new SchedulerError(`Soldier with id ${soldierId} not found`);
     }
+    
+    // Check if there's already a soldier in this spot and remove their assignment
+    const existingSoldier = shift.assignments[shiftSpotIndex].soldier;
+    if (existingSoldier) {
+      assignmentsStore.removeAssignment(existingSoldier.id, positionId, shiftsId);
+    }
+    
+    // Add to shift
     shift.addSoldier(soldier, shiftSpotIndex);
+    
+    // Add assignment to assignments store
+    assignmentsStore.addAssignment(soldierId, {
+      positionId,
+      positionName: position.positionName,
+      shiftId: shiftsId,
+      startTime: shift.startTime,
+      endTime: shift.endTime,
+      assignmentIndex: shiftSpotIndex
+    });
   }
 
   function removeSoldierFromShift(
@@ -101,7 +156,17 @@ export const usePositionsStore = defineStore("positions", () => {
         `Shift with id ${shiftId} not found in position with id ${positionId}`
       );
     }
+    
+    // Get soldier before removing
+    const soldier = shift.assignments[shiftSpotIndex].soldier;
+    
+    // Remove from shift
     shift.removeSoldier(shiftSpotIndex);
+    
+    // Remove assignment from assignments store
+    if (soldier) {
+      assignmentsStore.removeAssignment(soldier.id, positionId, shiftId);
+    }
   }
 
   return { positions, assignSoldiersToShift, removeSoldierFromShift };

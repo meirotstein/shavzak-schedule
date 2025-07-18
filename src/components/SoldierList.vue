@@ -1,12 +1,17 @@
 <script setup lang="ts">
+import Checkbox from "primevue/checkbox";
 import Select from "primevue/select";
 import { computed, ref } from "vue";
+import { useAssignmentsStore } from "../store/assignments";
 import { useSoldiersStore } from "../store/soldiers";
 import SoldierCard from "./SoldierCard.vue";
 
 const store = useSoldiersStore();
+const assignmentsStore = useAssignmentsStore();
 const allPlatoonsOption = { id: "all", name: "כל המחלקות" };
 const selectedPlatoon = ref(allPlatoonsOption);
+
+const hideAssignedSoldiers = ref(false);
 
 const availablePlatoons = computed(() => {
   const platoons = new Set(store.availableSoldiers.map((soldier) => soldier.platoon));
@@ -14,10 +19,31 @@ const availablePlatoons = computed(() => {
 });
 
 const filteredSoldiers = computed(() => {
-  if (selectedPlatoon.value.id === "all") {
-    return store.availableSoldiers;
+  let soldiers = store.availableSoldiers;
+
+  // Filter by platoon
+  if (selectedPlatoon.value.id !== "all") {
+    soldiers = soldiers.filter((soldier) => soldier.platoon === selectedPlatoon.value.id);
   }
-  return store.availableSoldiers.filter((soldier) => soldier.platoon === selectedPlatoon.value.id);
+
+  // Filter by assignment status
+  if (hideAssignedSoldiers.value) {
+    soldiers = soldiers.filter((soldier) => !assignmentsStore.isAssigned(soldier.id));
+  }
+
+  return soldiers;
+});
+
+// Assignment statistics
+const assignmentStats = computed(() => {
+  const availableSoldiersForSelectedPlatoon = store.availableSoldiers.filter(s =>
+    (selectedPlatoon.value.id === 'all' || s.platoon === selectedPlatoon.value.id)
+  );
+  const total = availableSoldiersForSelectedPlatoon.length;
+  const assigned = availableSoldiersForSelectedPlatoon.filter(s => assignmentsStore.isAssigned(s.id)).length;
+  const unassigned = total - assigned;
+
+  return { total, assigned, unassigned };
 });
 
 </script>
@@ -25,38 +51,43 @@ const filteredSoldiers = computed(() => {
 <template>
   <div class="soldier-list-container">
     <div class="list-header">
-      <h3 class="list-title">חיילים זמינים</h3> <!-- RTL: Changed to Hebrew "Available Soldiers" -->
-      <!-- Select component already has RTL text (בחר מחלקה) -->
-      <Select
-        v-model="selectedPlatoon"
-        :options="availablePlatoons"
-        optionLabel="name"
-        placeholder="בחר מחלקה"
-        class="platoon-selector"
-        :pt="{
+      <h3 class="list-title">חיילים זמינים</h3>
+
+      <!-- Platoon Filter -->
+      <Select v-model="selectedPlatoon" :options="availablePlatoons" optionLabel="name" placeholder="בחר מחלקה"
+        class="filter-selector" :pt="{
           root: { class: 'w-full rtl-dropdown' },
-          input: { class: 'p-2 text-sm text-right' }, /* Added text-right for RTL */
+          input: { class: 'p-2 text-sm text-right' },
           panel: { class: 'shadow-lg border border-gray-200' },
-          item: { class: 'text-right' } /* Added text-right for RTL dropdown items */
-        }"
-      />
+          item: { class: 'text-right' }
+        }" />
+
+      <!-- Hide Assigned Soldiers Checkbox -->
+      <div class="checkbox-container">
+        <Checkbox v-model="hideAssignedSoldiers" :binary="true" inputId="hide-assigned-checkbox"
+          class="filter-checkbox" />
+        <label for="hide-assigned-checkbox" class="checkbox-label">
+          הסתר חיילים משובצים
+        </label>
+      </div>
     </div>
-    
+
     <div class="list-stats">
-      <span class="soldier-count">{{ filteredSoldiers.length }} חיילים</span> <!-- RTL: Changed to Hebrew "soldiers" -->
+      <div class="stats-row">
+        <span class="assignment-stats">
+          {{ filteredSoldiers.length }} חיילים: {{ assignmentStats.assigned }} משובצים, {{ assignmentStats.unassigned }}
+          זמינים
+        </span>
+      </div>
     </div>
-    
+
     <div class="list-wrapper">
       <ul class="soldier-list" role="list" aria-label="Available soldiers list">
-        <li
-          v-for="(soldier, index) in filteredSoldiers"
-          :key="soldier.id || index"
-          class="soldier-list-item"
-        >
+        <li v-for="(soldier, index) in filteredSoldiers" :key="soldier.id || index" class="soldier-list-item">
           <SoldierCard :soldier="soldier" target="list" />
         </li>
         <li v-if="filteredSoldiers.length === 0" class="empty-list-message">
-          אין חיילים זמינים במחלקה זו <!-- RTL: Changed to Hebrew "No soldiers available in this platoon" -->
+          אין חיילים זמינים עם הפילטרים הנבחרים
         </li>
       </ul>
     </div>
@@ -80,18 +111,40 @@ const filteredSoldiers = computed(() => {
   padding: 1rem;
   border-bottom: 1px solid rgb(var(--surface-200));
   background-color: rgb(var(--surface-100));
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .list-title {
   font-size: 1rem;
   font-weight: 600;
   color: rgb(var(--primary-700));
-  margin-bottom: 0.75rem;
-  text-align: right; /* RTL: Align title to the right */
+  margin-bottom: 0.5rem;
+  text-align: right;
+  /* RTL: Align title to the right */
 }
 
-.platoon-selector {
+.filter-selector {
   width: 100%;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  direction: rtl;
+}
+
+.checkbox-label {
+  font-size: 0.875rem;
+  color: rgb(var(--text-color));
+  cursor: pointer;
+  user-select: none;
+}
+
+.filter-checkbox {
+  margin: 0;
 }
 
 .list-stats {
@@ -100,16 +153,24 @@ const filteredSoldiers = computed(() => {
   padding: 0.5rem 1rem;
   background-color: rgba(var(--primary-50), 0.5);
   border-bottom: 1px solid rgb(var(--surface-200));
-  text-align: right; /* RTL: Ensure text alignment is right */
+  text-align: right;
+  /* RTL: Ensure text alignment is right */
 }
 
-/* RTL comment: Added text-right class to ensure proper text alignment in RTL context */
+.stats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
-.soldier-count {
+.assignment-stats {
   font-size: 0.75rem;
   color: rgb(var(--surface-600));
   font-weight: 500;
 }
+
+/* RTL comment: Added text-right class to ensure proper text alignment in RTL context */
+
 
 .list-wrapper {
   flex: 1;
@@ -122,16 +183,16 @@ const filteredSoldiers = computed(() => {
   max-height: calc(86vh - 8rem);
   overflow-y: auto;
   padding: 0.5rem;
-  
+
   /* Scrollbar styling */
   &::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: rgb(var(--surface-100));
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background-color: rgb(var(--surface-400));
     border-radius: 6px;
@@ -140,7 +201,7 @@ const filteredSoldiers = computed(() => {
 
 .soldier-list-item {
   margin-bottom: 0.5rem;
-  
+
   &:last-child {
     margin-bottom: 0;
   }
@@ -162,7 +223,7 @@ const filteredSoldiers = computed(() => {
   .soldier-list-container {
     width: 100%;
   }
-  
+
   .soldier-list {
     max-height: 50vh;
   }
@@ -173,11 +234,12 @@ const filteredSoldiers = computed(() => {
   .p-dropdown-label {
     text-align: right;
   }
-  
+
   .p-dropdown-trigger {
-    order: -1; /* RTL: Move dropdown arrow to the left side */
+    order: -1;
+    /* RTL: Move dropdown arrow to the left side */
   }
-  
+
   .p-dropdown-items {
     text-align: right;
   }

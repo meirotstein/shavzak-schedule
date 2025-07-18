@@ -74,9 +74,7 @@ function getShiftDataFromColumn(cloField: string, slotData?: any): { positionId:
 }
 
 function drop(colField: string, shiftId: string, spotIndex: number, soldierId: string) {
-  console.log('dropped pos table', { shiftId, spotIndex, soldierId });
   const { positionId } = getShiftDataFromColumn(colField);
-  console.log('dropped pos table', { positionId, shiftId, spotIndex, soldierId });
   if (!positionId) {
     console.error('positionId is not found');
     return;

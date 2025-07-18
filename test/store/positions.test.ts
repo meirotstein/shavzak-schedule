@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import { SchedulerError } from "../../src/errors/scheduler-error";
 import { PositionModel } from "../../src/model/position";
 import { SoldierModel } from "../../src/model/soldier";
+import { useAssignmentsStore } from "../../src/store/assignments";
 import { usePositionsStore } from "../../src/store/positions";
 import { PositionDto } from "../../src/types/client-dto";
 
@@ -185,16 +186,31 @@ describe("positions store tests", () => {
   });
 
   test("assignSoldiersToShift", async () => {
-    positionsMock = testPositionsData as any;
+    // Use test data without pre-assigned soldiers
+    const testDataWithoutSoldiers = [
+      {
+        id: "1",
+        name: "shin-gimel",
+        shifts: [
+          {
+            id: "1",
+            startTime: "00:00",
+            endTime: "02:00",
+            assignmentDefs: [{ roles: ["officer"] }],
+          },
+        ],
+      },
+    ];
+    positionsMock = testDataWithoutSoldiers as any;
 
-    findSoldierByIdMock.mockReturnValue(
-      new SoldierModel("123", "mose ufnik", "officer", "3")
-    );
+    const soldier = new SoldierModel("123", "mose ufnik", "officer", "3");
+    findSoldierByIdMock.mockReturnValue(soldier);
 
     const store = usePositionsStore();
 
     store.assignSoldiersToShift("1", "1", 0, "123");
 
+    // Check that soldier is assigned to shift
     expect(store.positions[0].shifts[0].assignments[0].soldier).toBeInstanceOf(
       SoldierModel
     );
@@ -205,6 +221,79 @@ describe("positions store tests", () => {
     expect(store.positions[0].shifts[0].assignments[0].soldier!.role).toBe(
       "officer"
     );
+
+    // Check that assignment is added to soldier in the assignments store
+    const assignmentsStore = useAssignmentsStore();
+    expect(assignmentsStore.isAssigned("123")).toBe(true);
+    expect(assignmentsStore.getAssignments("123")).toHaveLength(1);
+    expect(assignmentsStore.getAssignments("123")[0]).toEqual({
+      positionId: "1",
+      positionName: "shin-gimel",
+      shiftId: "1",
+      startTime: "00:00",
+      endTime: "02:00",
+      assignmentIndex: 0
+    });
+  });
+
+  test("assignSoldiersToShift replaces existing soldier correctly", async () => {
+    // Use test data without pre-assigned soldiers
+    const testDataWithoutSoldiers = [
+      {
+        id: "1",
+        name: "shin-gimel",
+        shifts: [
+          {
+            id: "1",
+            startTime: "00:00",
+            endTime: "02:00",
+            assignmentDefs: [{ roles: ["officer"] }],
+          },
+        ],
+      },
+    ];
+    positionsMock = testDataWithoutSoldiers as any;
+
+    const soldier1 = new SoldierModel("123", "soldier one", "officer", "1");
+    const soldier2 = new SoldierModel("456", "soldier two", "officer", "2");
+    
+    findSoldierByIdMock.mockImplementation((id: string) => {
+      if (id === "123") return soldier1;
+      if (id === "456") return soldier2;
+      return undefined;
+    });
+
+    const store = usePositionsStore();
+    const assignmentsStore = useAssignmentsStore();
+
+    // First assign soldier1 to the spot
+    store.assignSoldiersToShift("1", "1", 0, "123");
+    
+    // Verify soldier1 is assigned
+    expect(store.positions[0].shifts[0].assignments[0].soldier!.id).toBe("123");
+    expect(assignmentsStore.isAssigned("123")).toBe(true);
+    expect(assignmentsStore.getAssignments("123")).toHaveLength(1);
+    expect(assignmentsStore.isAssigned("456")).toBe(false);
+    
+    // Now assign soldier2 to the same spot (should replace soldier1)
+    store.assignSoldiersToShift("1", "1", 0, "456");
+    
+    // Verify soldier2 is assigned and soldier1 is no longer assigned
+    expect(store.positions[0].shifts[0].assignments[0].soldier!.id).toBe("456");
+    expect(assignmentsStore.isAssigned("456")).toBe(true);
+    expect(assignmentsStore.getAssignments("456")).toHaveLength(1);
+    expect(assignmentsStore.getAssignments("456")[0]).toEqual({
+      positionId: "1",
+      positionName: "shin-gimel",
+      shiftId: "1",
+      startTime: "00:00",
+      endTime: "02:00",
+      assignmentIndex: 0
+    });
+    
+    // Verify soldier1 is no longer assigned
+    expect(assignmentsStore.isAssigned("123")).toBe(false);
+    expect(assignmentsStore.getAssignments("123")).toHaveLength(0);
   });
 
   test("removeSoldierFromShift", async () => {
@@ -225,9 +314,8 @@ describe("positions store tests", () => {
     ];
     positionsMock = testDataWithoutSoldiers as any;
 
-    findSoldierByIdMock.mockReturnValue(
-      new SoldierModel("123", "mose ufnik", "officer", "3")
-    );
+    const soldier = new SoldierModel("123", "mose ufnik", "officer", "3");
+    findSoldierByIdMock.mockReturnValue(soldier);
 
     const store = usePositionsStore();
 
@@ -236,10 +324,17 @@ describe("positions store tests", () => {
     expect(store.positions[0].shifts[0].assignments[0].soldier).toBeInstanceOf(
       SoldierModel
     );
+    const assignmentsStore = useAssignmentsStore();
+    expect(assignmentsStore.isAssigned("123")).toBe(true);
+    expect(assignmentsStore.getAssignments("123")).toHaveLength(1);
 
     // Then remove the soldier
     store.removeSoldierFromShift("1", "1", 0);
     expect(store.positions[0].shifts[0].assignments[0].soldier).toBeUndefined();
+    
+    // Check that assignment is removed from soldier in the assignments store
+    expect(assignmentsStore.isAssigned("123")).toBe(false);
+    expect(assignmentsStore.getAssignments("123")).toHaveLength(0);
   });
 
   test("removeSoldierFromShift error: position not found", async () => {

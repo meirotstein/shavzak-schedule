@@ -48,38 +48,27 @@ function formatDateRange() {
 
 <template>
   <!-- Keep dir="ltr" to ensure calendar displays correctly -->
-  <div class="date-picker-container ltr-element" dir="ltr">
-    <div class="date-picker-wrapper">
-      <label for="selectedDate" class="date-picker-label">Schedule Date</label>
-      <DatePicker
-        v-model="currentDate"
-        :minDate="gapi.presence?.start"
-        :maxDate="gapi.presence?.end"
-        showIcon
-        fluid
-        :showOnFocus="false"
-        inputId="selectedDate"
-        :pt="{
-          root: { class: 'w-full' },
-          input: { class: 'date-input' },
-          panel: { class: 'date-panel' },
-          pcPrevButton: {
-            root: 'datepicker-btn-rtl'
-          },
-          pcNextButton: {
-            root: 'datepicker-btn-rtl'
-          },
-          header: { class: 'date-header' },
-          footer: { class: 'date-footer' },
-          today: { class: 'date-today-btn' },
-          clear: { class: 'date-clear-btn' }
-        }"
-      />
-      <div class="date-range-info" v-if="gapi.presence?.start && gapi.presence?.end">
-        <span>Available range: {{ formatDateRange() }}</span>
-      </div>
-    </div>
+  <!-- <div class="date-picker-container ltr-element" dir="ltr"> -->
+  <div class="date-picker-wrapper">
+    <DatePicker v-model="currentDate" :minDate="gapi.presence?.start" :maxDate="gapi.presence?.end" showIcon fluid
+      :showOnFocus="false" inputId="selectedDate" :pt="{
+        root: { class: 'w-full' },
+        input: { class: 'date-input' },
+        panel: { class: 'date-panel' },
+        pcPrevButton: {
+          root: 'datepicker-btn-rtl'
+        },
+        pcNextButton: {
+          root: 'datepicker-btn-rtl'
+        },
+        header: { class: 'date-header' },
+        footer: { class: 'date-footer' },
+        today: { class: 'date-today-btn' },
+        clear: { class: 'date-clear-btn' }
+      }" />
+
   </div>
+  <!-- </div> -->
 </template>
 
 
@@ -119,11 +108,11 @@ function formatDateRange() {
   padding: 0.5rem;
   font-size: 0.875rem;
   transition: all 0.2s ease;
-  
+
   &:hover {
     border-color: rgb(var(--primary-400));
   }
-  
+
   &:focus {
     border-color: rgb(var(--primary-500));
     box-shadow: 0 0 0 2px rgba(var(--primary-300), 0.25);
@@ -155,7 +144,7 @@ function formatDateRange() {
   color: rgb(var(--primary-700));
   border-radius: 4px;
   transition: all 0.2s ease;
-  
+
   &:hover {
     background-color: rgb(var(--primary-100));
     border-color: rgb(var(--primary-300));

@@ -1,6 +1,7 @@
 import Lara from "@primevue/themes/lara";
 import { createPinia } from "pinia";
 import PrimeVue from "primevue/config";
+import Tooltip from "primevue/tooltip";
 import { createApp } from "vue";
 import App from "./App.vue";
 import he_il from "./locale/he-IL";
@@ -27,4 +28,5 @@ app.use(PrimeVue, {
     },
   },
 });
+app.directive("tooltip", Tooltip);
 app.mount("#app");
