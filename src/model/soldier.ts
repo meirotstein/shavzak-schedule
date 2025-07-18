@@ -1,3 +1,4 @@
+import { reactive } from "vue";
 import { IPresence } from "./presence";
 
 export interface ISoldier {
@@ -6,6 +7,7 @@ export interface ISoldier {
   role: string;
   platoon: string;
   presence: Array<IPresence>;
+  addPresence(presence: IPresence): void;
 }
 
 export class SoldierModel implements ISoldier {
@@ -13,13 +15,14 @@ export class SoldierModel implements ISoldier {
   name: string;
   role: string;
   platoon: string;
-  presence: Array<IPresence> = [];
+  presence: Array<IPresence>;
 
   constructor(id: string, name: string, role: string, platoon: string) {
     this.id = id;
     this.name = name;
     this.role = role;
     this.platoon = platoon;
+    this.presence = reactive([]);
   }
 
   addPresence(presence: IPresence): void {

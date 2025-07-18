@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import Card from "primevue/card";
+import { computed } from "vue";
 import { ISoldier } from "../model/soldier";
+import { useAssignmentsStore } from "../store/assignments";
 import { useSoldiersStore } from "../store/soldiers";
 import Draggable from "./dragndrop/Draggable.vue";
 
 const store = useSoldiersStore();
+const assignmentsStore = useAssignmentsStore();
 
 const props = defineProps<{
   soldier: ISoldier;
@@ -16,6 +19,20 @@ const emit = defineEmits<{
   'drag-end': [event: DragEvent, soldier: ISoldier]
   'drag-over': [event: DragEvent, soldier: ISoldier]
 }>()
+
+const isAssigned = computed(() => {
+  return assignmentsStore.isAssigned(props.soldier.id);
+});
+
+const assignmentSummary = computed(() => {
+  if (!isAssigned.value) return '';
+  
+  const assignments = assignmentsStore.getAssignments(props.soldier.id);
+  if (assignments.length === 1) {
+    return `${assignments[0].positionName} (${assignments[0].startTime}-${assignments[0].endTime})`;
+  }
+  return `${assignments.length} משימות`;
+});
 
 function dragOver(e: DragEvent) {
   emit('drag-over', e, props.soldier);
@@ -42,14 +59,21 @@ function dragEnd(e: DragEvent) {
   >
     <Card class="soldier-card" :class="[
       props.target === 'list' ? 'soldier-card-list' : 'soldier-card-shift',
-      store.draggedSoldier?.id === props.soldier.id ? 'being-dragged' : ''
+      store.draggedSoldier?.id === props.soldier.id ? 'being-dragged' : '',
+      isAssigned ? 'assigned' : 'unassigned'
     ]">
-      <template #content #item="{ option }">
+      <template #content>
         <div v-if="props.target === 'list'" class="soldier-content-list">
-          <div class="soldier-name">{{ props.soldier.name }}</div>
+          <div class="soldier-header">
+            <div class="soldier-name">{{ props.soldier.name }}</div>
+            <div v-if="isAssigned" class="assignment-badge">מוקצה</div>
+          </div>
           <div class="soldier-details">
             <span class="soldier-role">{{ props.soldier.role }}</span>
             <span class="soldier-platoon">{{ props.soldier.platoon }}</span>
+          </div>
+          <div v-if="isAssigned" class="assignment-info">
+            <span class="assignment-summary">{{ assignmentSummary }}</span>
           </div>
         </div>
         <div v-if="props.target === 'shift'" class="soldier-content-shift">
@@ -90,6 +114,24 @@ function dragEnd(e: DragEvent) {
 .soldier-card-list {
   background-color: rgba(var(--primary-50), 0.5);
   border: 1px solid rgb(var(--primary-200));
+  
+  &.assigned {
+    background-color: rgba(var(--green-50), 0.8);
+    border: 1px solid rgb(var(--green-300));
+    
+    &:hover {
+      background-color: rgba(var(--green-100), 0.9);
+    }
+  }
+  
+  &.unassigned {
+    background-color: rgba(var(--surface-50), 0.8);
+    border: 1px solid rgb(var(--surface-200));
+    
+    &:hover {
+      background-color: rgba(var(--surface-100), 0.9);
+    }
+  }
 }
 
 .soldier-card-shift {
@@ -115,10 +157,41 @@ function dragEnd(e: DragEvent) {
   justify-content: center;
 }
 
+.soldier-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
 .soldier-name {
   font-weight: 600;
   font-size: 0.875rem;
   color: rgb(var(--surface-900));
+}
+
+.assignment-badge {
+  background-color: rgb(var(--green-500));
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.assignment-info {
+  margin-top: 0.25rem;
+  padding-top: 0.25rem;
+  border-top: 1px solid rgba(var(--green-300), 0.3);
+}
+
+.assignment-summary {
+  font-size: 0.6875rem;
+  color: rgb(var(--green-700));
+  font-weight: 500;
+  display: block;
+  text-align: right;
 }
 
 /* Make shift soldier name smaller */
@@ -184,8 +257,18 @@ function dragEnd(e: DragEvent) {
   .soldier-content-shift .soldier-name {
     font-size: 0.7rem;
   }
+  
+  .assignment-badge {
+    font-size: 0.5rem;
+    padding: 0.1rem 0.25rem;
+  }
+  
+  .assignment-summary {
+    font-size: 0.625rem;
+  }
 }
 
 /* RTL comment: Added text alignment for RTL support */
 /* Layout comment: Made shift cards more compact with smaller text and reduced padding */
+/* Assignment styling: Added visual indicators for assigned soldiers with green theme */
 </style>

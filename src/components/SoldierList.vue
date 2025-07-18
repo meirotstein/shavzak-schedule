@@ -1,23 +1,54 @@
 <script setup lang="ts">
 import Select from "primevue/select";
 import { computed, ref } from "vue";
+import { useAssignmentsStore } from "../store/assignments";
 import { useSoldiersStore } from "../store/soldiers";
 import SoldierCard from "./SoldierCard.vue";
 
 const store = useSoldiersStore();
+const assignmentsStore = useAssignmentsStore();
 const allPlatoonsOption = { id: "all", name: "כל המחלקות" };
 const selectedPlatoon = ref(allPlatoonsOption);
+
+const allAssignmentStatusOption = { id: "all", name: "כל הסטטוסים" };
+const assignedStatusOption = { id: "assigned", name: "מוקצים" };
+const unassignedStatusOption = { id: "unassigned", name: "לא מוקצים" };
+const selectedAssignmentStatus = ref(allAssignmentStatusOption);
 
 const availablePlatoons = computed(() => {
   const platoons = new Set(store.availableSoldiers.map((soldier) => soldier.platoon));
   return [allPlatoonsOption].concat([...platoons].map((platoon) => ({ id: platoon, name: platoon })));
 });
 
+const assignmentStatusOptions = computed(() => {
+  return [allAssignmentStatusOption, assignedStatusOption, unassignedStatusOption];
+});
+
 const filteredSoldiers = computed(() => {
-  if (selectedPlatoon.value.id === "all") {
-    return store.availableSoldiers;
+  let soldiers = store.availableSoldiers;
+  
+  // Filter by platoon
+  if (selectedPlatoon.value.id !== "all") {
+    soldiers = soldiers.filter((soldier) => soldier.platoon === selectedPlatoon.value.id);
   }
-  return store.availableSoldiers.filter((soldier) => soldier.platoon === selectedPlatoon.value.id);
+  
+  // Filter by assignment status
+  if (selectedAssignmentStatus.value.id === "assigned") {
+    soldiers = soldiers.filter((soldier) => assignmentsStore.isAssigned(soldier.id));
+  } else if (selectedAssignmentStatus.value.id === "unassigned") {
+    soldiers = soldiers.filter((soldier) => !assignmentsStore.isAssigned(soldier.id));
+  }
+  
+  return soldiers;
+});
+
+// Assignment statistics
+const assignmentStats = computed(() => {
+  const total = store.availableSoldiers.length;
+  const assigned = store.availableSoldiers.filter(s => assignmentsStore.isAssigned(s.id)).length;
+  const unassigned = total - assigned;
+  
+  return { total, assigned, unassigned };
 });
 
 </script>
@@ -25,25 +56,46 @@ const filteredSoldiers = computed(() => {
 <template>
   <div class="soldier-list-container">
     <div class="list-header">
-      <h3 class="list-title">חיילים זמינים</h3> <!-- RTL: Changed to Hebrew "Available Soldiers" -->
-      <!-- Select component already has RTL text (בחר מחלקה) -->
+      <h3 class="list-title">חיילים זמינים</h3>
+      
+      <!-- Platoon Filter -->
       <Select
         v-model="selectedPlatoon"
         :options="availablePlatoons"
         optionLabel="name"
         placeholder="בחר מחלקה"
-        class="platoon-selector"
+        class="filter-selector"
         :pt="{
           root: { class: 'w-full rtl-dropdown' },
-          input: { class: 'p-2 text-sm text-right' }, /* Added text-right for RTL */
+          input: { class: 'p-2 text-sm text-right' },
           panel: { class: 'shadow-lg border border-gray-200' },
-          item: { class: 'text-right' } /* Added text-right for RTL dropdown items */
+          item: { class: 'text-right' }
+        }"
+      />
+      
+      <!-- Assignment Status Filter -->
+      <Select
+        v-model="selectedAssignmentStatus"
+        :options="assignmentStatusOptions"
+        optionLabel="name"
+        placeholder="בחר סטטוס"
+        class="filter-selector"
+        :pt="{
+          root: { class: 'w-full rtl-dropdown' },
+          input: { class: 'p-2 text-sm text-right' },
+          panel: { class: 'shadow-lg border border-gray-200' },
+          item: { class: 'text-right' }
         }"
       />
     </div>
     
     <div class="list-stats">
-      <span class="soldier-count">{{ filteredSoldiers.length }} חיילים</span> <!-- RTL: Changed to Hebrew "soldiers" -->
+      <div class="stats-row">
+        <span class="soldier-count">{{ filteredSoldiers.length }} חיילים</span>
+        <span class="assignment-stats">
+          {{ assignmentStats.assigned }} מוקצים, {{ assignmentStats.unassigned }} זמינים
+        </span>
+      </div>
     </div>
     
     <div class="list-wrapper">
@@ -56,7 +108,7 @@ const filteredSoldiers = computed(() => {
           <SoldierCard :soldier="soldier" target="list" />
         </li>
         <li v-if="filteredSoldiers.length === 0" class="empty-list-message">
-          אין חיילים זמינים במחלקה זו <!-- RTL: Changed to Hebrew "No soldiers available in this platoon" -->
+          אין חיילים זמינים עם הפילטרים הנבחרים
         </li>
       </ul>
     </div>
@@ -80,17 +132,20 @@ const filteredSoldiers = computed(() => {
   padding: 1rem;
   border-bottom: 1px solid rgb(var(--surface-200));
   background-color: rgb(var(--surface-100));
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
 .list-title {
   font-size: 1rem;
   font-weight: 600;
   color: rgb(var(--primary-700));
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   text-align: right; /* RTL: Align title to the right */
 }
 
-.platoon-selector {
+.filter-selector {
   width: 100%;
 }
 
@@ -101,6 +156,18 @@ const filteredSoldiers = computed(() => {
   background-color: rgba(var(--primary-50), 0.5);
   border-bottom: 1px solid rgb(var(--surface-200));
   text-align: right; /* RTL: Ensure text alignment is right */
+}
+
+.stats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.assignment-stats {
+  font-size: 0.75rem;
+  color: rgb(var(--surface-600));
+  font-weight: 500;
 }
 
 /* RTL comment: Added text-right class to ensure proper text alignment in RTL context */
