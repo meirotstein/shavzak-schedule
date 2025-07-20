@@ -53,17 +53,8 @@ export class ShiftModel implements IShift {
     if (typeof index === "undefined") {
       index = this.assignments.findIndex((assignment) => !assignment.soldier);
     }
+    
     if (index !== -1 && index < this.assignments.length) {
-      // if (!this.assignmentDefinitions[index].roles.includes(soldier.role)) {
-      //   throw new SchedulerError(
-      //     "Soldier role does not match assignment definition",
-      //     {
-      //       assignmentDefinitions: this.assignmentDefinitions,
-      //       index,
-      //       soldierRole: soldier.role,
-      //     }
-      //   );
-      // }
       this.assignments[index].soldier = soldier;
       return;
     }

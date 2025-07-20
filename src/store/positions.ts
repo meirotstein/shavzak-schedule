@@ -30,21 +30,10 @@ export const usePositionsStore = defineStore("positions", () => {
 
   // Cache for soldiers to avoid O(n) lookups
   const soldiersCache = computed(() => {
-    const timingId = `createSoldiersCache-${Date.now()}`;
-    console.time(`⏱️ ${timingId}`);
-    const cache = createSoldiersCache(soldiersStore.soldiers);
-    console.timeEnd(`⏱️ ${timingId}`);
-    return cache;
+    return createSoldiersCache(soldiersStore.soldiers);
   });
 
   const positions = computed(() => {
-    const timingId = `positions-computed-${Date.now()}`;
-    console.time(`⏱️ ${timingId}`);
-    console.log("🔄 Computing positions...", {
-      gapiPositions: gapi.positions.length,
-      cachedSoldiers: soldiersCache.value.size,
-    });
-
     const dayStartMinutes = timeToMinutes(dayStart);
     const compareFn = shiftsByStartTimeCompare.bind({}, dayStartMinutes);
 
@@ -63,8 +52,8 @@ export const usePositionsStore = defineStore("positions", () => {
           )
         );
 
-        // Performance optimization: Use cached soldiers instead of O(n) search
-        shiftData.soldierIds?.forEach((soldierId) => {
+        // CRITICAL FIX: Preserve spot indices when rebuilding from soldierIds
+        shiftData.soldierIds?.forEach((soldierId, index) => {
           // Skip empty soldier IDs (removed assignments)
           if (!soldierId || soldierId.trim() === "") {
             return;
@@ -74,7 +63,8 @@ export const usePositionsStore = defineStore("positions", () => {
           if (!soldier) {
             throw new SchedulerError(`Soldier with id ${soldierId} not found`);
           }
-          shift.addSoldier(soldier);
+          // Use the specific index to preserve exact spot assignments
+          shift.addSoldier(soldier, index);
         });
 
         position.shifts.push(shift);
@@ -82,27 +72,12 @@ export const usePositionsStore = defineStore("positions", () => {
       return position;
     });
 
-    console.timeEnd(`⏱️ ${timingId}`);
-    console.log("✅ Positions computed:", {
-      positions: result.length,
-      totalShifts: result.reduce((sum, p) => sum + p.shifts.length, 0),
-      totalAssignments: result.reduce(
-        (sum, p) =>
-          sum +
-          p.shifts.reduce(
-            (shiftSum, s) =>
-              shiftSum + s.assignments.filter((a) => a.soldier).length,
-            0
-          ),
-        0
-      ),
-    });
-
     return result;
   });
 
   // Performance optimization: Separate watcher with better control
   let isProcessingAssignments = false;
+  let isManualAssignment = false; // Flag to prevent watcher during manual assignment operations
 
   watch(
     () => ({
@@ -112,26 +87,19 @@ export const usePositionsStore = defineStore("positions", () => {
         p.shifts.some((s) => s.soldierIds && s.soldierIds.length > 0)
       ),
     }),
-    (
-      { positions: newPositions, soldiers: soldiersCount, hasAssignments },
-      oldValue
-    ) => {
-      console.log("🔍 Positions watcher triggered", {
-        positionsCount: newPositions.length,
-        soldiersCount,
-        hasAssignments,
-        isProcessing: isProcessingAssignments,
-      });
+    ({ positions: newPositions, soldiers: soldiersCount, hasAssignments }) => {
+      // Skip if we're in the middle of a manual assignment operation
+      if (isManualAssignment) {
+        return;
+      }
 
       // Avoid processing during ongoing assignment operations
       if (isProcessingAssignments) {
-        console.log("⚠️ Skipping - already processing assignments");
         return;
       }
 
       // Only process if we have both positions and soldiers
       if (newPositions.length > 0 && soldiersCount > 0 && hasAssignments) {
-        console.time("⏱️ assignments-processing");
         isProcessingAssignments = true;
 
         try {
@@ -167,7 +135,6 @@ export const usePositionsStore = defineStore("positions", () => {
             });
           });
 
-          console.timeEnd("⏱️ assignments-processing");
           console.log(`✅ Assignment processing complete:`, {
             processedSoldiers: processedSoldiers.size,
             totalAssignments: totalAssignments,
@@ -175,15 +142,6 @@ export const usePositionsStore = defineStore("positions", () => {
         } finally {
           isProcessingAssignments = false;
         }
-      } else {
-        console.log(
-          "⚠️ Skipping assignments processing - conditions not met:",
-          {
-            hasPositions: newPositions.length > 0,
-            hasSoldiers: soldiersCount > 0,
-            hasAssignments,
-          }
-        );
       }
     },
     { immediate: true }
@@ -195,74 +153,82 @@ export const usePositionsStore = defineStore("positions", () => {
     shiftSpotIndex: number,
     soldierId: string
   ) {
-    const position = positions.value.find(
-      (position) => position.positionId === positionId
-    );
-    if (!position) {
-      throw new SchedulerError(`Position with id ${positionId} not found`);
-    }
-    const shift = position.shifts.find((shift) => shift.shiftId === shiftsId);
-    if (!shift) {
-      throw new SchedulerError(
-        `Shift with id ${shiftsId} not found in position with id ${positionId}`
+    // Set the manual assignment flag to prevent watcher interference
+    isManualAssignment = true;
+
+    try {
+      const position = positions.value.find(
+        (position) => position.positionId === positionId
       );
-    }
+      if (!position) {
+        throw new SchedulerError(`Position with id ${positionId} not found`);
+      }
+      const shift = position.shifts.find((shift) => shift.shiftId === shiftsId);
+      if (!shift) {
+        throw new SchedulerError(
+          `Shift with id ${shiftsId} not found in position with id ${positionId}`
+        );
+      }
 
-    // Use the cache instead of the soldiers store for performance
-    const soldier = soldiersCache.value.get(soldierId);
-    if (!soldier) {
-      throw new SchedulerError(`Soldier with id ${soldierId} not found`);
-    }
+      // Use the cache instead of the soldiers store for performance
+      const soldier = soldiersCache.value.get(soldierId);
+      if (!soldier) {
+        throw new SchedulerError(`Soldier with id ${soldierId} not found`);
+      }
 
-    // Check if there's already a soldier in this spot and remove their assignment
-    const existingSoldier = shift.assignments[shiftSpotIndex].soldier;
-    if (existingSoldier) {
-      assignmentsStore.removeAssignment(
-        existingSoldier.id,
-        positionId,
-        shiftsId
-      );
+      // Check if there's already a soldier in this spot and remove their assignment
+      const existingSoldier = shift.assignments[shiftSpotIndex].soldier;
+      if (existingSoldier) {
+        assignmentsStore.removeAssignment(
+          existingSoldier.id,
+          positionId,
+          shiftsId
+        );
 
-      // Remove from underlying gapi data as well
+        // Remove from underlying gapi data as well
+        const gapiPosition = gapi.positions.find((p) => p.id === positionId);
+        const gapiShift = gapiPosition?.shifts.find((s) => s.id === shiftsId);
+        if (gapiShift && gapiShift.soldierIds) {
+          const index = gapiShift.soldierIds.indexOf(existingSoldier.id);
+          if (index !== -1) {
+            gapiShift.soldierIds.splice(index, 1);
+          }
+        }
+      }
+
+      // Add to shift
+      shift.addSoldier(soldier, shiftSpotIndex);
+
+      // Also update the underlying gapi.positions data structure
       const gapiPosition = gapi.positions.find((p) => p.id === positionId);
       const gapiShift = gapiPosition?.shifts.find((s) => s.id === shiftsId);
-      if (gapiShift && gapiShift.soldierIds) {
-        const index = gapiShift.soldierIds.indexOf(existingSoldier.id);
-        if (index !== -1) {
-          gapiShift.soldierIds.splice(index, 1);
+      if (gapiShift) {
+        if (!gapiShift.soldierIds) {
+          gapiShift.soldierIds = [];
         }
-      }
-    }
-
-    // Add to shift
-    shift.addSoldier(soldier, shiftSpotIndex);
-
-    // Also update the underlying gapi.positions data structure
-    const gapiPosition = gapi.positions.find((p) => p.id === positionId);
-    const gapiShift = gapiPosition?.shifts.find((s) => s.id === shiftsId);
-    if (gapiShift) {
-      if (!gapiShift.soldierIds) {
-        gapiShift.soldierIds = [];
-      }
-      // Add soldier at the right position in the array
-      if (gapiShift.soldierIds.length <= shiftSpotIndex) {
-        // Pad the array if necessary
-        while (gapiShift.soldierIds.length <= shiftSpotIndex) {
-          gapiShift.soldierIds.push("");
+        // Add soldier at the right position in the array
+        if (gapiShift.soldierIds.length <= shiftSpotIndex) {
+          // Pad the array if necessary
+          while (gapiShift.soldierIds.length <= shiftSpotIndex) {
+            gapiShift.soldierIds.push("");
+          }
         }
+        gapiShift.soldierIds[shiftSpotIndex] = soldierId;
       }
-      gapiShift.soldierIds[shiftSpotIndex] = soldierId;
-    }
 
-    // Add assignment to assignments store
-    assignmentsStore.addAssignment(soldierId, {
-      positionId,
-      positionName: position.positionName,
-      shiftId: shiftsId,
-      startTime: shift.startTime,
-      endTime: shift.endTime,
-      assignmentIndex: shiftSpotIndex,
-    });
+      // Add assignment to assignments store
+      assignmentsStore.addAssignment(soldierId, {
+        positionId,
+        positionName: position.positionName,
+        shiftId: shiftsId,
+        startTime: shift.startTime,
+        endTime: shift.endTime,
+        assignmentIndex: shiftSpotIndex,
+      });
+    } finally {
+      // Always reset the manual assignment flag
+      isManualAssignment = false;
+    }
   }
 
   function removeSoldierFromShift(
@@ -270,35 +236,43 @@ export const usePositionsStore = defineStore("positions", () => {
     shiftId: string,
     shiftSpotIndex: number
   ) {
-    const position = positions.value.find(
-      (position) => position.positionId === positionId
-    );
-    if (!position) {
-      throw new SchedulerError(`Position with id ${positionId} not found`);
-    }
-    const shift = position.shifts.find((shift) => shift.shiftId === shiftId);
-    if (!shift) {
-      throw new SchedulerError(
-        `Shift with id ${shiftId} not found in position with id ${positionId}`
+    // Set the manual assignment flag to prevent watcher interference
+    isManualAssignment = true;
+
+    try {
+      const position = positions.value.find(
+        (position) => position.positionId === positionId
       );
-    }
+      if (!position) {
+        throw new SchedulerError(`Position with id ${positionId} not found`);
+      }
+      const shift = position.shifts.find((shift) => shift.shiftId === shiftId);
+      if (!shift) {
+        throw new SchedulerError(
+          `Shift with id ${shiftId} not found in position with id ${positionId}`
+        );
+      }
 
-    // Get soldier before removing
-    const soldier = shift.assignments[shiftSpotIndex].soldier;
+      // Get soldier before removing
+      const soldier = shift.assignments[shiftSpotIndex].soldier;
 
-    // Remove from shift
-    shift.removeSoldier(shiftSpotIndex);
+      // Remove from shift
+      shift.removeSoldier(shiftSpotIndex);
 
-    // Also update the underlying gapi.positions data structure
-    const gapiPosition = gapi.positions.find((p) => p.id === positionId);
-    const gapiShift = gapiPosition?.shifts.find((s) => s.id === shiftId);
-    if (gapiShift && gapiShift.soldierIds && soldier) {
-      gapiShift.soldierIds[shiftSpotIndex] = "";
-    }
+      // Also update the underlying gapi.positions data structure
+      const gapiPosition = gapi.positions.find((p) => p.id === positionId);
+      const gapiShift = gapiPosition?.shifts.find((s) => s.id === shiftId);
+      if (gapiShift && gapiShift.soldierIds && soldier) {
+        gapiShift.soldierIds[shiftSpotIndex] = "";
+      }
 
-    // Remove assignment from assignments store
-    if (soldier) {
-      assignmentsStore.removeAssignment(soldier.id, positionId, shiftId);
+      // Remove assignment from assignments store
+      if (soldier) {
+        assignmentsStore.removeAssignment(soldier.id, positionId, shiftId);
+      }
+    } finally {
+      // Always reset the manual assignment flag
+      isManualAssignment = false;
     }
   }
 
