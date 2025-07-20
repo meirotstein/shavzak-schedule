@@ -8,11 +8,13 @@ import { usePositionsStore } from "../../src/store/positions";
 import { PositionDto } from "../../src/types/client-dto";
 
 const findSoldierByIdMock = vi.fn();
+const soldiersMock: any[] = [];
 vi.mock("../../src/store/soldiers", () => {
   return {
     useSoldiersStore: () => {
       return {
         findSoldierById: findSoldierByIdMock,
+        soldiers: soldiersMock,
       };
     },
   };
@@ -110,9 +112,12 @@ describe("positions store tests", () => {
 
   test("fetchPositions from backend", async () => {
     positionsMock = testPositionsData as any;
-    findSoldierByIdMock.mockReturnValue(
-      new SoldierModel("123", "mose ufnik", "officer", "1")
-    );
+    const soldier = new SoldierModel("123", "mose ufnik", "officer", "1");
+    findSoldierByIdMock.mockReturnValue(soldier);
+    
+    // Add soldier to mock array for cache
+    soldiersMock.length = 0; // Clear any existing soldiers
+    soldiersMock.push(soldier);
 
     const store = usePositionsStore();
 
@@ -158,9 +163,12 @@ describe("positions store tests", () => {
 
   test("fetchPositions from backend unsorted - expected to sort starting from the day start hour (14:00)", async () => {
     positionsMock = testPositionsDataUnsorted as any;
-    findSoldierByIdMock.mockReturnValue(
-      new SoldierModel("123", "mose ufnik", "officer", "2")
-    );
+    const soldier = new SoldierModel("123", "mose ufnik", "officer", "2");
+    findSoldierByIdMock.mockReturnValue(soldier);
+    
+    // Add soldier to mock array for cache
+    soldiersMock.length = 0; // Clear any existing soldiers
+    soldiersMock.push(soldier);
 
     const store = usePositionsStore();
 
@@ -205,6 +213,10 @@ describe("positions store tests", () => {
 
     const soldier = new SoldierModel("123", "mose ufnik", "officer", "3");
     findSoldierByIdMock.mockReturnValue(soldier);
+    
+    // Add soldier to mock array for cache
+    soldiersMock.length = 0; // Clear any existing soldiers
+    soldiersMock.push(soldier);
 
     const store = usePositionsStore();
 
@@ -254,14 +266,18 @@ describe("positions store tests", () => {
     ];
     positionsMock = testDataWithoutSoldiers as any;
 
-    const soldier1 = new SoldierModel("123", "soldier one", "officer", "1");
-    const soldier2 = new SoldierModel("456", "soldier two", "officer", "2");
+    const soldier1 = new SoldierModel("123", "mose ufnik", "officer", "3");
+    const soldier2 = new SoldierModel("456", "bobe sponge", "officer", "3");
     
     findSoldierByIdMock.mockImplementation((id: string) => {
       if (id === "123") return soldier1;
       if (id === "456") return soldier2;
       return undefined;
     });
+
+    // Add soldiers to mock array for cache
+    soldiersMock.length = 0; // Clear any existing soldiers
+    soldiersMock.push(soldier1, soldier2);
 
     const store = usePositionsStore();
     const assignmentsStore = useAssignmentsStore();
@@ -316,15 +332,19 @@ describe("positions store tests", () => {
 
     const soldier = new SoldierModel("123", "mose ufnik", "officer", "3");
     findSoldierByIdMock.mockReturnValue(soldier);
+    
+    // Add soldier to mock array for cache
+    soldiersMock.length = 0; // Clear any existing soldiers
+    soldiersMock.push(soldier);
 
     const store = usePositionsStore();
+    const assignmentsStore = useAssignmentsStore();
 
     // First assign a soldier
     store.assignSoldiersToShift("1", "1", 0, "123");
     expect(store.positions[0].shifts[0].assignments[0].soldier).toBeInstanceOf(
       SoldierModel
     );
-    const assignmentsStore = useAssignmentsStore();
     expect(assignmentsStore.isAssigned("123")).toBe(true);
     expect(assignmentsStore.getAssignments("123")).toHaveLength(1);
 
