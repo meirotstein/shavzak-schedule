@@ -14,6 +14,11 @@ export function timeToDate(time: ShiftHours): Date {
   return parse(time, "HH:mm", today);
 }
 
+export function timeToMinutes(time: ShiftHours): number {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
 export function hoursBetween(time1: ShiftHours, time2: ShiftHours): number {
   const date1 = timeToDate(time1);
   let date2 = timeToDate(time2);
