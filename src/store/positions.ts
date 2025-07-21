@@ -231,8 +231,11 @@ export const usePositionsStore = defineStore("positions", () => {
 
         // CRITICAL FIX: Preserve spot indices when rebuilding from soldierIds
         shiftData.soldierIds?.forEach((soldierId, index) => {
+          console.log(`🔧 Processing shift ${shiftData.id} spot ${index}: "${soldierId}"`);
+          
           // Skip empty soldier IDs (removed assignments)
           if (!soldierId || soldierId.trim() === "") {
+            console.log(`⏭️ Skipping empty spot ${index}`);
             return;
           }
 
@@ -240,6 +243,8 @@ export const usePositionsStore = defineStore("positions", () => {
           if (!soldier) {
             throw new SchedulerError(`Soldier with id ${soldierId} not found`);
           }
+          
+          console.log(`✅ Adding soldier ${soldier.name} to shift ${shiftData.id} at spot ${index}`);
           // Use the specific index to preserve exact spot assignments
           shift.addSoldier(soldier, index);
         });
