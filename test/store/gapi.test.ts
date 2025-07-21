@@ -45,6 +45,17 @@ describe("google api client store tests", () => {
     vi.resetAllMocks();
   });
 
+  test("gapi store can be instantiated and has required functions", () => {
+    const gapi = useGAPIStore();
+    
+    // Basic test to verify store exists and has expected properties
+    expect(gapi).toBeDefined();
+    expect(typeof gapi.updateSheetValues).toBe("function");
+    expect(typeof gapi.batchUpdateSheetValues).toBe("function");
+    expect(gapi.SHEETS).toBeDefined();
+    expect(gapi.TITLES).toBeDefined();
+  });
+
   test("gapi store load with successful login is expected to init gapi and load sheet's data", async () => {
     gapiMock.client.sheets.spreadsheets.values.get.mockResolvedValue({
       body: JSON.stringify({ values: [] }),

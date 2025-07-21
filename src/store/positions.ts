@@ -5,7 +5,7 @@ import { PositionModel } from "../model/position";
 import { ShiftModel } from "../model/shift";
 import { ISoldier } from "../model/soldier";
 import { timeToMinutes } from "../utils/date-utils";
-import { shiftsByStartTimeCompare } from "../utils/sheets-utils";
+import { shiftsByStartTimeCompare, numberToColumnLetter } from "../utils/sheets-utils";
 import { useAssignmentsStore } from "./assignments";
 import { useGAPIStore } from "./gapi";
 import { useSoldiersStore } from "./soldiers";
@@ -28,10 +28,187 @@ export const usePositionsStore = defineStore("positions", () => {
   const soldiersStore = useSoldiersStore();
   const assignmentsStore = useAssignmentsStore();
 
+  // Auto-save state
+  let autoSaveEnabled = true;
+  let saveTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  const SAVE_DELAY = 1000; // 1 second delay for debouncing
+
   // Cache for soldiers to avoid O(n) lookups
   const soldiersCache = computed(() => {
     return createSoldiersCache(soldiersStore.soldiers);
   });
+
+  // Function to build assignment rows for Google Sheets format
+  async function buildAssignmentRows(): Promise<Array<{range: string, values: any[][]}>> {
+    // First, we need to read the current sheet structure to find assignment positions
+    const sheetData = await gapi.fetchSheetValues(gapi.SHEETS.POSITIONS, "A1", "AZ100");
+    if (!sheetData || sheetData.length === 0) {
+      console.warn('🚫 Cannot read sheet data for auto-save');
+      return [];
+    }
+
+    console.log(`🔍 Building assignment rows for ${gapi.positions.length} loaded positions`);
+    const updates: Array<{range: string, values: any[][]}> = [];
+    
+    // Find position columns and their assignment areas
+    const positionsRow = sheetData[0];
+    const positionColumns: Array<{column: number, positionId: string}> = [];
+    
+    for (let i = 0; i < positionsRow.length; i++) {
+      if (positionsRow[i] === "עמדה") {
+        // Use the exact same logic as in gapi.ts: pos-${i} where i is the column index
+        // Save assignments starting from the label column (i) spanning to value column (i+1)
+        positionColumns.push({
+          column: i,  // Start from the label column for two-column range
+          positionId: `pos-${i}`  // This should match exactly how gapi.ts creates position IDs
+        });
+      }
+    }
+
+    console.log(`📊 Sheet analysis:`, {
+      sheetPositions: positionColumns.map(p => `${p.positionId}@col${p.column}`),
+      loadedPositions: gapi.positions.map(p => `${p.id}(${p.name})`)
+    });
+
+    let totalAssignmentSlots = 0;
+    let totalFilledSlots = 0;
+    
+    // For each position, find its assignment rows and update them
+    for (const posColumn of positionColumns) {
+      const positionData = gapi.positions.find(p => p.id === posColumn.positionId);
+      if (!positionData) {
+        console.warn(`⚠️ Position data not found for ${posColumn.positionId}`);
+        continue;
+      }
+
+      // Try to find existing assignment section first
+      let assignmentStartRow = -1;
+
+      // Scan the column to find where assignments start
+      for (let row = 1; row < sheetData.length; row++) {
+        const cellValue = sheetData[row] && sheetData[row][posColumn.column];
+        if (cellValue === gapi.TITLES.ASSIGNMENT) {
+          assignmentStartRow = row + 1; // Start after the title row
+          break;
+        }
+      }
+
+      // If no existing assignment section, find where to create it
+      if (assignmentStartRow === -1) {
+        // Find the last row with content in this column (after shifts)
+        let lastContentRow = -1;
+        for (let row = 1; row < sheetData.length; row++) {
+          const cellValue = sheetData[row] && sheetData[row][posColumn.column];
+          if (cellValue && cellValue.trim() !== "") {
+            lastContentRow = row;
+          }
+        }
+        
+        // Place assignments after the last content + 1 row gap
+        assignmentStartRow = lastContentRow + 2;
+        console.log(`📍 No existing assignments for ${posColumn.positionId}, will create at row ${assignmentStartRow}`);
+      } else {
+        console.log(`📍 Found existing assignments for ${posColumn.positionId} starting at row ${assignmentStartRow}`);
+      }
+
+      // Build the assignment values for this position
+      const assignmentValues: string[][] = [];
+      let positionSlots = 0;
+      let positionFilled = 0;
+      
+      // Collect all assignments first
+      const allAssignments: string[] = [];
+      
+      // Add all assignments for all shifts sequentially
+      positionData.shifts.forEach((shift) => {
+        // Add assignment rows for each role in this shift
+        const maxAssignments = shift.assignmentDefs.length;
+        positionSlots += maxAssignments;
+        
+        for (let i = 0; i < maxAssignments; i++) {
+          let soldierId = "";
+          if (shift.soldierIds && i < shift.soldierIds.length) {
+            soldierId = shift.soldierIds[i] || "";
+            if (soldierId) positionFilled++;
+          }
+          allAssignments.push(soldierId);
+        }
+      });
+      
+      // Create two-column assignment rows: [label, value]
+      if (allAssignments.length > 0) {
+        // Every row gets the שיבוץ header (including empty assignments)
+        for (let i = 0; i < allAssignments.length; i++) {
+          assignmentValues.push([gapi.TITLES.ASSIGNMENT, allAssignments[i] || ""]);
+        }
+      } else {
+        // If no assignments, just add the header with empty value
+        assignmentValues.push([gapi.TITLES.ASSIGNMENT, ""]);
+      }
+
+      totalAssignmentSlots += positionSlots;
+      totalFilledSlots += positionFilled;
+      
+      console.log(`📋 ${posColumn.positionId}: ${positionFilled}/${positionSlots} filled`);
+
+      // Create a two-column range starting from the label column
+      const startColumnLetter = numberToColumnLetter(posColumn.column + 1);  // +1 for 1-based indexing
+      const endColumnLetter = numberToColumnLetter(posColumn.column + 2);    // +2 for value column
+      const endRow = assignmentStartRow + assignmentValues.length - 1;
+      const range = `${startColumnLetter}${assignmentStartRow}:${endColumnLetter}${endRow}`;
+
+      updates.push({
+        range,
+        values: assignmentValues
+      });
+    }
+
+    console.log(`💾 Auto-save summary: ${totalFilledSlots}/${totalAssignmentSlots} total assignments, ${updates.length} position updates generated`);
+    return updates;
+  }
+
+  // Function to save assignments to Google Sheets
+  async function saveAssignments(): Promise<void> {
+    if (!gapi.isSignedIn || !autoSaveEnabled) {
+      return;
+    }
+
+    try {
+      console.log('🔄 Auto-saving assignments to Google Sheets...');
+      
+      const assignmentUpdates = await buildAssignmentRows();
+      
+      if (assignmentUpdates.length === 0) {
+        console.log('⚠️ No valid assignment sections found - nothing to save');
+        return;
+      }
+
+      await gapi.batchUpdateSheetValues(gapi.SHEETS.POSITIONS, assignmentUpdates);
+      
+      console.log(`✅ Auto-save completed! Updated ${assignmentUpdates.length} position(s) in Google Sheets`);
+    } catch (error) {
+      console.error('❌ Auto-save failed:', error);
+      // Could add user notification here
+    }
+  }
+
+  // Function to trigger auto-save with debouncing
+  function triggerAutoSave(): void {
+    if (!autoSaveEnabled) {
+      return;
+    }
+
+    // Clear existing timeout
+    if (saveTimeoutId) {
+      clearTimeout(saveTimeoutId);
+    }
+
+    // Set new timeout
+    saveTimeoutId = setTimeout(() => {
+      saveAssignments();
+      saveTimeoutId = null;
+    }, SAVE_DELAY);
+  }
 
   const positions = computed(() => {
     const dayStartMinutes = timeToMinutes(dayStart);
@@ -225,6 +402,9 @@ export const usePositionsStore = defineStore("positions", () => {
         endTime: shift.endTime,
         assignmentIndex: shiftSpotIndex,
       });
+
+      // Trigger auto-save after assignment
+      triggerAutoSave();
     } finally {
       // Always reset the manual assignment flag
       isManualAssignment = false;
@@ -270,11 +450,34 @@ export const usePositionsStore = defineStore("positions", () => {
       if (soldier) {
         assignmentsStore.removeAssignment(soldier.id, positionId, shiftId);
       }
+
+      // Trigger auto-save after removal
+      triggerAutoSave();
     } finally {
       // Always reset the manual assignment flag
       isManualAssignment = false;
     }
   }
 
-  return { positions, assignSoldiersToShift, removeSoldierFromShift };
+  // Function to enable/disable auto-save
+  function setAutoSaveEnabled(enabled: boolean): void {
+    autoSaveEnabled = enabled;
+    if (!enabled && saveTimeoutId) {
+      clearTimeout(saveTimeoutId);
+      saveTimeoutId = null;
+    }
+  }
+
+  // Function to manually trigger save (for testing or manual saves)
+  function manualSave(): Promise<void> {
+    return saveAssignments();
+  }
+
+  return { 
+    positions, 
+    assignSoldiersToShift, 
+    removeSoldierFromShift,
+    setAutoSaveEnabled,
+    manualSave
+  };
 });

@@ -27,6 +27,13 @@ export const useGAPIStore = defineStore("gapi", () => {
     PRESENCE: "נוכחות",
   };
 
+  const TITLES = {
+    POSITION: "עמדה",
+    ROLE: "תפקיד",
+    SHIFT: "משמרת",
+    ASSIGNMENT: "שיבוץ",
+  };
+
   const route = useRoute();
   const isSignedIn = ref<boolean>(false);
 
@@ -95,6 +102,43 @@ export const useGAPIStore = defineStore("gapi", () => {
     return response.values;
   }
 
+  async function updateSheetValues(
+    name: string,
+    range: string,
+    values: any[][]
+  ): Promise<void> {
+    verifyReadiness();
+
+    await gapi.client.sheets.spreadsheets.values.update({
+      spreadsheetId: route.params.id as string,
+      range: `${name}!${range}`,
+      valueInputOption: "RAW",
+      resource: {
+        values: values,
+      },
+    });
+  }
+
+  async function batchUpdateSheetValues(
+    name: string,
+    updates: Array<{ range: string; values: any[][] }>
+  ): Promise<void> {
+    verifyReadiness();
+
+    const data = updates.map((update) => ({
+      range: `${name}!${update.range}`,
+      values: update.values,
+    }));
+
+    await gapi.client.sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: route.params.id as string,
+      resource: {
+        valueInputOption: "RAW",
+        data: data,
+      },
+    });
+  }
+
   function verifyReadiness() {
     if (!isSignedIn.value || !route.params.id) {
       throw new Error(
@@ -154,13 +198,6 @@ export const useGAPIStore = defineStore("gapi", () => {
 
   async function loadPositions(): Promise<void> {
     if (!isSignedIn.value) return;
-
-    const TITLES = {
-      POSITION: "עמדה",
-      ROLE: "תפקיד",
-      SHIFT: "משמרת",
-      ASSIGNMENT: "שיבוץ",
-    };
 
     const positionsRaw: Array<Array<string>> = await fetchSheetValues(
       SHEETS.POSITIONS,
@@ -357,10 +394,15 @@ export const useGAPIStore = defineStore("gapi", () => {
     load,
     login,
     logout,
+    fetchSheetValues,
+    updateSheetValues,
+    batchUpdateSheetValues,
     soldiers,
     positions,
     presence,
     isSignedIn,
     settings,
+    SHEETS,
+    TITLES,
   };
 });

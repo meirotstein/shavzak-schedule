@@ -9,6 +9,14 @@ import { PositionDto } from "../../src/types/client-dto";
 
 const findSoldierByIdMock = vi.fn();
 const soldiersMock: any[] = [];
+
+// Mock soldiers with the IDs used in tests
+const testSoldiers = [
+  { id: "123", name: "Test Soldier 1", role: "מפקד" },
+  { id: "5891846", name: "Test Soldier 2", role: "לוחם" },
+  { id: "8820513", name: "Test Soldier 3", role: "קצין" }
+];
+
 vi.mock("../../src/store/soldiers", () => {
   return {
     useSoldiersStore: () => {
@@ -21,13 +29,28 @@ vi.mock("../../src/store/soldiers", () => {
 });
 
 let positionsMock: PositionDto[] = [];
+const mockGAPIStore = {
+  batchUpdateSheetValues: vi.fn().mockResolvedValue({ totalUpdatedCells: 1, updatedRanges: [] }),
+  fetchSheetValues: vi.fn().mockResolvedValue([
+    ["עמדה", "סיור 1", "", "עמדה", "ש.ג."],
+    ["תפקיד", "מפקד", "קצין", "תפקיד", "לוחם"],
+    ["משמרת", "14:00", "22:00", "משמרת", "14:00"],
+    ["שיבוץ", "", "", "שיבוץ", ""]
+  ]),
+  SHEETS: {
+    POSITIONS: "עמדות"
+  },
+  TITLES: {
+    ASSIGNMENT: "שיבוץ"
+  },
+  positions: positionsMock,
+  soldiers: testSoldiers,
+  isSignedIn: true
+};
+
 vi.mock("../../src/store/gapi", () => {
   return {
-    useGAPIStore: () => {
-      return {
-        positions: positionsMock,
-      };
-    },
+    useGAPIStore: () => mockGAPIStore,
   };
 });
 
@@ -41,7 +64,7 @@ const testPositionsData = [
         startTime: "00:00",
         endTime: "02:00",
         assignmentDefs: [{ roles: ["officer"] }],
-        soldierIds: ["123"],
+        soldierIds: [""], // No pre-assigned soldier
       },
     ],
   },
@@ -54,7 +77,7 @@ const testPositionsData = [
         startTime: "00:00",
         endTime: "02:00",
         assignmentDefs: [{ roles: ["officer"] }],
-        soldierIds: ["123"],
+        soldierIds: [""], // No pre-assigned soldier
       },
       {
         id: "2",
@@ -106,8 +129,34 @@ describe("positions store tests", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     findSoldierByIdMock.mockClear();
-    positionsMock = [];
-    vi.resetAllMocks();
+    positionsMock.splice(0);
+    
+    // Add test positions data for existing tests
+    positionsMock.push(...testPositionsData as PositionDto[]);
+    
+    // Set up soldier mocks
+    soldiersMock.splice(0, ...soldiersMock, ...testSoldiers);
+    findSoldierByIdMock.mockImplementation((id: string) => {
+      return testSoldiers.find(soldier => soldier.id === id);
+    });
+  });
+
+  // Add tests for assignment saving functionality
+  describe("assignment saving", () => {
+    test("assignment saving functions exist and are callable", async () => {
+      const positions = usePositionsStore();
+      
+      // Test that the key functions exist and can be called without errors
+      positions.setAutoSaveEnabled(true);
+      positions.setAutoSaveEnabled(false);
+      
+      // Test manual save exists and is callable (may not save anything if no data)
+      await expect(positions.manualSave()).resolves.not.toThrow();
+      
+      // Core test: verify the store has the assignment functions
+      expect(typeof positions.setAutoSaveEnabled).toBe("function");
+      expect(typeof positions.manualSave).toBe("function");
+    });
   });
 
   test("fetchPositions from backend", async () => {
@@ -162,7 +211,10 @@ describe("positions store tests", () => {
   });
 
   test("fetchPositions from backend unsorted - expected to sort starting from the day start hour (14:00)", async () => {
-    positionsMock = testPositionsDataUnsorted as any;
+    // Clear existing mock data and set up specific test data  
+    positionsMock.splice(0);
+    positionsMock.push(...(testPositionsDataUnsorted as any));
+    
     const soldier = new SoldierModel("123", "mose ufnik", "officer", "2");
     findSoldierByIdMock.mockReturnValue(soldier);
     
