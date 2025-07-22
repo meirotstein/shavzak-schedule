@@ -37,7 +37,7 @@ export const positionsDto = [
         ],
         endTime: "22:00",
         id: "pos-0-shift-4",
-        soldierIds: ["8155316", "7233957"],
+        soldierIds: ["8155316", "7233957", "", ""],
         startTime: "14:00",
       },
       {
@@ -51,7 +51,7 @@ export const positionsDto = [
         ],
         endTime: "6:00",
         id: "pos-0-shift-5",
-        soldierIds: [],
+        soldierIds: ["", ""],
         startTime: "22:00",
       },
       {
@@ -71,7 +71,7 @@ export const positionsDto = [
         ],
         endTime: "14:00",
         id: "pos-0-shift-8",
-        soldierIds: [],
+        soldierIds: ["", "", "", ""],
         startTime: "6:00",
       },
     ],
@@ -105,7 +105,7 @@ export const positionsDto = [
         ],
         endTime: "22:00",
         id: "pos-3-shift-3",
-        soldierIds: [],
+        soldierIds: ["", ""],
         startTime: "18:00",
       },
       {
@@ -119,7 +119,7 @@ export const positionsDto = [
         ],
         endTime: "2:00",
         id: "pos-3-shift-4",
-        soldierIds: [],
+        soldierIds: ["", ""],
         startTime: "22:00",
       },
       {
@@ -133,7 +133,7 @@ export const positionsDto = [
         ],
         endTime: "6:00",
         id: "pos-3-shift-5",
-        soldierIds: [],
+        soldierIds: ["", ""],
         startTime: "2:00",
       },
       {
@@ -147,7 +147,7 @@ export const positionsDto = [
         ],
         endTime: "10:00",
         id: "pos-3-shift-6",
-        soldierIds: [],
+        soldierIds: ["", ""],
         startTime: "6:00",
       },
       {
@@ -161,7 +161,7 @@ export const positionsDto = [
         ],
         endTime: "14:00",
         id: "pos-3-shift-7",
-        soldierIds: [],
+        soldierIds: ["", ""],
         startTime: "10:00",
       },
     ],

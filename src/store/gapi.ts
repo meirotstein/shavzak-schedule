@@ -27,6 +27,13 @@ export const useGAPIStore = defineStore("gapi", () => {
     PRESENCE: "נוכחות",
   };
 
+  const TITLES = {
+    POSITION: "עמדה",
+    ROLE: "תפקיד",
+    SHIFT: "משמרת",
+    ASSIGNMENT: "שיבוץ",
+  };
+
   const route = useRoute();
   const isSignedIn = ref<boolean>(false);
 
@@ -95,6 +102,43 @@ export const useGAPIStore = defineStore("gapi", () => {
     return response.values;
   }
 
+  async function updateSheetValues(
+    name: string,
+    range: string,
+    values: any[][]
+  ): Promise<void> {
+    verifyReadiness();
+
+    await gapi.client.sheets.spreadsheets.values.update({
+      spreadsheetId: route.params.id as string,
+      range: `${name}!${range}`,
+      valueInputOption: "RAW",
+      resource: {
+        values: values,
+      },
+    });
+  }
+
+  async function batchUpdateSheetValues(
+    name: string,
+    updates: Array<{ range: string; values: any[][] }>
+  ): Promise<void> {
+    verifyReadiness();
+
+    const data = updates.map((update) => ({
+      range: `${name}!${update.range}`,
+      values: update.values,
+    }));
+
+    await gapi.client.sheets.spreadsheets.values.batchUpdate({
+      spreadsheetId: route.params.id as string,
+      resource: {
+        valueInputOption: "RAW",
+        data: data,
+      },
+    });
+  }
+
   function verifyReadiness() {
     if (!isSignedIn.value || !route.params.id) {
       throw new Error(
@@ -155,13 +199,6 @@ export const useGAPIStore = defineStore("gapi", () => {
   async function loadPositions(): Promise<void> {
     if (!isSignedIn.value) return;
 
-    const TITLES = {
-      POSITION: "עמדה",
-      ROLE: "תפקיד",
-      SHIFT: "משמרת",
-      ASSIGNMENT: "שיבוץ",
-    };
-
     const positionsRaw: Array<Array<string>> = await fetchSheetValues(
       SHEETS.POSITIONS,
       "A1",
@@ -182,6 +219,8 @@ export const useGAPIStore = defineStore("gapi", () => {
       currentShiftId?: string;
       overrideAssignments?: boolean;
       defaultAssignments: AssignmentDefDto[];
+      assignmentIndex?: number;
+      totalAssignmentSlots?: number;
     };
 
     const positionsState: Array<positionState> = [];
@@ -196,6 +235,8 @@ export const useGAPIStore = defineStore("gapi", () => {
             shifts: [],
           },
           defaultAssignments: [],
+          assignmentIndex: undefined,
+          totalAssignmentSlots: undefined,
         });
       }
     }
@@ -250,14 +291,82 @@ export const useGAPIStore = defineStore("gapi", () => {
               );
             }
             state.currentTitle = TITLES.ASSIGNMENT;
-            const nextUnassignedShift = state.position.shifts.find(
-              (s) => (s.soldierIds || []).length < s.assignmentDefs.length
-            );
-            state.currentShiftId = nextUnassignedShift?.id;
+            
+            // Only initialize assignment tracking once per position (not for every שיבוץ row)
+            if (state.assignmentIndex === undefined) {
+              state.assignmentIndex = 0;
+              // Pre-calculate total assignment slots for this position
+              state.totalAssignmentSlots = state.position.shifts.reduce(
+                (total, shift) => total + shift.assignmentDefs.length, 
+                0
+              );
+              // Initialize soldierIds arrays with proper length for each shift
+              state.position.shifts.forEach(shift => {
+                if (!shift.soldierIds) {
+                  shift.soldierIds = [];
+                }
+                // Pre-fill with empty strings to match assignment slots
+                while (shift.soldierIds.length < shift.assignmentDefs.length) {
+                  shift.soldierIds.push("");
+                }
+              });
+            }
+            
+            // Process this שיבוץ row as an assignment
+            const assignmentIndex = state.assignmentIndex || 0;
+            const assignmentValue = row[i + 1] || ""; // Get value from next column, or empty
+            
+            console.log(`🔍 Loading assignment ${assignmentIndex}: "${assignmentValue}" for position ${state.position.name}`);
+            console.log(`📊 Position has ${state.position.shifts.length} shifts:`);
+            state.position.shifts.forEach((shift, idx) => {
+              console.log(`   Shift ${idx} (${shift.id}): ${shift.assignmentDefs.length} slots`);
+            });
+            
+            // Find the shift and spot index based on sequential assignment index
+            let currentIndex = assignmentIndex;
+            let targetShift = null;
+            let targetSpotIndex = -1;
+            
+            console.log(`🔢 Calculating placement for assignment index ${assignmentIndex}:`);
+            
+            for (let shiftIdx = 0; shiftIdx < state.position.shifts.length; shiftIdx++) {
+              const shift = state.position.shifts[shiftIdx];
+              const shiftSlots = shift.assignmentDefs.length;
+              console.log(`   Checking shift ${shiftIdx} (${shift.id}): currentIndex=${currentIndex}, shiftSlots=${shiftSlots}`);
+              if (currentIndex < shiftSlots) {
+                targetShift = shift;
+                targetSpotIndex = currentIndex;
+                console.log(`   ✅ Found target: shift ${shiftIdx} (${shift.id}), spot ${targetSpotIndex}`);
+                break;
+              }
+              currentIndex -= shiftSlots;
+              console.log(`   ⏭️ Moving to next shift, remaining currentIndex=${currentIndex}`);
+            }
+            
+            if (targetShift && targetSpotIndex >= 0) {
+              console.log(`📍 Placing "${assignmentValue}" in shift ${targetShift.id} at spot ${targetSpotIndex}`);
+              
+              // Place the soldier in the exact spot (preserving empty spots)
+              if (!targetShift.soldierIds) {
+                targetShift.soldierIds = [];
+              }
+              // Ensure the array is long enough
+              while (targetShift.soldierIds.length <= targetSpotIndex) {
+                targetShift.soldierIds.push("");
+              }
+              // Store the soldier ID or empty string
+              targetShift.soldierIds[targetSpotIndex] = assignmentValue;
+              
+              console.log(`✅ Result: shift ${targetShift.id} soldierIds: [${targetShift.soldierIds.join(', ')}]`);
+              
+              // Increment assignment index for next assignment
+              state.assignmentIndex = (state.assignmentIndex || 0) + 1;
+            }
             break;
           default:
-            if (!state || !row[i]) break;
+            if (!state) break;
             if (state.currentTitle === TITLES.ROLE) {
+              if (!row[i]) break; // Skip empty roles
               if (state.currentShiftId) {
                 const shift = state.position.shifts.find(
                   (s) => s.id === state!.currentShiftId
@@ -266,16 +375,10 @@ export const useGAPIStore = defineStore("gapi", () => {
                   shift.assignmentDefs[shift.assignmentDefs.length - 1];
                 assignment.roles.push(row[i]);
               } else {
-                const defaultAssignments =
+                                const defaultAssignments =
                   state.defaultAssignments[state.defaultAssignments.length - 1];
                 defaultAssignments.roles.push(row[i]);
               }
-            }
-            if (state.currentTitle === TITLES.ASSIGNMENT) {
-              const shift = state.position.shifts.find(
-                (s) => s.id === state!.currentShiftId
-              )!;
-              shift.soldierIds!.push(row[i]);
             }
         }
       }
@@ -357,10 +460,15 @@ export const useGAPIStore = defineStore("gapi", () => {
     load,
     login,
     logout,
+    fetchSheetValues,
+    updateSheetValues,
+    batchUpdateSheetValues,
     soldiers,
     positions,
     presence,
     isSignedIn,
     settings,
+    SHEETS,
+    TITLES,
   };
 });
