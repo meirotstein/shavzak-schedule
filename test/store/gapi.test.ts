@@ -32,11 +32,19 @@ const mockRevoke = vi.fn((token: string, callback?: () => void) => {
   if (callback) callback();
 });
 
+// Mock One Tap functions
+const mockInitialize = vi.fn();
+const mockPrompt = vi.fn();
+
 const googleMock = {
   accounts: {
     oauth2: {
       initTokenClient: mockInitTokenClient,
       revoke: mockRevoke
+    },
+    id: {
+      initialize: mockInitialize,
+      prompt: mockPrompt
     }
   }
 };
@@ -76,7 +84,7 @@ describe("google api client store tests", () => {
     expect(gapi.TITLES).toBeDefined();
   });
 
-  test("gapi store load initializes token client", async () => {
+  test("gapi store load initializes token client and One Tap", async () => {
     const store = useGAPIStore();
 
     await store.load();
@@ -86,6 +94,33 @@ describe("google api client store tests", () => {
       scope: expect.any(String),
       callback: expect.any(Function),
     });
+
+    expect(mockInitialize).toHaveBeenCalledWith({
+      client_id: expect.any(String),
+      callback: expect.any(Function),
+      auto_prompt: true,
+      cancel_on_tap_outside: false,
+    });
+
+    // Verify that the One Tap callback handles user info correctly
+    const oneTapCallback = (mockInitialize as any).mock.calls[0]?.[0]?.callback;
+    if (oneTapCallback) {
+      // Mock JWT payload
+      const mockJWT = 'header.' + btoa(JSON.stringify({
+        name: 'Test User',
+        email: 'test@example.com',
+        picture: 'https://example.com/avatar.jpg'
+      })) + '.signature';
+
+      oneTapCallback({ credential: mockJWT, select_by: 'user' });
+
+      // Should store user info but not immediately request access token
+      expect(store.userInfo).toEqual({
+        name: 'Test User',
+        email: 'test@example.com',
+        picture: 'https://example.com/avatar.jpg'
+      });
+    }
   });
 
   test("login calls token client requestAccessToken", async () => {
@@ -112,6 +147,45 @@ describe("google api client store tests", () => {
     store.login();
 
     expect(mockTokenClient.requestAccessToken).toHaveBeenCalledWith({ prompt: 'consent' });
+  });
+
+  test("requestApiAccess calls token client requestAccessToken", async () => {
+    const store = useGAPIStore();
+    
+    // Ensure mockInitTokenClient properly returns our mock
+    let capturedTokenClient: any = null;
+    mockInitTokenClient.mockImplementation((config: any) => {
+      capturedTokenClient = mockTokenClient;
+      return mockTokenClient;
+    });
+
+    await store.load();
+
+    // Ensure the token client was created
+    expect(mockInitTokenClient).toHaveBeenCalled();
+    expect(capturedTokenClient).toBe(mockTokenClient);
+    
+    // Wait a bit for async operations to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Reset the requestAccessToken mock to ensure clean state
+    mockTokenClient.requestAccessToken.mockClear();
+
+    store.requestApiAccess();
+
+    expect(mockTokenClient.requestAccessToken).toHaveBeenCalledWith({ prompt: 'consent' });
+  });
+
+  test("triggerOneTap calls google.accounts.id.prompt", async () => {
+    const store = useGAPIStore();
+    await store.load();
+
+    // Reset the prompt mock to ensure clean state
+    mockPrompt.mockClear();
+
+    store.triggerOneTap();
+
+    expect(mockPrompt).toHaveBeenCalled();
   });
 
   test("logout revokes token", async () => {

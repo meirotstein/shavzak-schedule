@@ -32,6 +32,7 @@ export const useGAPIStore = defineStore("gapi", () => {
 
   const route = useRoute();
   const isSignedIn = ref<boolean>(false);
+  const userInfo = ref<{ name?: string; email?: string; picture?: string } | null>(null);
   let accessToken = ref<string>("");
   let tokenClient: google.accounts.oauth2.TokenClient | null = null;
   let tokenExpirationTime: number = 0;
@@ -240,6 +241,55 @@ export const useGAPIStore = defineStore("gapi", () => {
         await updateSignInStatus(true);
       },
     });
+
+    // Initialize Google One Tap
+    initializeOneTap();
+  }
+
+  function initializeOneTap() {
+    google.accounts.id.initialize({
+      client_id: import.meta.env.VITE_APP_GOOGLE_CLIENT_ID,
+      callback: async (credentialResponse: google.accounts.id.CredentialResponse) => {
+        console.log('🔐 One Tap sign-in successful');
+        
+        // Decode the JWT to get user info
+        try {
+          const payload = JSON.parse(atob(credentialResponse.credential.split('.')[1]));
+          userInfo.value = {
+            name: payload.name,
+            email: payload.email,
+            picture: payload.picture
+          };
+          console.log('👤 User identified via One Tap:', userInfo.value);
+          
+          // Store user identity but don't request API access yet
+          // The user will need to explicitly grant API access when needed
+          console.log('ℹ️ User identity confirmed. API access will be requested when needed.');
+          
+        } catch (error) {
+          console.error('Could not decode One Tap credential:', error);
+        }
+      },
+      auto_prompt: true, // Show One Tap automatically if user is signed in to Google
+      cancel_on_tap_outside: false,
+    });
+
+    // Only show One Tap prompt if user is not already authenticated
+    if (!isSignedIn.value) {
+      google.accounts.id.prompt();
+    }
+  }
+
+  function requestApiAccess() {
+    // This function can be called by the UI when user wants to grant API access
+    if (tokenClient) {
+      tokenClient.requestAccessToken({ prompt: 'consent' });
+    }
+  }
+
+  function triggerOneTap() {
+    // Manual trigger for One Tap (can be called from UI)
+    google.accounts.id.prompt();
   }
 
   async function loadSettings(): Promise<void> {
@@ -268,6 +318,9 @@ export const useGAPIStore = defineStore("gapi", () => {
       });
       clearStoredToken();
       updateSignInStatus(false);
+      
+      // Clear user info as well
+      userInfo.value = null;
     }
   }
 
@@ -700,6 +753,8 @@ export const useGAPIStore = defineStore("gapi", () => {
     load,
     login,
     logout,
+    triggerOneTap,
+    requestApiAccess,
     fetchSheetValues,
     updateSheetValues,
     batchUpdateSheetValues,
@@ -707,6 +762,7 @@ export const useGAPIStore = defineStore("gapi", () => {
     positions,
     presence,
     isSignedIn,
+    userInfo,
     settings,
     SHEETS,
     TITLES,
