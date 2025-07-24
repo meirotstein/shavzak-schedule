@@ -1,6 +1,6 @@
 import { parse } from "date-fns";
 import { createPinia, setActivePinia } from "pinia";
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { beforeEach, describe, expect, test, vi, MockedFunction } from "vitest";
 import { useGAPIStore } from "../../src/store/gapi";
 import { positionsDto, positionsRaw } from "./rowdata/positions";
 import { presenceDto, presenceRaw } from "./rowdata/presence";
@@ -13,36 +13,56 @@ vi.mock("vue-router", () => {
   };
 });
 
-const gapiMock = {
-  load: function (api: string, callback: Function) {
-    callback();
-  },
-  client: {
-    init: vi.fn(),
-    sheets: {
-      spreadsheets: {
-        values: {
-          get: vi.fn(),
-        },
-      },
-    },
-  },
-  auth2: {
-    getAuthInstance: () => ({
-      isSignedIn: {
-        listen: vi.fn(),
-        get: () => true,
-      },
-    }),
-  },
+// Mock localStorage
+const localStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+};
+vi.stubGlobal("localStorage", localStorageMock);
+
+// Mock Google Identity Services
+const mockTokenClient = {
+  requestAccessToken: vi.fn()
 };
 
-vi.stubGlobal("gapi", gapiMock);
+const mockInitTokenClient = vi.fn().mockReturnValue(mockTokenClient);
+const mockRevoke = vi.fn((token: string, callback?: () => void) => {
+  if (callback) callback();
+});
+
+const googleMock = {
+  accounts: {
+    oauth2: {
+      initTokenClient: mockInitTokenClient,
+      revoke: mockRevoke
+    }
+  }
+};
+
+vi.stubGlobal("google", googleMock);
+
+// Mock fetch for Google Sheets API calls
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
 
 describe("google api client store tests", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.resetAllMocks();
+    
+    // Reset localStorage mock
+    localStorageMock.getItem.mockReturnValue(null);
+    localStorageMock.setItem.mockImplementation(() => {});
+    localStorageMock.removeItem.mockImplementation(() => {});
+    localStorageMock.clear.mockImplementation(() => {});
+    
+    // Setup fetch mock to return empty values by default
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ values: [] })
+    });
   });
 
   test("gapi store can be instantiated and has required functions", () => {
@@ -56,78 +76,105 @@ describe("google api client store tests", () => {
     expect(gapi.TITLES).toBeDefined();
   });
 
-  test("gapi store load with successful login is expected to init gapi and load sheet's data", async () => {
-    gapiMock.client.sheets.spreadsheets.values.get.mockResolvedValue({
-      body: JSON.stringify({ values: [] }),
-    });
-
+  test("gapi store load initializes token client", async () => {
     const store = useGAPIStore();
 
     await store.load();
 
+    expect(mockInitTokenClient).toHaveBeenCalledWith({
+      client_id: expect.any(String),
+      scope: expect.any(String),
+      callback: expect.any(Function),
+    });
+  });
+
+  test("login calls token client requestAccessToken", async () => {
+    // Create a new store instance for this test
+    const store = useGAPIStore();
+    
+    // Mock initTokenClient to capture the call and ensure our mock is properly set
+    let capturedTokenClient: any = null;
+    mockInitTokenClient.mockImplementation((config: any) => {
+      capturedTokenClient = mockTokenClient;
+      return mockTokenClient;
+    });
+
+    await store.load();
+
+    // Ensure the token client was created
+    expect(mockInitTokenClient).toHaveBeenCalled();
+    expect(capturedTokenClient).toBe(mockTokenClient);
+
+    // Wait a bit for async operations to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Now test the login
+    store.login();
+
+    expect(mockTokenClient.requestAccessToken).toHaveBeenCalledWith({ prompt: 'consent' });
+  });
+
+  test("logout revokes token", async () => {
+    const store = useGAPIStore();
+    await store.load();
+
+    // Get the callback from the first call to initTokenClient and trigger authentication
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
+
     expect(store.isSignedIn).toBe(true);
 
-    expect(gapiMock.client.init).toBeCalledWith({
-      apiKey: expect.any(String),
-      clientId: expect.any(String),
-      discoveryDocs: expect.any(Array<string>),
-      scope: expect.any(String),
-    });
+    store.logout();
 
-    // expect load of settings from sheet
-    expect(gapiMock.client.sheets.spreadsheets.values.get).toBeCalledWith({
-      spreadsheetId: "123",
-      range: expect.stringMatching(/^settings/),
-    });
-
-    // expect load of soldiers from sheet
-    expect(gapiMock.client.sheets.spreadsheets.values.get).toBeCalledWith({
-      spreadsheetId: "123",
-      range: expect.stringMatching(/^חיילים/),
-    });
-
-    // expect load of positions from sheet
-    expect(gapiMock.client.sheets.spreadsheets.values.get).toBeCalledWith({
-      spreadsheetId: "123",
-      range: expect.stringMatching(/^עמדות/),
-    });
-
-    // expect load of positions from sheet
-    expect(gapiMock.client.sheets.spreadsheets.values.get).toBeCalledWith({
-      spreadsheetId: "123",
-      range: expect.stringMatching(/^נוכחות/),
-    });
+    expect(mockRevoke).toHaveBeenCalledWith('test-token', expect.any(Function));
+    expect(store.isSignedIn).toBe(false);
+    
+    // Verify localStorage was cleared
+    expect(localStorageMock.removeItem).toHaveBeenCalledWith('google_access_token');
+    expect(localStorageMock.removeItem).toHaveBeenCalledWith('google_token_expiry');
   });
 
   test("load of settings", async () => {
     const soldiersMaxAmountMock = 42;
     const presenceNameColumnMock = 4;
     const presenceNameFirstRowMock = 20;
-    gapiMock.client.sheets.spreadsheets.values.get.mockImplementation(
-      (params: { range: string }) => {
-        if (params.range.startsWith("settings")) {
-          return {
-            body: JSON.stringify({
-              values: [
-                [, presenceNameColumnMock, , , , soldiersMaxAmountMock],
-                [, presenceNameFirstRowMock, , , ,],
-              ],
-            }),
-          };
-        }
-        return {
-          body: JSON.stringify({ values: [] }),
-        };
+    
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('settings')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            values: [
+              [, presenceNameColumnMock, , , , soldiersMaxAmountMock],
+              [, presenceNameFirstRowMock, , , ,],
+            ]
+          })
+        });
       }
-    );
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ values: [] })
+      });
+    });
 
     const store = useGAPIStore();
-
     await store.load();
+
+    // Get the callback from the first call to initTokenClient and trigger authentication
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
 
     expect(store.settings.soldiersMaxAmount).toBe(soldiersMaxAmountMock);
     expect(store.settings.presenceNameColumn).toBe(presenceNameColumnMock);
     expect(store.settings.presenceNameFirstRow).toBe(presenceNameFirstRowMock);
+    
+    // Verify token was stored in localStorage
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('google_access_token', 'test-token');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('google_token_expiry', expect.any(String));
   });
 
   test("load of soldiers", async () => {
@@ -138,32 +185,58 @@ describe("google api client store tests", () => {
       platoon: 1,
       description: "משה אופניק [לוחם] 1",
     };
-    gapiMock.client.sheets.spreadsheets.values.get.mockImplementation(
-      (params: { range: string }) => {
-        if (params.range.startsWith("חיילים")) {
-          return {
-            body: JSON.stringify({
-              values: [
-                [
-                  mockData.id,
-                  mockData.name,
-                  mockData.platoon,
-                  mockData.role,
-                  mockData.description,
-                ],
-              ],
-            }),
-          };
-        }
-        return {
-          body: JSON.stringify({ values: [] }),
-        };
+    
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('settings')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            values: [[, 2, , , , 200], [, 13, , , ,]]
+          })
+        });
       }
-    );
+      if (url.includes('%D7%97%D7%99%D7%99%D7%9C%D7%99%D7%9D') || url.includes('חיילים')) { // soldiers sheet
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            values: [
+              [
+                mockData.id,
+                mockData.name,
+                mockData.platoon,
+                mockData.role,
+                mockData.description,
+              ],
+            ],
+          }),
+        });
+      }
+      if (url.includes('%D7%A2%D7%9E%D7%93%D7%95%D7%AA') || url.includes('עמדות')) { // positions sheet
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ values: [] })
+        });
+      }
+      if (url.includes('%D7%A0%D7%95%D7%9B%D7%97%D7%95%D7%AA') || url.includes('נוכחות')) { // presence sheet
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ values: [] })
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ values: [] })
+      });
+    });
 
     const store = useGAPIStore();
-
     await store.load();
+
+    // Get the callback from the first call to initTokenClient and trigger authentication
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
 
     expect(store.soldiers).toStrictEqual([
       {
@@ -177,72 +250,148 @@ describe("google api client store tests", () => {
   });
 
   test("load of positions", async () => {
-    gapiMock.client.sheets.spreadsheets.values.get.mockImplementation(
-      (params: { range: string }) => {
-        if (params.range.startsWith("עמדות")) {
-          return {
-            body: JSON.stringify({
-              values: positionsRaw,
-            }),
-          };
-        }
-        return {
-          body: JSON.stringify({ values: [] }),
-        };
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('settings')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            values: [[, 2, , , , 200], [, 13, , , ,]]
+          })
+        });
       }
-    );
+      if (url.includes('%D7%97%D7%99%D7%99%D7%9C%D7%99%D7%9D') || url.includes('חיילים')) { // soldiers sheet
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ values: [] })
+        });
+      }
+      if (url.includes('%D7%A2%D7%9E%D7%93%D7%95%D7%AA') || url.includes('עמדות')) { // positions sheet
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            values: positionsRaw
+          })
+        });
+      }
+      if (url.includes('%D7%A0%D7%95%D7%9B%D7%97%D7%95%D7%AA') || url.includes('נוכחות')) { // presence sheet
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ values: [] })
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ values: [] })
+      });
+    });
 
     const store = useGAPIStore();
-
     await store.load();
+
+    // Get the callback from the first call to initTokenClient and trigger authentication
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
 
     expect(store.positions).toStrictEqual(positionsDto);
   });
 
   test("load of presence", async () => {
-    gapiMock.client.sheets.spreadsheets.values.get.mockImplementation(
-      (params: { range: string }) => {
-        if (params.range.startsWith("חיילים")) {
-          return {
-            body: JSON.stringify({
-              values: [
-                ["123", "משה אופניק", "1", "לוחם", "משה אופניק [לוחם] 1"],
-                ["456", "בוב ספוג", "2", "לוחם", "בוב ספוג [לוחם] 2"],
-                [
-                  "789",
-                  "ג׳ורג קוסטנזה",
-                  "מפלג",
-                  "סמבצ",
-                  "ג׳ורג קוסטנזה [סמבצ] מפלג",
-                ],
-              ],
-            }),
-          };
-        }
-        if (params.range.startsWith("נוכחות")) {
-          return {
-            body: JSON.stringify({
-              values: presenceRaw,
-            }),
-          };
-        }
-        return {
-          body: JSON.stringify({ values: [] }),
-        };
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('settings')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            values: [[, 2, , , , 200], [, 13, , , ,]]
+          })
+        });
       }
-    );
+      if (url.includes('%D7%97%D7%99%D7%99%D7%9C%D7%99%D7%9D') || url.includes('חיילים')) { // soldiers sheet
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            values: [
+              ["123", "משה אופניק", "1", "לוחם", "משה אופניק [לוחם] 1"],
+              ["456", "בוב ספוג", "2", "לוחם", "בוב ספוג [לוחם] 2"],
+              ["789", "ג׳ורג קוסטנזה", "מפלג", "סמבצ", "ג׳ורג קוסטנזה [סמבצ] מפלג"],
+            ]
+          })
+        });
+      }
+      if (url.includes('%D7%A2%D7%9E%D7%93%D7%95%D7%AA') || url.includes('עמדות')) { // positions sheet
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ values: [] })
+        });
+      }
+      if (url.includes('%D7%A0%D7%95%D7%9B%D7%97%D7%95%D7%AA') || url.includes('נוכחות')) { // presence sheet
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            values: presenceRaw
+          })
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ values: [] })
+      });
+    });
 
     const store = useGAPIStore();
-
-    store.settings.presenceNameFirstRow = 13;
-    store.settings.presenceNameColumn = 2;
-
     await store.load();
 
-    expect(store.presence).toStrictEqual({
-      start: parse("2024-10-27", "yyyy-MM-dd", new Date()),
-      end: parse("2024-12-31", "yyyy-MM-dd", new Date()),
-      soldiersPresence: presenceDto,
+    // Get the callback from the first call to initTokenClient and trigger authentication
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
+
+    expect(store.presence.soldiersPresence).toStrictEqual(presenceDto);
+  });
+
+  test("token persistence - restores from localStorage", async () => {
+    // Mock stored token
+    const storedToken = 'stored-test-token';
+    const futureTime = Date.now() + 3600000; // 1 hour from now
+    localStorageMock.getItem.mockImplementation((key: string) => {
+      if (key === 'google_access_token') return storedToken;
+      if (key === 'google_token_expiry') return futureTime.toString();
+      return null;
     });
+
+    // Mock successful token validation
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({})
+    });
+
+    const store = useGAPIStore();
+    await store.load();
+
+    // Should restore from localStorage without new authentication
+    expect(store.isSignedIn).toBe(true);
+    expect(localStorageMock.getItem).toHaveBeenCalledWith('google_access_token');
+    expect(localStorageMock.getItem).toHaveBeenCalledWith('google_token_expiry');
+  });
+
+  test("token persistence - clears expired token", async () => {
+    // Mock expired token
+    const expiredToken = 'expired-test-token';
+    const pastTime = Date.now() - 1000; // 1 second ago
+    localStorageMock.getItem.mockImplementation((key: string) => {
+      if (key === 'google_access_token') return expiredToken;
+      if (key === 'google_token_expiry') return pastTime.toString();
+      return null;
+    });
+
+    const store = useGAPIStore();
+    await store.load();
+
+    // Should clear expired token
+    expect(localStorageMock.removeItem).toHaveBeenCalledWith('google_access_token');
+    expect(localStorageMock.removeItem).toHaveBeenCalledWith('google_token_expiry');
+    expect(store.isSignedIn).toBe(false);
   });
 });

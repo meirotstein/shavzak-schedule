@@ -13,9 +13,6 @@
   },
   "dependencies": {
     "@primevue/themes": "^4.0.7",
-    "@types/gapi": "^0.0.47",
-    "@types/gapi.auth2": "^0.0.61",
-    "@types/gapi.client.sheets": "^4.0.20201031",
     "date-fns": "^4.1.0",
     "pinia": "^2.2.2",
     "primevue": "^4.0.7",
