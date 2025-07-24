@@ -320,4 +320,47 @@ describe("assignments store tests", () => {
     expect(store.getAssignments("soldier2")).toEqual([]);
     expect(store.isAssigned("soldier2")).toBe(false);
   });
+
+  test("should clear all assignments from all soldiers", () => {
+    const store = useAssignmentsStore();
+    
+    const assignment1: SoldierAssignment = {
+      positionId: "pos-1",
+      positionName: "סיור 1",
+      shiftId: "shift-1",
+      startTime: "14:00" as ShiftHours,
+      endTime: "22:00" as ShiftHours,
+      assignmentIndex: 0
+    };
+    
+    const assignment2: SoldierAssignment = {
+      positionId: "pos-2",
+      positionName: "שער",
+      shiftId: "shift-2",
+      startTime: "22:00" as ShiftHours,
+      endTime: "06:00" as ShiftHours,
+      assignmentIndex: 0
+    };
+
+    // Add assignments to multiple soldiers
+    store.addAssignment("soldier1", assignment1);
+    store.addAssignment("soldier2", assignment2);
+    store.addAssignment("soldier3", assignment1);
+
+    // Verify soldiers have assignments
+    expect(store.isAssigned("soldier1")).toBe(true);
+    expect(store.isAssigned("soldier2")).toBe(true);
+    expect(store.isAssigned("soldier3")).toBe(true);
+
+    // Clear all assignments
+    store.clearAllAssignments();
+
+    // Verify all soldiers have no assignments
+    expect(store.getAssignments("soldier1")).toEqual([]);
+    expect(store.getAssignments("soldier2")).toEqual([]);
+    expect(store.getAssignments("soldier3")).toEqual([]);
+    expect(store.isAssigned("soldier1")).toBe(false);
+    expect(store.isAssigned("soldier2")).toBe(false);
+    expect(store.isAssigned("soldier3")).toBe(false);
+  });
 }); 

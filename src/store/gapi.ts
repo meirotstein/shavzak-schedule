@@ -437,7 +437,7 @@ export const useGAPIStore = defineStore("gapi", () => {
     if (signedIn) {
       await loadSettings();
       await loadSoldiers();
-      await loadPositions();
+      await loadPositionsForDate(); // This will load from template initially
       await loadPresence();
     } else {
       // Clear data when signed out
@@ -485,6 +485,201 @@ export const useGAPIStore = defineStore("gapi", () => {
           description: soldier[4] + "",
         }))
     );
+  }
+
+  async function loadPresence(): Promise<void> {
+    verifyReadiness();
+
+    const presenceRaw = await fetchSheetValues(
+      SHEETS.PRESENCE,
+      "A1",
+      // TODO: calculate the end column by fetching dates and calculate period length (require additional API call)
+      `ZA${
+        Number(settings.soldiersMaxAmount) +
+        Number(settings.presenceNameFirstRow)
+      }`
+    );
+
+    console.log("presence loaded", presenceRaw);
+
+    if (!presenceRaw.length) {
+      console.error("unexpected presence response");
+      return;
+    }
+
+    presence.start = parse(presenceRaw[0][1], "yyyy-MM-dd", new Date());
+    presence.end = parse(presenceRaw[1][1], "yyyy-MM-dd", new Date());
+    presence.soldiersPresence = {}; // Clear existing data
+
+    for (
+      let i = settings.presenceNameFirstRow - 1;
+      i < presenceRaw.length;
+      ++i
+    ) {
+      const row = presenceRaw[i];
+      const soldierDescription = row[settings.presenceNameColumn - 1];
+      if (!soldierDescription) {
+        continue;
+      }
+
+      const soldier = soldiers.find(
+        (s) => s.description.trim() === soldierDescription.trim()
+      );
+
+      if (!soldier) {
+        console.error("soldier not found", soldierDescription);
+        continue;
+      }
+
+      const soldierPresence: SoldierPresenceDto = {
+        presence: [],
+      };
+
+      let currentDay = presence.start;
+
+      for (let j = settings.presenceNameColumn; j < row.length; ++j) {
+        const presenceStateValue = row[j];
+
+        soldierPresence.presence.push({
+          day: currentDay,
+          presence: presenceStateValue,
+        });
+
+        currentDay = addDays(currentDay, 1);
+      }
+
+      presence.soldiersPresence[soldier.id] = soldierPresence;
+    }
+
+    console.log("presence parsed", presence);
+  }
+
+  /**
+   * Generate sheet name from date in the format "שבצק-DD.MM.YY"
+   */
+  function generateSheetNameFromDate(date: Date): string {
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear().toString().substr(-2);
+    return `שבצק-${day}.${month}.${year}`;
+  }
+
+  /**
+   * Get sheet ID by sheet name using GIS fetch approach
+   */
+  async function getSheetIdByName(sheetName: string): Promise<number | null> {
+    try {
+      verifyReadiness();
+      
+      const spreadsheetId = route.params.id as string;
+      const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken.value}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to get spreadsheet info: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const sheet = data.sheets?.find((s: any) => 
+        s.properties?.title === sheetName
+      );
+      
+      return sheet?.properties?.sheetId ?? null;
+    } catch (error: any) {
+      console.error(`❌ Error getting sheet ID for "${sheetName}":`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Check if a sheet exists by name
+   */
+  async function checkSheetExists(sheetName: string): Promise<boolean> {
+    const sheetId = await getSheetIdByName(sheetName);
+    return sheetId !== null;
+  }
+
+  /**
+   * Duplicate a sheet within the same spreadsheet using GIS fetch approach
+   */
+  async function duplicateSheet(sourceSheetName: string, newSheetName: string): Promise<void> {
+    try {
+      verifyReadiness();
+      
+      // Get source sheet ID and current sheet count
+      const spreadsheetId = route.params.id as string;
+      const response = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken.value}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to get spreadsheet info: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const sheets = data.sheets || [];
+      
+      // Find source sheet
+      const sourceSheet = sheets.find((s: any) => s.properties?.title === sourceSheetName);
+      if (!sourceSheet) {
+        throw new Error(`Source sheet "${sourceSheetName}" not found`);
+      }
+      
+      const sourceSheetId = sourceSheet.properties.sheetId;
+      const currentSheetCount = sheets.length;
+      
+      console.log(`📊 Current spreadsheet has ${currentSheetCount} sheets, adding new sheet at the end`);
+
+      // Duplicate the sheet at the end
+      const requests = [{
+        duplicateSheet: {
+          sourceSheetId: sourceSheetId,
+          newSheetName: newSheetName,
+          insertSheetIndex: currentSheetCount, // Insert at the end (0-based index)
+        }
+      }];
+
+      const duplicateResponse = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}:batchUpdate`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${accessToken.value}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ requests }),
+        }
+      );
+
+      if (!duplicateResponse.ok) {
+        throw new Error(`Failed to duplicate sheet: ${duplicateResponse.status} ${duplicateResponse.statusText}`);
+      }
+
+      console.log(`✅ Sheet duplicated: "${sourceSheetName}" → "${newSheetName}" (added at position ${currentSheetCount + 1})`);
+    } catch (error) {
+      console.error('❌ Error duplicating sheet:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get the current sheet name based on schedule date
+   */
+  function getCurrentSheetName(scheduleDate?: Date): string {
+    return scheduleDate ? generateSheetNameFromDate(scheduleDate) : SHEETS.POSITIONS;
   }
 
   async function loadPositions(): Promise<void> {
@@ -682,71 +877,220 @@ export const useGAPIStore = defineStore("gapi", () => {
     console.log("positions store", positions);
   }
 
-  async function loadPresence(): Promise<void> {
+  /**
+   * Load positions from a specific sheet (refactored from loadPositions)
+   */
+  async function loadPositionsFromSheet(sheetName: string): Promise<void> {
     verifyReadiness();
 
-    const presenceRaw = await fetchSheetValues(
-      SHEETS.PRESENCE,
+    const positionsRaw: Array<Array<string>> = await fetchSheetValues(
+      sheetName,
       "A1",
-      // TODO: calculate the end column by fetching dates and calculate period length (require additional API call)
-      `ZA${
-        Number(settings.soldiersMaxAmount) +
-        Number(settings.presenceNameFirstRow)
-      }`
+      "AZ100"
     );
 
-    console.log("presence loaded", presenceRaw);
+    console.log("positions loaded from", sheetName, positionsRaw);
 
-    if (!presenceRaw.length) {
-      console.error("unexpected presence response");
+    if (!positionsRaw.length) {
+      console.warn("no positions def found");
       return;
     }
 
-    presence.start = parse(presenceRaw[0][1], "yyyy-MM-dd", new Date());
-    presence.end = parse(presenceRaw[1][1], "yyyy-MM-dd", new Date());
-    presence.soldiersPresence = {}; // Clear existing data
+    type positionState = {
+      index: number;
+      position: PositionDto;
+      currentTitle?: string;
+      currentShiftId?: string;
+      overrideAssignments?: boolean;
+      defaultAssignments: AssignmentDefDto[];
+      assignmentIndex?: number;
+      totalAssignmentSlots?: number;
+    };
 
-    for (
-      let i = settings.presenceNameFirstRow - 1;
-      i < presenceRaw.length;
-      ++i
-    ) {
-      const row = presenceRaw[i];
-      const soldierDescription = row[settings.presenceNameColumn - 1];
-      if (!soldierDescription) {
-        continue;
-      }
-
-      const soldier = soldiers.find(
-        (s) => s.description.trim() === soldierDescription.trim()
-      );
-
-      if (!soldier) {
-        console.error("soldier not found", soldierDescription);
-        continue;
-      }
-
-      const soldierPresence: SoldierPresenceDto = {
-        presence: [],
-      };
-
-      let currentDay = presence.start;
-
-      for (let j = settings.presenceNameColumn; j < row.length; ++j) {
-        const presenceStateValue = row[j];
-
-        soldierPresence.presence.push({
-          day: currentDay,
-          presence: presenceStateValue,
+    const positionsState: Array<positionState> = [];
+    const positionsRow = positionsRaw[0];
+    for (let i = 0; i < positionsRow.length; ++i) {
+      if (positionsRow[i] === TITLES.POSITION) {
+        positionsState.push({
+          index: i,
+          position: {
+            id: `pos-${i}`,
+            name: positionsRow[i + 1],
+            shifts: [],
+          },
+          defaultAssignments: [],
+          assignmentIndex: undefined,
+          totalAssignmentSlots: undefined,
         });
-
-        currentDay = addDays(currentDay, 1);
       }
-
-      presence.soldiersPresence[soldier.id] = soldierPresence;
     }
 
-    console.log("presence parsed", presence);
+    positionsRaw.slice(1).forEach((row, rowIdx) => {
+      let state: positionState | undefined;
+      for (let i = 0; i < row.length; ++i) {
+        switch (row[i]) {
+          case TITLES.ROLE:
+            state = positionsState.find((p) => p.index === i);
+            if (!state) {
+              throw new SchedulerError(`positions: wrong ${TITLES.ROLE} index`);
+            }
+            state.currentTitle = TITLES.ROLE;
+            if (!state.currentShiftId) {
+              state.defaultAssignments.push({ roles: [] });
+            } else {
+              const shift = state.position.shifts.find(
+                (s) => s.id === state!.currentShiftId
+              )!;
+              if (!state.overrideAssignments) {
+                state.overrideAssignments = true;
+                shift.assignmentDefs = [{ roles: [] }];
+              } else {
+                shift.assignmentDefs.push({ roles: [] });
+              }
+            }
+            break;
+          case TITLES.SHIFT:
+            state = positionsState.find((p) => p.index === i);
+            if (!state) {
+              throw new SchedulerError(
+                `positions: wrong ${TITLES.SHIFT} index`
+              );
+            }
+            state.overrideAssignments = false;
+            state.currentTitle = TITLES.SHIFT;
+            state.currentShiftId = `${state.position.id}-shift-${rowIdx}`;
+            state.position.shifts.push({
+              id: state.currentShiftId,
+              startTime: row[i + 1] as ShiftHours,
+              endTime: row[i + 2] as ShiftHours,
+              assignmentDefs: state.defaultAssignments,
+              soldierIds: [],
+            });
+            break;
+          case TITLES.ASSIGNMENT:
+            state = positionsState.find((p) => p.index === i);
+            if (!state) {
+              throw new SchedulerError(
+                `positions: wrong ${TITLES.ASSIGNMENT} index`
+              );
+            }
+            state.currentTitle = TITLES.ASSIGNMENT;
+            
+            // Only initialize assignment tracking once per position (not for every שיבוץ row)
+            if (state.assignmentIndex === undefined) {
+              state.assignmentIndex = 0;
+              // Pre-calculate total assignment slots for this position
+              state.totalAssignmentSlots = state.position.shifts.reduce(
+                (total, shift) => total + shift.assignmentDefs.length, 
+                0
+              );
+              // Initialize soldierIds arrays with proper length for each shift
+              state.position.shifts.forEach(shift => {
+                if (!shift.soldierIds) {
+                  shift.soldierIds = [];
+                }
+                // Pre-fill with empty strings to match assignment slots
+                while (shift.soldierIds.length < shift.assignmentDefs.length) {
+                  shift.soldierIds.push("");
+                }
+              });
+            }
+            
+            // Process this שיבוץ row as an assignment
+            const assignmentIndex = state.assignmentIndex || 0;
+            const assignmentValue = row[i + 1] || ""; // Get value from next column, or empty
+            
+            // Find the shift and spot index based on sequential assignment index
+            let currentIndex = assignmentIndex;
+            let targetShift = null;
+            let targetSpotIndex = -1;
+            
+            for (let shiftIdx = 0; shiftIdx < state.position.shifts.length; shiftIdx++) {
+              const shift = state.position.shifts[shiftIdx];
+              const shiftSlots = shift.assignmentDefs.length;
+              if (currentIndex < shiftSlots) {
+                targetShift = shift;
+                targetSpotIndex = currentIndex;
+                break;
+              }
+              currentIndex -= shiftSlots;
+            }
+            
+            if (targetShift && targetSpotIndex >= 0) {
+              // Place the soldier in the exact spot (preserving empty spots)
+              if (!targetShift.soldierIds) {
+                targetShift.soldierIds = [];
+              }
+              // Ensure the array is long enough
+              while (targetShift.soldierIds.length <= targetSpotIndex) {
+                targetShift.soldierIds.push("");
+              }
+              // Store the soldier ID or empty string
+              targetShift.soldierIds[targetSpotIndex] = assignmentValue;
+              
+              // Increment assignment index for next assignment
+              state.assignmentIndex = (state.assignmentIndex || 0) + 1;
+            }
+            break;
+          default:
+            if (!state) break;
+            if (state.currentTitle === TITLES.ROLE) {
+              if (!row[i]) break; // Skip empty roles
+              if (state.currentShiftId) {
+                const shift = state.position.shifts.find(
+                  (s) => s.id === state!.currentShiftId
+                )!;
+                const assignment =
+                  shift.assignmentDefs[shift.assignmentDefs.length - 1];
+                assignment.roles.push(row[i]);
+              } else {
+                const defaultAssignments =
+                  state.defaultAssignments[state.defaultAssignments.length - 1];
+                defaultAssignments.roles.push(row[i]);
+              }
+            }
+        }
+      }
+    });
+
+    console.log("positions data", positionsState);
+
+    positions.splice(0); // Clear existing data
+    positions.push(...positionsState.map((p) => p.position));
+    console.log("positions store", positions);
+  }
+
+  /**
+   * Load positions for a specific date - creates sheet if it doesn't exist
+   */
+  async function loadPositionsForDate(scheduleDate?: Date): Promise<void> {
+    if (!isSignedIn.value) return;
+
+    // Clear existing positions
+    positions.splice(0, positions.length);
+
+    const targetSheetName = getCurrentSheetName(scheduleDate);
+    console.log(`🔍 Loading positions for sheet: "${targetSheetName}"`);
+
+    try {
+      // Check if date-specific sheet exists
+      const sheetExists = await checkSheetExists(targetSheetName);
+      
+      if (!sheetExists && scheduleDate) {
+        console.log(`📋 Creating new sheet from template: "${targetSheetName}"`);
+        await duplicateSheet(SHEETS.POSITIONS, targetSheetName);
+      }
+
+      // Load positions from the appropriate sheet
+      await loadPositionsFromSheet(targetSheetName);
+      
+    } catch (error) {
+      console.error('❌ Error loading positions for date:', error);
+      console.log('🔄 Falling back to template sheet...');
+      
+      // Fallback to template sheet
+      await loadPositionsFromSheet(SHEETS.POSITIONS);
+    }
   }
 
   return {
@@ -758,6 +1102,10 @@ export const useGAPIStore = defineStore("gapi", () => {
     fetchSheetValues,
     updateSheetValues,
     batchUpdateSheetValues,
+    loadSettings,
+    loadSoldiers,
+    loadPositions,
+    loadPresence,
     soldiers,
     positions,
     presence,
@@ -766,5 +1114,12 @@ export const useGAPIStore = defineStore("gapi", () => {
     settings,
     SHEETS,
     TITLES,
+    // Sheet management functions for date-specific sheets
+    generateSheetNameFromDate,
+    checkSheetExists,
+    getSheetIdByName,
+    duplicateSheet,
+    getCurrentSheetName,
+    loadPositionsForDate,
   };
 });

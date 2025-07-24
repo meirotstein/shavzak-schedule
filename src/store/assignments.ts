@@ -33,6 +33,11 @@ export const useAssignmentsStore = defineStore("assignments", () => {
     soldierAssignments.set(soldierId, []);
   }
 
+  function clearAllAssignments() {
+    console.log('🗑️ Clearing all soldier assignments');
+    soldierAssignments.clear();
+  }
+
   function isAssigned(soldierId: string): boolean {
     return getAssignments(soldierId).length > 0;
   }
@@ -42,6 +47,7 @@ export const useAssignmentsStore = defineStore("assignments", () => {
     removeAssignment,
     getAssignments,
     clearAssignments,
+    clearAllAssignments,
     isAssigned
   };
 }); 
