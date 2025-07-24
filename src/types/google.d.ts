@@ -20,6 +20,7 @@ declare namespace google {
       }
 
       function initTokenClient(config: TokenClientConfig): TokenClient;
+      function revoke(accessToken: string, callback?: () => void): void;
     }
 
     namespace id {
@@ -27,6 +28,13 @@ declare namespace google {
         client_id: string;
         callback: (credentialResponse: CredentialResponse) => void;
         auto_prompt?: boolean;
+        cancel_on_tap_outside?: boolean;
+        context?: string;
+        state_cookie_domain?: string;
+        ux_mode?: string;
+        login_uri?: string;
+        native_callback?: (response: any) => void;
+        intermediate_iframe_close_callback?: () => void;
       }
 
       interface CredentialResponse {

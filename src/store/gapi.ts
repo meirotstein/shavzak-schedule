@@ -13,10 +13,6 @@ import {
 import { ShiftHours } from "../types/shift-hours";
 
 export const useGAPIStore = defineStore("gapi", () => {
-  const DISCOVERY_DOCS = [
-    "https://sheets.googleapis.com/$discovery/rest?version=v4",
-    "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
-  ];
   const SCOPE =
     "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.metadata.readonly";
 
@@ -36,6 +32,14 @@ export const useGAPIStore = defineStore("gapi", () => {
 
   const route = useRoute();
   const isSignedIn = ref<boolean>(false);
+  const userInfo = ref<{ name?: string; email?: string; picture?: string } | null>(null);
+  let accessToken = ref<string>("");
+  let tokenClient: google.accounts.oauth2.TokenClient | null = null;
+  let tokenExpirationTime: number = 0;
+
+  // Token persistence constants
+  const TOKEN_STORAGE_KEY = 'google_access_token';
+  const TOKEN_EXPIRY_STORAGE_KEY = 'google_token_expiry';
 
   const settings = reactive({
     soldiersMaxAmount: 200,
@@ -51,20 +55,241 @@ export const useGAPIStore = defineStore("gapi", () => {
     soldiersPresence: {},
   });
 
+  // Function to store token in localStorage
+  function storeToken(token: string, expiresIn: number) {
+    console.log('💾 Storing token in localStorage:', {
+      tokenPreview: `${token.substring(0, 20)}...`,
+      expiresIn: expiresIn,
+      expiresAt: new Date(Date.now() + (expiresIn * 1000)).toLocaleString()
+    });
+    
+    localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    const expirationTime = Date.now() + (expiresIn * 1000); // Convert seconds to milliseconds
+    localStorage.setItem(TOKEN_EXPIRY_STORAGE_KEY, expirationTime.toString());
+    tokenExpirationTime = expirationTime;
+    accessToken.value = token;
+    
+    console.log('✅ Token stored successfully');
+  }
+
+  // Function to retrieve stored token
+  function getStoredToken(): string | null {
+    console.log('📦 Attempting to retrieve stored token...');
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+    const expiryStr = localStorage.getItem(TOKEN_EXPIRY_STORAGE_KEY);
+    
+    console.log('🔍 Token retrieval results:', {
+      hasToken: !!token,
+      tokenPreview: token ? `${token.substring(0, 20)}...` : 'null',
+      hasExpiry: !!expiryStr,
+      expiryStr: expiryStr
+    });
+    
+    if (!token || !expiryStr) {
+      console.log('⚠️ Missing token or expiry data');
+      return null;
+    }
+
+    const expirationTime = parseInt(expiryStr, 10);
+    const now = Date.now();
+    const timeUntilExpiry = expirationTime - now;
+    const minutesUntilExpiry = Math.floor(timeUntilExpiry / (1000 * 60));
+    
+    console.log('⏰ Token expiry check:', {
+      now: new Date(now).toLocaleString(),
+      expiresAt: new Date(expirationTime).toLocaleString(),
+      minutesUntilExpiry: minutesUntilExpiry,
+      isExpiredWithBuffer: now >= (expirationTime - 5 * 60 * 1000)
+    });
+    
+    // Check if token is expired (with 5 minute buffer)
+    if (now >= (expirationTime - 5 * 60 * 1000)) {
+      console.log('⌛ Token is expired or close to expiry, clearing it');
+      clearStoredToken();
+      return null;
+    }
+
+    console.log('✅ Token is valid, setting access token');
+    tokenExpirationTime = expirationTime;
+    accessToken.value = token;
+    return token;
+  }
+
+  // Function to clear stored token
+  function clearStoredToken() {
+    console.log('🗑️ Clearing stored token from localStorage');
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(TOKEN_EXPIRY_STORAGE_KEY);
+    accessToken.value = "";
+    tokenExpirationTime = 0;
+    console.log('✅ Token cleared successfully');
+  }
+
   async function load(): Promise<void> {
     return new Promise((resolve) => {
-      gapi.load("client", async () => {
-        await gapi.client.init({
-          clientId: import.meta.env.VITE_APP_GOOGLE_CLIENT_ID,
-          apiKey: import.meta.env.VITE_APP_GOOGLE_API_KEY,
-          discoveryDocs: DISCOVERY_DOCS,
-          scope: SCOPE,
-        });
-        gapi.auth2.getAuthInstance().isSignedIn.listen(updateSignInStatus);
-        await updateSignInStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+      // Wait for the GIS SDK to load
+      if (typeof google === 'undefined') {
+        const checkGoogleLoaded = () => {
+          if (typeof google !== 'undefined') {
+            initializeTokenClient();
+            checkExistingAuth();
+            resolve();
+          } else {
+            setTimeout(checkGoogleLoaded, 100);
+          }
+        };
+        checkGoogleLoaded();
+      } else {
+        initializeTokenClient();
+        checkExistingAuth();
         resolve();
-      });
+      }
     });
+  }
+
+  // Check for existing authentication on page load
+  async function checkExistingAuth() {
+    console.log('🔍 Checking for existing authentication...');
+    const storedToken = getStoredToken();
+    if (storedToken) {
+      console.log('✅ Found stored token, attempting to restore session');
+      console.log('📅 Token expires at:', new Date(tokenExpirationTime).toLocaleString());
+      
+      // Test the token by making a simple API call
+      try {
+        await testTokenValidity();
+        await updateSignInStatus(true);
+        console.log('🎉 Successfully restored authentication from stored token');
+      } catch (error) {
+        console.error('❌ Stored token validation failed:', error);
+        clearStoredToken();
+        await updateSignInStatus(false);
+      }
+    } else {
+      console.log('🚫 No stored token found');
+    }
+  }
+
+  // Test if the current token is still valid
+  async function testTokenValidity(): Promise<void> {
+    if (!accessToken.value) {
+      throw new Error('No access token available');
+    }
+
+    console.log('🧪 Testing token validity...');
+    
+    // First, try a simple API call that doesn't require a specific spreadsheet
+    try {
+      const response = await fetch(
+        'https://www.googleapis.com/oauth2/v1/tokeninfo',
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken.value}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Token info request failed: ${response.status} ${response.statusText}`);
+      }
+
+      const tokenInfo = await response.json();
+      console.log('🔑 Token validation successful:', {
+        audience: tokenInfo.audience,
+        scope: tokenInfo.scope,
+        expires_in: tokenInfo.expires_in
+      });
+
+      // If we have a spreadsheet ID, also test access to it
+      const spreadsheetId = route.params.id as string;
+      if (spreadsheetId) {
+        console.log('📊 Testing spreadsheet access...');
+        const sheetResponse = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken.value}`,
+            },
+          }
+        );
+
+        if (!sheetResponse.ok) {
+          throw new Error(`Spreadsheet access failed: ${sheetResponse.status} ${sheetResponse.statusText}`);
+        }
+        console.log('📊 Spreadsheet access confirmed');
+      }
+
+    } catch (error) {
+      console.error('🚨 Token validation error:', error);
+      throw error;
+    }
+  }
+
+  function initializeTokenClient() {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: import.meta.env.VITE_APP_GOOGLE_CLIENT_ID,
+      scope: SCOPE,
+      callback: async (tokenResponse: google.accounts.oauth2.TokenResponse) => {
+        if (tokenResponse.error) {
+          console.error('Token request failed:', tokenResponse.error);
+          await updateSignInStatus(false);
+          return;
+        }
+        
+        // Store the token with expiration info
+        storeToken(tokenResponse.access_token, tokenResponse.expires_in || 3600);
+        await updateSignInStatus(true);
+      },
+    });
+
+    // Initialize Google One Tap
+    initializeOneTap();
+  }
+
+  function initializeOneTap() {
+    google.accounts.id.initialize({
+      client_id: import.meta.env.VITE_APP_GOOGLE_CLIENT_ID,
+      callback: async (credentialResponse: google.accounts.id.CredentialResponse) => {
+        console.log('🔐 One Tap sign-in successful');
+        
+        // Decode the JWT to get user info
+        try {
+          const payload = JSON.parse(atob(credentialResponse.credential.split('.')[1]));
+          userInfo.value = {
+            name: payload.name,
+            email: payload.email,
+            picture: payload.picture
+          };
+          console.log('👤 User identified via One Tap:', userInfo.value);
+          
+          // Store user identity but don't request API access yet
+          // The user will need to explicitly grant API access when needed
+          console.log('ℹ️ User identity confirmed. API access will be requested when needed.');
+          
+        } catch (error) {
+          console.error('Could not decode One Tap credential:', error);
+        }
+      },
+      auto_prompt: true, // Show One Tap automatically if user is signed in to Google
+      cancel_on_tap_outside: false,
+    });
+
+    // Only show One Tap prompt if user is not already authenticated
+    if (!isSignedIn.value) {
+      google.accounts.id.prompt();
+    }
+  }
+
+  function requestApiAccess() {
+    // This function can be called by the UI when user wants to grant API access
+    if (tokenClient) {
+      tokenClient.requestAccessToken({ prompt: 'consent' });
+    }
+  }
+
+  function triggerOneTap() {
+    // Manual trigger for One Tap (can be called from UI)
+    google.accounts.id.prompt();
   }
 
   async function loadSettings(): Promise<void> {
@@ -81,11 +306,22 @@ export const useGAPIStore = defineStore("gapi", () => {
   }
 
   function login() {
-    gapi.auth2.getAuthInstance().signIn();
+    if (tokenClient) {
+      tokenClient.requestAccessToken({ prompt: 'consent' });
+    }
   }
 
   function logout() {
-    gapi.auth2.getAuthInstance().signOut();
+    if (accessToken.value) {
+      google.accounts.oauth2.revoke(accessToken.value, () => {
+        console.log('Access token revoked');
+      });
+      clearStoredToken();
+      updateSignInStatus(false);
+      
+      // Clear user info as well
+      userInfo.value = null;
+    }
   }
 
   async function fetchSheetValues(
@@ -93,13 +329,27 @@ export const useGAPIStore = defineStore("gapi", () => {
     fromCell: string,
     toCell: string
   ) {
-    const { body } = await gapi.client.sheets.spreadsheets.values.get({
-      spreadsheetId: route.params.id as string,
-      range: `${name}!${fromCell}:${toCell}`,
-    });
+    verifyReadiness();
+    
+    const spreadsheetId = route.params.id as string;
+    const range = `${name}!${fromCell}:${toCell}`;
+    
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken.value}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
-    const response = JSON.parse(body);
-    return response.values;
+    if (!response.ok) {
+      throw new Error(`Failed to fetch sheet values: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.values || [];
   }
 
   async function updateSheetValues(
@@ -109,14 +359,26 @@ export const useGAPIStore = defineStore("gapi", () => {
   ): Promise<void> {
     verifyReadiness();
 
-    await gapi.client.sheets.spreadsheets.values.update({
-      spreadsheetId: route.params.id as string,
-      range: `${name}!${range}`,
-      valueInputOption: "RAW",
-      resource: {
-        values: values,
-      },
-    });
+    const spreadsheetId = route.params.id as string;
+    const fullRange = `${name}!${range}`;
+    
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(fullRange)}?valueInputOption=RAW`,
+      {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${accessToken.value}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          values: values,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to update sheet values: ${response.status} ${response.statusText}`);
+    }
   }
 
   async function batchUpdateSheetValues(
@@ -125,24 +387,45 @@ export const useGAPIStore = defineStore("gapi", () => {
   ): Promise<void> {
     verifyReadiness();
 
+    const spreadsheetId = route.params.id as string;
+    
     const data = updates.map((update) => ({
       range: `${name}!${update.range}`,
       values: update.values,
     }));
 
-    await gapi.client.sheets.spreadsheets.values.batchUpdate({
-      spreadsheetId: route.params.id as string,
-      resource: {
-        valueInputOption: "RAW",
-        data: data,
-      },
-    });
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken.value}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          valueInputOption: "RAW",
+          data: data,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to batch update sheet values: ${response.status} ${response.statusText}`);
+    }
   }
 
   function verifyReadiness() {
-    if (!isSignedIn.value || !route.params.id) {
+    // Check if token has expired
+    if (tokenExpirationTime > 0 && Date.now() >= tokenExpirationTime) {
+      console.log('Token has expired, clearing stored token');
+      clearStoredToken();
+      updateSignInStatus(false);
+      throw new Error('Access token has expired, please login again');
+    }
+
+    if (!isSignedIn.value || !route.params.id || !accessToken.value) {
       throw new Error(
-        `cannot fetch data from google , spid: ${route.params.id}, isSignedIn: ${isSignedIn}`
+        `cannot fetch data from google , spid: ${route.params.id}, isSignedIn: ${isSignedIn.value}, hasToken: ${!!accessToken.value}`
       );
     }
   }
@@ -156,6 +439,13 @@ export const useGAPIStore = defineStore("gapi", () => {
       await loadSoldiers();
       await loadPositions();
       await loadPresence();
+    } else {
+      // Clear data when signed out
+      soldiers.splice(0);
+      positions.splice(0);
+      presence.start = undefined;
+      presence.end = undefined;
+      presence.soldiersPresence = {};
     }
   }
 
@@ -183,6 +473,7 @@ export const useGAPIStore = defineStore("gapi", () => {
       >
     >;
 
+    soldiers.splice(0); // Clear existing data
     soldiers.push(
       ...soldiersArr
         .filter((soldier) => soldier.length === 5) // filter empty rows
@@ -375,7 +666,7 @@ export const useGAPIStore = defineStore("gapi", () => {
                   shift.assignmentDefs[shift.assignmentDefs.length - 1];
                 assignment.roles.push(row[i]);
               } else {
-                                const defaultAssignments =
+                const defaultAssignments =
                   state.defaultAssignments[state.defaultAssignments.length - 1];
                 defaultAssignments.roles.push(row[i]);
               }
@@ -386,6 +677,7 @@ export const useGAPIStore = defineStore("gapi", () => {
 
     console.log("positions data", positionsState);
 
+    positions.splice(0); // Clear existing data
     positions.push(...positionsState.map((p) => p.position));
     console.log("positions store", positions);
   }
@@ -412,6 +704,7 @@ export const useGAPIStore = defineStore("gapi", () => {
 
     presence.start = parse(presenceRaw[0][1], "yyyy-MM-dd", new Date());
     presence.end = parse(presenceRaw[1][1], "yyyy-MM-dd", new Date());
+    presence.soldiersPresence = {}; // Clear existing data
 
     for (
       let i = settings.presenceNameFirstRow - 1;
@@ -460,6 +753,8 @@ export const useGAPIStore = defineStore("gapi", () => {
     load,
     login,
     logout,
+    triggerOneTap,
+    requestApiAccess,
     fetchSheetValues,
     updateSheetValues,
     batchUpdateSheetValues,
@@ -467,6 +762,7 @@ export const useGAPIStore = defineStore("gapi", () => {
     positions,
     presence,
     isSignedIn,
+    userInfo,
     settings,
     SHEETS,
     TITLES,
