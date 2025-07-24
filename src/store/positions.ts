@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
-import { computed, reactive, watch } from "vue";
+import { computed, reactive, watch, ref } from "vue";
+import { format } from "date-fns";
 import { SchedulerError } from "../errors/scheduler-error";
 import { PositionModel } from "../model/position";
 import { ShiftModel } from "../model/shift";
@@ -9,6 +10,7 @@ import { shiftsByStartTimeCompare, numberToColumnLetter } from "../utils/sheets-
 import { useAssignmentsStore } from "./assignments";
 import { useGAPIStore } from "./gapi";
 import { useSoldiersStore } from "./soldiers";
+import { useScheduleStore } from "./schedule";
 
 const dayStart = "14:00";
 
@@ -27,11 +29,72 @@ export const usePositionsStore = defineStore("positions", () => {
   const gapi = useGAPIStore();
   const soldiersStore = useSoldiersStore();
   const assignmentsStore = useAssignmentsStore();
+  const scheduleStore = useScheduleStore(); // Add schedule store
 
   // Auto-save state
   let autoSaveEnabled = true;
   let saveTimeoutId: ReturnType<typeof setTimeout> | null = null;
   const SAVE_DELAY = 1000; // 1 second delay for debouncing
+
+  // Reactive refresh counter to force positions re-computation
+  const positionsRefreshCounter = ref(0);
+
+  // Function to force refresh of positions
+  function forcePositionsRefresh() {
+    positionsRefreshCounter.value++;
+    console.log(`🔄 Forcing positions refresh (counter: ${positionsRefreshCounter.value})`);
+  }
+
+  // Function to force recalculation of assignments
+  function forceAssignmentRecalculation() {
+    console.log('🔄 Forcing assignment recalculation...');
+    
+    // Process assignments manually to ensure they're up to date
+    const processedSoldiers = new Set<string>();
+    let totalAssignments = 0;
+
+    // Access positions.value to trigger computation if needed
+    const computedPositions = positions.value;
+    console.log(`📊 Found ${computedPositions.length} positions to process for assignments`);
+
+    computedPositions.forEach((position) => {
+      console.log(`📍 Processing position: ${position.positionName} (${position.shifts.length} shifts)`);
+      
+      position.shifts.forEach((shift) => {
+        console.log(`⏰ Processing shift: ${shift.shiftId} (${shift.assignments.length} assignments)`);
+        
+        shift.assignments.forEach((assignment, index) => {
+          if (assignment.soldier) {
+            console.log(`👨‍💼 Found assignment: ${assignment.soldier.name} in ${position.positionName} at ${shift.startTime}-${shift.endTime}`);
+            totalAssignments++;
+
+            // Clear assignments only once per soldier
+            if (!processedSoldiers.has(assignment.soldier.id)) {
+              assignmentsStore.clearAssignments(assignment.soldier.id);
+              processedSoldiers.add(assignment.soldier.id);
+            }
+
+            assignmentsStore.addAssignment(assignment.soldier.id, {
+              positionId: position.positionId,
+              positionName: position.positionName,
+              shiftId: shift.shiftId,
+              startTime: shift.startTime,
+              endTime: shift.endTime,
+              assignmentIndex: index,
+            });
+          } else {
+            console.log(`⚪ Empty assignment slot at index ${index} in ${position.positionName} ${shift.shiftId}`);
+          }
+        });
+      });
+    });
+
+    console.log(`✅ Manual assignment recalculation complete:`, {
+      processedSoldiers: processedSoldiers.size,
+      totalAssignments: totalAssignments,
+      positionsProcessed: computedPositions.length,
+    });
+  }
 
   // Cache for soldiers to avoid O(n) lookups
   const soldiersCache = computed(() => {
@@ -40,10 +103,13 @@ export const usePositionsStore = defineStore("positions", () => {
 
   // Function to build assignment rows for Google Sheets format
   async function buildAssignmentRows(): Promise<Array<{range: string, values: any[][]}>> {
-    // First, we need to read the current sheet structure to find assignment positions
-    const sheetData = await gapi.fetchSheetValues(gapi.SHEETS.POSITIONS, "A1", "AZ100");
+    const currentSheetName = gapi.getCurrentSheetName(scheduleStore.scheduleDate);
+    const sheetData = await gapi.fetchSheetValues(currentSheetName, "A1", "AZ100");
+    
+    console.log(`🔍 Building assignments for sheet: "${currentSheetName}"`);
+    
     if (!sheetData || sheetData.length === 0) {
-      console.warn('🚫 Cannot read sheet data for auto-save');
+      console.warn("No sheet data found");
       return [];
     }
 
@@ -174,7 +240,8 @@ export const usePositionsStore = defineStore("positions", () => {
     }
 
     try {
-      console.log('🔄 Auto-saving assignments to Google Sheets...');
+      const currentSheetName = gapi.getCurrentSheetName(scheduleStore.scheduleDate);
+      console.log(`🔄 Auto-saving assignments to sheet: "${currentSheetName}"`);
       
       const assignmentUpdates = await buildAssignmentRows();
       
@@ -183,9 +250,9 @@ export const usePositionsStore = defineStore("positions", () => {
         return;
       }
 
-      await gapi.batchUpdateSheetValues(gapi.SHEETS.POSITIONS, assignmentUpdates);
+      await gapi.batchUpdateSheetValues(currentSheetName, assignmentUpdates);
       
-      console.log(`✅ Auto-save completed! Updated ${assignmentUpdates.length} position(s) in Google Sheets`);
+      console.log(`✅ Auto-save completed! Updated ${assignmentUpdates.length} position(s) in sheet "${currentSheetName}"`);
     } catch (error) {
       console.error('❌ Auto-save failed:', error);
       // Could add user notification here
@@ -211,6 +278,9 @@ export const usePositionsStore = defineStore("positions", () => {
   }
 
   const positions = computed(() => {
+    // Force reactivity by depending on refresh counter
+    positionsRefreshCounter.value; // This makes the computed property reactive to refresh counter changes
+    
     const dayStartMinutes = timeToMinutes(dayStart);
     const compareFn = shiftsByStartTimeCompare.bind({}, dayStartMinutes);
 
@@ -478,11 +548,61 @@ export const usePositionsStore = defineStore("positions", () => {
     return saveAssignments();
   }
 
-  return { 
+  // Watch for schedule date changes and reload positions
+  watch(
+    () => ({ date: scheduleStore.scheduleDate, gapiReady: gapi.isSignedIn }),
+    async (newState, oldState) => {
+      const { date: newDate, gapiReady } = newState;
+      const { date: oldDate, gapiReady: oldGapiReady } = oldState || { date: undefined, gapiReady: false };
+      
+      const shouldReload = (newDate && gapiReady) && (
+        (newDate !== oldDate) || // Date changed
+        (gapiReady && !oldGapiReady) // GAPI just became ready
+      );
+      
+      if (shouldReload) {
+        try {
+          console.log(`📅 Schedule date changed to ${format(newDate, 'yyyy-MM-dd')}, reloading positions...`);
+          console.log(`📊 Previous date was: ${oldDate ? format(oldDate, 'yyyy-MM-dd') : 'undefined'}`);
+          
+          // Step 1: Clear all existing assignments before loading new date
+          console.log(`🗑️ Clearing all soldier assignments for date change...`);
+          assignmentsStore.clearAllAssignments();
+          
+          // Step 2: Load positions from the date-specific sheet
+          console.log(`📋 Loading positions for new date...`);
+          await gapi.loadPositionsForDate(newDate);
+          console.log(`✅ Positions loaded successfully for date: ${format(newDate, 'yyyy-MM-dd')}`);
+          
+          // Step 3: Force refresh of the positions computed property
+          // This ensures that soldier assignments are properly reflected in the UI
+          console.log(`🔄 Positions loaded, forcing UI refresh to update soldier assignments...`);
+          forcePositionsRefresh();
+
+          // Step 4: Force assignment recalculation after date change
+          // Add a small delay to ensure Vue reactivity has processed the position changes
+          console.log(`🔄 Scheduling assignment recalculation after date change...`);
+          setTimeout(() => {
+            console.log(`🔄 Now executing delayed assignment recalculation...`);
+            forceAssignmentRecalculation();
+          }, 100); // Small delay to ensure reactivity updates are processed
+          
+          console.log(`✅ Date change complete - soldier assignments should now be refreshed`);
+        } catch (error) {
+          console.error('❌ Error reloading positions for new date:', error);
+        }
+      }
+    },
+    { immediate: true } // Trigger on initial setup
+  );
+
+  return {
     positions, 
     assignSoldiersToShift, 
     removeSoldierFromShift,
     setAutoSaveEnabled,
-    manualSave
+    manualSave,
+    forcePositionsRefresh, // Add this for external use if needed
+    forceAssignmentRecalculation, // Add this for external use if needed
   };
 });

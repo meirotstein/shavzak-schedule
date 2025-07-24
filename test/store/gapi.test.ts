@@ -468,4 +468,331 @@ describe("google api client store tests", () => {
     expect(localStorageMock.removeItem).toHaveBeenCalledWith('google_token_expiry');
     expect(store.isSignedIn).toBe(false);
   });
+
+  test("generateSheetNameFromDate formats date correctly", () => {
+    const store = useGAPIStore();
+    
+    // Test with a specific date
+    const testDate = new Date(2024, 10, 4); // November 4, 2024 (month is 0-based)
+    const result = store.generateSheetNameFromDate(testDate);
+    
+    expect(result).toBe("שבצק-04.11.24");
+  });
+
+  test("getCurrentSheetName returns template name when no date provided", () => {
+    const store = useGAPIStore();
+    
+    const result = store.getCurrentSheetName();
+    
+    expect(result).toBe("עמדות");
+  });
+
+  test("getCurrentSheetName returns date-specific name when date provided", () => {
+    const store = useGAPIStore();
+    
+    const testDate = new Date(2024, 11, 25); // December 25, 2024
+    const result = store.getCurrentSheetName(testDate);
+    
+    expect(result).toBe("שבצק-25.12.24");
+  });
+
+  test("getSheetIdByName returns sheet ID when sheet exists", async () => {
+    const store = useGAPIStore();
+    
+    // Initialize the store first
+    await store.load();
+    
+    // Mock successful authentication by triggering the callback
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
+
+    // Mock fetch response with sheet properties
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({
+        sheets: [
+          { properties: { sheetId: 123, title: "עמדות" } },
+          { properties: { sheetId: 456, title: "שבצק-04.11.24" } }
+        ]
+      })
+    });
+
+    const result = await store.getSheetIdByName("שבצק-04.11.24");
+    
+    expect(result).toBe(456);
+  });
+
+  test("getSheetIdByName returns null when sheet doesn't exist", async () => {
+    const store = useGAPIStore();
+    
+    // Initialize the store first
+    await store.load();
+    
+    // Mock successful authentication by triggering the callback
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
+
+    // Mock fetch response with sheet properties
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({
+        sheets: [
+          { properties: { sheetId: 123, title: "עמדות" } }
+        ]
+      })
+    });
+
+    const result = await store.getSheetIdByName("שבצק-99.99.99");
+    
+    expect(result).toBe(null);
+  });
+
+  test("checkSheetExists returns true when sheet exists", async () => {
+    const store = useGAPIStore();
+    
+    // Initialize the store first
+    await store.load();
+    
+    // Mock successful authentication by triggering the callback
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
+
+    // Mock fetch response with sheet properties
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({
+        sheets: [
+          { properties: { sheetId: 123, title: "עמדות" } },
+          { properties: { sheetId: 456, title: "שבצק-04.11.24" } }
+        ]
+      })
+    });
+
+    const result = await store.checkSheetExists("שבצק-04.11.24");
+    
+    expect(result).toBe(true);
+  });
+
+  test("checkSheetExists returns false when sheet doesn't exist", async () => {
+    const store = useGAPIStore();
+    
+    // Initialize the store first
+    await store.load();
+    
+    // Mock successful authentication by triggering the callback
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
+
+    // Mock fetch response with sheet properties
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({
+        sheets: [
+          { properties: { sheetId: 123, title: "עמדות" } }
+        ]
+      })
+    });
+
+    const result = await store.checkSheetExists("שבצק-99.99.99");
+    
+    expect(result).toBe(false);
+  });
+
+  test("duplicateSheet creates new sheet at the end", async () => {
+    const store = useGAPIStore();
+    
+    // Initialize the store first
+    await store.load();
+    
+    // Mock successful authentication by triggering the callback
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
+
+    // Reset mock to count only the calls we care about
+    mockFetch.mockClear();
+
+    // Mock fetch responses
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          sheets: [
+            { properties: { sheetId: 123, title: "עמדות" } },
+            { properties: { sheetId: 456, title: "existing-sheet" } }
+          ]
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({})
+      });
+
+    await store.duplicateSheet("עמדות", "שבצק-04.11.24");
+    
+    // Verify the duplicate request was made correctly
+    expect(mockFetch).toHaveBeenNthCalledWith(2, 
+      expect.stringContaining("batchUpdate"),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          requests: [{
+            duplicateSheet: {
+              sourceSheetId: 123,
+              newSheetName: "שבצק-04.11.24",
+              insertSheetIndex: 2 // Should be at the end (after 2 existing sheets)
+            }
+          }]
+        })
+      })
+    );
+  });
+
+  test("loadPositionsForDate creates sheet if it doesn't exist", async () => {
+    const store = useGAPIStore();
+    
+    // Initialize the store first
+    await store.load();
+    
+    // Mock successful authentication by triggering the callback
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
+
+    // Reset mock to count only the calls we care about
+    mockFetch.mockClear();
+
+    const testDate = new Date(2024, 10, 4); // November 4, 2024
+
+    // Mock sequence of fetch calls:
+    // 1. Check if sheet exists (returns empty sheets - doesn't exist)
+    // 2. Get sheet info for duplication (source sheet exists)
+    // 3. Duplicate sheet
+    // 4. Load positions from new sheet
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          sheets: [
+            { properties: { sheetId: 123, title: "עמדות" } }
+          ]
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          sheets: [
+            { properties: { sheetId: 123, title: "עמדות" } }
+          ]
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({})
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          values: positionsRaw
+        })
+      });
+
+    await store.loadPositionsForDate(testDate);
+    
+    // Should have called duplicateSheet and then loaded positions
+    expect(mockFetch).toHaveBeenCalledTimes(4);
+    expect(store.positions).toHaveLength(positionsDto.length);
+  });
+
+  test("loadPositionsForDate loads from existing sheet when it exists", async () => {
+    const store = useGAPIStore();
+    
+    // Initialize the store first
+    await store.load();
+    
+    // Mock successful authentication by triggering the callback
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
+
+    // Reset mock to count only the calls we care about
+    mockFetch.mockClear();
+
+    const testDate = new Date(2024, 10, 4); // November 4, 2024
+
+    // Mock sequence of fetch calls:
+    // 1. Check if sheet exists (returns the sheet - exists)
+    // 2. Load positions from existing sheet
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          sheets: [
+            { properties: { sheetId: 123, title: "עמדות" } },
+            { properties: { sheetId: 456, title: "שבצק-04.11.24" } }
+          ]
+        })
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          values: positionsRaw
+        })
+      });
+
+    await store.loadPositionsForDate(testDate);
+    
+    // Should have skipped duplication and just loaded positions
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(store.positions).toHaveLength(positionsDto.length);
+  });
+
+  test("loadPositionsForDate falls back to template sheet on error", async () => {
+    const store = useGAPIStore();
+    
+    // Initialize the store first
+    await store.load();
+    
+    // Mock successful authentication by triggering the callback
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
+
+    // Reset mock to count only the calls we care about
+    mockFetch.mockClear();
+
+    const testDate = new Date(2024, 10, 4); // November 4, 2024
+
+    // Mock sequence of fetch calls:
+    // 1. Check if sheet exists (fails)
+    // 2. Try to get sheet info for duplication (fails)
+    // 3. Load from template sheet (fallback - succeeds)
+    mockFetch
+      .mockRejectedValueOnce(new Error("API Error"))
+      .mockRejectedValueOnce(new Error("API Error"))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({
+          values: positionsRaw
+        })
+      });
+
+    await store.loadPositionsForDate(testDate);
+    
+    // Should have attempted check, attempted duplication, then fallen back to template sheet
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+    expect(store.positions).toHaveLength(positionsDto.length);
+  });
 });
