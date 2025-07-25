@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Checkbox from "primevue/checkbox";
+import InputText from "primevue/inputtext";
 import Select from "primevue/select";
 import { computed, ref } from "vue";
 import { useAssignmentsStore } from "../store/assignments";
@@ -15,6 +16,7 @@ const allPlatoonsOption = { id: "all", name: "כל המחלקות" };
 const selectedPlatoon = ref(allPlatoonsOption);
 
 const hideAssignedSoldiers = ref(false);
+const searchTerm = ref("");
 
 const availablePlatoons = computed(() => {
   const platoons = new Set(store.availableSoldiers.map((soldier) => soldier.platoon));
@@ -32,6 +34,16 @@ const filteredSoldiers = computed(() => {
   // Filter by assignment status
   if (hideAssignedSoldiers.value) {
     soldiers = soldiers.filter((soldier) => !assignmentsStore.isAssigned(soldier.id));
+  }
+
+  // Filter by search term
+  if (searchTerm.value.trim()) {
+    const searchLower = searchTerm.value.toLowerCase().trim();
+    soldiers = soldiers.filter((soldier) => 
+      soldier.name.toLowerCase().includes(searchLower) ||
+      soldier.role.toLowerCase().includes(searchLower) ||
+      soldier.platoon.toLowerCase().includes(searchLower)
+    );
   }
 
   return soldiers;
@@ -55,6 +67,27 @@ const assignmentStats = computed(() => {
   <div class="soldier-list-container">
     <div class="list-header">
       <h3 class="list-title">חיילים זמינים</h3>
+
+      <!-- Search Box -->
+      <div class="search-container">
+        <InputText 
+          v-model="searchTerm"
+          placeholder="חפש חייל, תפקיד או מחלקה..."
+          class="search-input"
+          :pt="{
+            root: { class: 'w-full search-box' }
+          }"
+        />
+        <button 
+          v-show="searchTerm.trim()"
+          @click="searchTerm = ''"
+          class="search-clear-btn"
+          type="button"
+          aria-label="Clear search"
+        >
+          ×
+        </button>
+      </div>
 
       <!-- Platoon Filter -->
       <Select v-model="selectedPlatoon" :options="availablePlatoons" optionLabel="name" placeholder="בחר מחלקה"
@@ -138,6 +171,45 @@ const assignmentStats = computed(() => {
   margin-bottom: 0.5rem;
   text-align: right;
   /* RTL: Align title to the right */
+}
+
+.search-container {
+  position: relative;
+  width: 100%;
+}
+
+.search-input {
+  width: 100%;
+}
+
+.search-clear-btn {
+  position: absolute;
+  left: 0.5rem; /* Position on the left for RTL */
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: rgb(var(--surface-500));
+  cursor: pointer;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: rgb(var(--surface-200));
+    color: rgb(var(--surface-700));
+  }
+
+  &:focus {
+    outline: 2px solid rgb(var(--primary-500));
+    outline-offset: 1px;
+  }
 }
 
 .filter-selector {
@@ -260,5 +332,14 @@ const assignmentStats = computed(() => {
   }
 }
 
-/* RTL comment: Added RTL-specific styles for dropdown components to ensure proper alignment of text and icons */
+:deep(.search-box) {
+  .p-inputtext {
+    text-align: right;
+    direction: rtl;
+    padding: 0.5rem 2rem 0.5rem 0.5rem; /* Right padding for text, left padding for clear button */
+    font-size: 0.875rem;
+  }
+}
+
+/* RTL comment: Added RTL-specific styles for dropdown components and search input to ensure proper alignment of text and icons */
 </style>
