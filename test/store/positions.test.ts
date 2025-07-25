@@ -63,6 +63,9 @@ const mockGAPIStore = {
   loadPositionsForDate: vi.fn().mockResolvedValue(undefined),
   loadPositionsIncremental: vi.fn().mockResolvedValue(undefined),
   getCurrentSheetName: vi.fn().mockReturnValue("שבצק-04.11.24"),
+  setDateChangeInProgress: vi.fn(), // Add this mock function to prevent test failures
+  currentProcessingDate: null,
+  getHistoricalPositions: vi.fn().mockReturnValue([]),
 };
 
 vi.mock("../../src/store/gapi", () => {

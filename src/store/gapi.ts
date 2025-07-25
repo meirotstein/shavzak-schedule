@@ -1,6 +1,6 @@
 import { addDays, parse, subDays, format } from "date-fns";
 import { defineStore } from "pinia";
-import { reactive, ref } from "vue";
+import { reactive, ref, readonly } from "vue";
 import { useRoute } from "vue-router";
 import { SchedulerError } from "../errors/scheduler-error";
 import {
@@ -60,6 +60,18 @@ export const useGAPIStore = defineStore("gapi", () => {
   
   // Historical positions storage (keyed by date string for efficient lookup)
   const historicalPositions = reactive<Map<string, PositionDto[]>>(new Map());
+
+  // Track the date currently being processed for assignments
+  const currentProcessingDate = ref<Date | null>(null);
+
+  // Flag to prevent template loading during date change operations
+  let isDateChangeInProgress = false;
+
+  // Function to set date change in progress state
+  function setDateChangeInProgress(inProgress: boolean) {
+    isDateChangeInProgress = inProgress;
+    console.log(`📅 Date change operation ${inProgress ? 'started' : 'completed'}`);
+  }
 
   // Function to store token in localStorage
   function storeToken(token: string, expiresIn: number) {
@@ -438,12 +450,40 @@ export const useGAPIStore = defineStore("gapi", () => {
 
   async function updateSignInStatus(signedIn: boolean) {
     isSignedIn.value = signedIn;
-    console.log(`user is ${signedIn ? "signed in" : "signed out"}`);
+    
+    // Debug: track what triggered this call
+    const stack = new Error().stack?.split('\n').slice(1, 4).join(' -> ') || 'unknown';
+    console.log(`🔑 updateSignInStatus called: ${signedIn ? "signed in" : "signed out"}`);
+    console.log(`📍 Triggered by: ${stack}`);
 
     if (signedIn) {
       await loadSettings();
       await loadSoldiers();
-      await loadPositionsForDate(); // This will load from template initially
+      
+      // More robust check to prevent template loading after real data has been processed
+      const hasHistoricalData = historicalPositions.size > 0;
+      const hasCurrentPositions = positions.length > 0;
+      const hasLoadedDates = loadedDates.size > 0;
+      
+      // Additional check: see if any positions have soldier assignments (indicating real data)
+      const hasRealAssignmentData = positions.some(p => 
+        p.shifts.some(s => s.soldierIds && s.soldierIds.some(id => id && id.trim() !== ""))
+      ) || Array.from(historicalPositions.values()).some(datePositions =>
+        datePositions.some(p => p.shifts.some(s => s.soldierIds && s.soldierIds.some(id => id && id.trim() !== "")))
+      );
+      
+      // Don't load template if a date change operation is in progress
+      const shouldSkipTemplateLoad = hasCurrentPositions || hasHistoricalData || hasLoadedDates || hasRealAssignmentData || isDateChangeInProgress;
+      
+      console.log(`🔍 Template load decision: skip=${shouldSkipTemplateLoad} (current: ${hasCurrentPositions}, historical: ${hasHistoricalData}, loaded dates: ${hasLoadedDates}, real data: ${hasRealAssignmentData}, date change in progress: ${isDateChangeInProgress})`);
+      
+      if (!shouldSkipTemplateLoad) {
+        console.log(`📋 No existing positions or historical data, loading from template initially`);
+        await loadPositionsForDate(); // This will load from template initially
+      } else {
+        console.log(`✅ Positions or historical data already exists (current: ${positions.length}, historical: ${historicalPositions.size}, loaded dates: ${loadedDates.size}, has real data: ${hasRealAssignmentData}), skipping template load`);
+      }
+      
       await loadPresence();
     } else {
       // Clear data when signed out
@@ -480,17 +520,21 @@ export const useGAPIStore = defineStore("gapi", () => {
     >;
 
     soldiers.splice(0); // Clear existing data
-    soldiers.push(
-      ...soldiersArr
-        .filter((soldier) => soldier.length === 5) // filter empty rows
-        .map((soldier) => ({
-          id: soldier[0] + "",
-          name: soldier[1] + "",
-          platoon: soldier[2] + "",
-          role: soldier[3] + "",
-          description: soldier[4] + "",
-        }))
-    );
+    
+    const processedSoldiers = soldiersArr
+      .filter((soldier) => soldier.length === 5) // filter empty rows
+      .map((soldier) => ({
+        id: soldier[0] + "",
+        name: soldier[1] + "",
+        platoon: soldier[2] + "",
+        role: soldier[3] + "",
+        description: soldier[4] + "",
+      }));
+    
+    console.log(`👥 Processed ${processedSoldiers.length} soldiers from ${soldiersArr.length} raw rows`);
+    console.log(`👥 Soldier IDs loaded: ${processedSoldiers.slice(0, 10).map(s => s.id).join(', ')}${processedSoldiers.length > 10 ? '...' : ''}`);
+    
+    soldiers.push(...processedSoldiers);
   }
 
   async function loadPresence(): Promise<void> {
@@ -1126,9 +1170,9 @@ export const useGAPIStore = defineStore("gapi", () => {
         await duplicateSheet(SHEETS.POSITIONS, targetSheetName);
       }
 
-      // Load positions from the existing sheet
+      // Load positions from the existing sheet with date context
       const tempPositions: PositionDto[] = [];
-      await loadPositionsFromSheetIntoArray(targetSheetName, tempPositions);
+      await loadPositionsFromSheetIntoArray(targetSheetName, tempPositions, date);
       
       // Store in historical positions
       historicalPositions.set(dateKey, tempPositions);
@@ -1139,12 +1183,20 @@ export const useGAPIStore = defineStore("gapi", () => {
       
     } catch (error) {
       console.error(`❌ Error loading positions for date ${dateKey}:`, error);
+      
+      // Check if we already have successfully loaded data for this date in historicalPositions
+      const existingData = historicalPositions.get(dateKey);
+      if (existingData && existingData.length > 0) {
+        console.log(`✅ Using previously loaded data for date ${dateKey} (${existingData.length} positions)`);
+        return existingData;
+      }
+      
       console.log('🔄 Falling back to template sheet...');
       
       try {
         // Fallback to template sheet
         const tempPositions: PositionDto[] = [];
-        await loadPositionsFromSheetIntoArray(SHEETS.POSITIONS, tempPositions);
+        await loadPositionsFromSheetIntoArray(SHEETS.POSITIONS, tempPositions, date);
         
         // Store template positions in historical data
         historicalPositions.set(dateKey, tempPositions);
@@ -1167,13 +1219,20 @@ export const useGAPIStore = defineStore("gapi", () => {
   /**
    * Load positions from sheet into a specific array (doesn't affect main positions array)
    */
-  async function loadPositionsFromSheetIntoArray(sheetName: string, targetArray: PositionDto[]): Promise<void> {
+  async function loadPositionsFromSheetIntoArray(sheetName: string, targetArray: PositionDto[], dateContext?: Date): Promise<void> {
     console.log(`🔍 Loading positions from sheet: "${sheetName}"`);
     
-    // Save the current positions
+    // Save the current positions and processing date
     const originalPositions = [...positions];
+    const originalProcessingDate = currentProcessingDate.value;
     
     try {
+      // Set the processing date context if provided
+      if (dateContext) {
+        currentProcessingDate.value = dateContext;
+        console.log(`📅 Set processing date context: ${format(dateContext, 'yyyy-MM-dd')}`);
+      }
+      
       // Use the existing parsing logic by loading into main positions array
       await loadPositionsFromSheet(sheetName);
       
@@ -1182,8 +1241,9 @@ export const useGAPIStore = defineStore("gapi", () => {
       
       console.log(`📊 Final positions array for ${sheetName}:`, targetArray);
     } finally {
-      // Restore original positions
+      // Restore original positions and processing date
       positions.splice(0, positions.length, ...originalPositions);
+      currentProcessingDate.value = originalProcessingDate;
     }
   }
 
@@ -1241,7 +1301,40 @@ export const useGAPIStore = defineStore("gapi", () => {
 
     // Update main positions array with current date positions
     const currentDatePositions = historicalPositions.get(getDateKey(newCurrentDate)) || [];
+    
+    // Debug: Check if current date positions have soldier assignments
+    console.log(`🔍 Current date positions summary:`, currentDatePositions.map(pos => ({
+      name: pos.name,
+      shifts: pos.shifts.map(shift => ({
+        id: shift.id,
+        soldierIds: shift.soldierIds || [],
+        hasAssignments: (shift.soldierIds || []).some(id => id && id.trim() !== ""),
+        assignmentDetails: (shift.soldierIds || []).filter(id => id && id.trim() !== "")
+      }))
+    })));
+    
+    // Log which soldiers are assigned in current date positions
+    const currentDateAssignedSoldiers = new Set<string>();
+    currentDatePositions.forEach(pos => {
+      pos.shifts.forEach(shift => {
+        (shift.soldierIds || []).forEach(id => {
+          if (id && id.trim() !== "") {
+            currentDateAssignedSoldiers.add(id);
+          }
+        });
+      });
+    });
+    
+    console.log(`👥 Soldiers assigned in current date (${getDateKey(newCurrentDate)}) positions:`, Array.from(currentDateAssignedSoldiers));
+    
+    // Set processing date context for current date before updating positions
+    currentProcessingDate.value = newCurrentDate;
+    console.log(`📅 Set processing date context for current date: ${format(newCurrentDate, 'yyyy-MM-dd')}`);
+    
     positions.splice(0, positions.length, ...currentDatePositions);
+    
+    // Clear processing date context after update
+    currentProcessingDate.value = null;
 
     console.log(`✅ Incremental loading complete. Main positions updated with ${positions.length} positions`);
   }
@@ -1307,5 +1400,8 @@ export const useGAPIStore = defineStore("gapi", () => {
     getHistoricalPositions,
     getLoadedDates,
     clearHistoricalData,
+    // Date context for processing assignments
+    currentProcessingDate: readonly(currentProcessingDate),
+    setDateChangeInProgress, // Add this function for date change coordination
   };
 });

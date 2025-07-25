@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { reactive } from "vue";
-import { isSameDay } from "date-fns";
+import { isSameDay, format } from "date-fns";
 import { SoldierAssignment } from "../types/soldier-assignment";
 import { useScheduleStore } from "./schedule";
 
@@ -60,15 +60,20 @@ export const useAssignmentsStore = defineStore("assignments", () => {
   }
 
   function clearAssignments(soldierId: string, date?: Date) {
+    const assignments = soldierAssignments.get(soldierId) || [];
+    
     if (!date && !scheduleStore.scheduleDate) {
       // Clear all assignments if no date context
+      console.log(`🗑️ Clearing ALL assignments for soldier ${soldierId} (no date context)`);
       soldierAssignments.set(soldierId, []);
       return;
     }
     
     const targetDate = date || scheduleStore.scheduleDate!;
-    const assignments = soldierAssignments.get(soldierId) || [];
     const filteredAssignments = assignments.filter(a => !isSameDay(a.date, targetDate));
+    
+    console.log(`🗑️ Clearing assignments for soldier ${soldierId} on ${format(targetDate, 'yyyy-MM-dd')}: ${assignments.length - filteredAssignments.length} cleared, ${filteredAssignments.length} preserved`);
+    
     soldierAssignments.set(soldierId, filteredAssignments);
   }
 
@@ -79,10 +84,24 @@ export const useAssignmentsStore = defineStore("assignments", () => {
 
   function clearAssignmentsForDate(date: Date) {
     console.log(`🗑️ Clearing all soldier assignments for date: ${date.toDateString()}`);
+    let totalCleared = 0;
+    let soldiersAffected = 0;
+    
     for (const [soldierId, assignments] of soldierAssignments.entries()) {
+      const originalCount = assignments.length;
       const filteredAssignments = assignments.filter(a => !isSameDay(a.date, date));
+      const clearedCount = originalCount - filteredAssignments.length;
+      
+      if (clearedCount > 0) {
+        soldiersAffected++;
+        totalCleared += clearedCount;
+        console.log(`🗑️ Soldier ${soldierId}: cleared ${clearedCount} assignments for ${format(date, 'yyyy-MM-dd')}, ${filteredAssignments.length} remain`);
+      }
+      
       soldierAssignments.set(soldierId, filteredAssignments);
     }
+    
+    console.log(`✅ Assignment clearing complete: ${totalCleared} assignments cleared for ${soldiersAffected} soldiers on ${format(date, 'yyyy-MM-dd')}`);
   }
 
   function isAssigned(soldierId: string, date?: Date): boolean {
