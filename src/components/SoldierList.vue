@@ -6,22 +6,67 @@ import { computed, ref } from "vue";
 import { useAssignmentsStore } from "../store/assignments";
 import { useSoldiersStore } from "../store/soldiers";
 import { usePositionsStore } from "../store/positions";
+import { useScheduleStore } from "../store/schedule";
+import { dayStart } from "../app-config";
 import SoldierCard from "./SoldierCard.vue";
 import SoldierListSkeleton from "./SoldierListSkeleton.vue";
 
 const store = useSoldiersStore();
 const assignmentsStore = useAssignmentsStore();
 const positionsStore = usePositionsStore();
+const scheduleStore = useScheduleStore();
 const allPlatoonsOption = { id: "all", name: "כל המחלקות" };
 const selectedPlatoon = ref(allPlatoonsOption);
 
 const hideAssignedSoldiers = ref(false);
+const sortByLastAssignment = ref(true);
 const searchTerm = ref("");
 
 const availablePlatoons = computed(() => {
   const platoons = new Set(store.availableSoldiers.map((soldier) => soldier.platoon));
   return [allPlatoonsOption].concat([...platoons].map((platoon) => ({ id: platoon, name: platoon })));
 });
+
+// Function to get the last assignment end time for a soldier (only past/current assignments)
+function getLastAssignmentEndTime(soldierId: string): Date | null {
+  const allAssignments = assignmentsStore.getAllAssignments(soldierId);
+  const currentDate = scheduleStore.scheduleDate || new Date();
+  
+  // Filter only past and current assignments (ignore future)
+  const pastAndCurrentAssignments = allAssignments.filter(assignment => 
+    assignment.date <= currentDate
+  );
+  
+  if (pastAndCurrentAssignments.length === 0) {
+    return null; // No past assignments means infinity (should appear first)
+  }
+  
+  // Helper function to calculate the actual end datetime considering schedule day cycle
+  function getActualEndDateTime(assignment: any): Date {
+    const assignmentEndDateTime = new Date(assignment.date);
+    const [endHours, endMinutes] = assignment.endTime.split(':').map(Number);
+    const [dayStartHours, dayStartMinutes] = dayStart.split(':').map(Number);
+    
+    assignmentEndDateTime.setHours(endHours, endMinutes, 0, 0);
+    
+    // Schedule day cycle: if end time is at or before day start, it's the next calendar day
+    // This ensures proper chronological order: 14:00-22:00 → 22:00-06:00 → 06:00-14:00
+    const endTimeInMinutes = endHours * 60 + endMinutes;
+    const dayStartInMinutes = dayStartHours * 60 + dayStartMinutes;
+    
+    if (endTimeInMinutes <= dayStartInMinutes) {
+      assignmentEndDateTime.setDate(assignmentEndDateTime.getDate() + 1);
+    }
+    
+    return assignmentEndDateTime;
+  }
+  
+  // Find the assignment with the latest end time
+  return pastAndCurrentAssignments.reduce((latestEndTime, assignment) => {
+    const assignmentEndDateTime = getActualEndDateTime(assignment);
+    return assignmentEndDateTime > latestEndTime ? assignmentEndDateTime : latestEndTime;
+  }, getActualEndDateTime(pastAndCurrentAssignments[0]));
+}
 
 const filteredSoldiers = computed(() => {
   let soldiers = store.availableSoldiers;
@@ -44,6 +89,22 @@ const filteredSoldiers = computed(() => {
       soldier.role.toLowerCase().includes(searchLower) ||
       soldier.platoon.toLowerCase().includes(searchLower)
     );
+  }
+
+  // Sort by last assignment if enabled
+  if (sortByLastAssignment.value) {
+    soldiers = [...soldiers].sort((a, b) => {
+      const aLastAssignment = getLastAssignmentEndTime(a.id);
+      const bLastAssignment = getLastAssignmentEndTime(b.id);
+      
+      // Soldiers with no past assignments (null) should appear first
+      if (aLastAssignment === null && bLastAssignment === null) return 0;
+      if (aLastAssignment === null) return -1;
+      if (bLastAssignment === null) return 1;
+      
+      // Sort by date - older assignments first (farther in the past = higher in list)
+      return aLastAssignment.getTime() - bLastAssignment.getTime();
+    });
   }
 
   return soldiers;
@@ -104,6 +165,15 @@ const assignmentStats = computed(() => {
           class="filter-checkbox" />
         <label for="hide-assigned-checkbox" class="checkbox-label">
           הסתר חיילים משובצים
+        </label>
+      </div>
+
+      <!-- Sort by Last Assignment Checkbox -->
+      <div class="checkbox-container">
+        <Checkbox v-model="sortByLastAssignment" :binary="true" inputId="sort-by-assignment-checkbox"
+          class="filter-checkbox" />
+        <label for="sort-by-assignment-checkbox" class="checkbox-label">
+          מיין לפי שיבוץ אחרון
         </label>
       </div>
     </div>
