@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { defineStore } from "pinia";
 import { computed, reactive, ref, watch } from "vue";
+import { dayStart } from "../app-config";
 import { SchedulerError } from "../errors/scheduler-error";
 import { PositionModel } from "../model/position";
 import { ShiftModel } from "../model/shift";
@@ -14,8 +15,6 @@ import { useAssignmentsStore } from "./assignments";
 import { useGAPIStore } from "./gapi";
 import { useScheduleStore } from "./schedule";
 import { useSoldiersStore } from "./soldiers";
-
-const dayStart = "14:00";
 
 // Performance optimization: Create a soldiers cache
 function createSoldiersCache(soldiers?: ISoldier[]): Map<string, ISoldier> {
