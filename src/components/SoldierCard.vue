@@ -6,6 +6,7 @@ import { ISoldier } from "../model/soldier";
 import { useAssignmentsStore } from "../store/assignments";
 import { useScheduleStore } from "../store/schedule";
 import { useSoldiersStore } from "../store/soldiers";
+import { getAssignmentAlertLevel, getAlertDescription, AlertLevel } from "../utils/assignment-alerts";
 import Draggable from "./dragndrop/Draggable.vue";
 
 const store = useSoldiersStore();
@@ -74,6 +75,18 @@ const pastAssignmentsTooltip = computed(() => {
     .join('\n');
 });
 
+// New computed for assignment alert level
+const assignmentAlertLevel = computed((): AlertLevel => {
+  if (!isAssigned.value) return 'none';
+  
+  const assignments = assignmentsStore.getAssignments(props.soldier.id);
+  return getAssignmentAlertLevel(assignments);
+});
+
+const alertDescription = computed(() => {
+  return getAlertDescription(assignmentAlertLevel.value);
+});
+
 function dragOver(e: DragEvent) {
   emit('drag-over', e, props.soldier);
 }
@@ -95,7 +108,8 @@ function dragEnd(e: DragEvent) {
     <Card class="soldier-card" :class="[
       props.target === 'list' ? 'soldier-card-list' : 'soldier-card-shift',
       store.draggedSoldier?.id === props.soldier.id ? 'being-dragged' : '',
-      isAssigned ? 'assigned' : 'unassigned'
+      isAssigned ? 'assigned' : 'unassigned',
+      `alert-${assignmentAlertLevel}`
     ]">
       <template #content>
         <div v-if="props.target === 'list'" class="soldier-content-list">
@@ -133,6 +147,20 @@ function dragEnd(e: DragEvent) {
             }">
               {{ assignmentSummary }}
             </span>
+            <div v-if="assignmentAlertLevel !== 'none'" class="alert-indicator" 
+                 v-tooltip="{
+                   value: alertDescription,
+                   showDelay: 200,
+                   hideDelay: 100,
+                   position: 'bottom',
+                   pt: {
+                     text: {
+                       style: 'max-width: 250px; white-space: pre-line; text-align: right; direction: rtl; font-size: 0.75rem;'
+                     }
+                   }
+                 }">
+              <i class="pi pi-exclamation-triangle" :class="`alert-icon-${assignmentAlertLevel}`"></i>
+            </div>
           </div>
         </div>
         <div v-if="props.target === 'shift'" class="soldier-content-shift">
@@ -203,6 +231,45 @@ function dragEnd(e: DragEvent) {
   justify-content: center;
 }
 
+/* Alert styling */
+.soldier-card {
+  &.alert-red {
+    background-color: rgba(239, 68, 68, 0.15) !important; /* Red-500 with transparency */
+    border: 1px solid rgb(239, 68, 68) !important;
+    
+    &:hover {
+      background-color: rgba(239, 68, 68, 0.25) !important;
+    }
+  }
+  
+  &.alert-orange {
+    background-color: rgba(249, 115, 22, 0.15) !important; /* Orange-500 with transparency */
+    border: 1px solid rgb(249, 115, 22) !important;
+    
+    &:hover {
+      background-color: rgba(249, 115, 22, 0.25) !important;
+    }
+  }
+  
+  &.alert-yellow {
+    background-color: rgba(234, 179, 8, 0.15) !important; /* Yellow-500 with transparency */
+    border: 1px solid rgb(234, 179, 8) !important;
+    
+    &:hover {
+      background-color: rgba(234, 179, 8, 0.25) !important;
+    }
+  }
+  
+  &.alert-none.assigned {
+    background-color: rgba(34, 197, 94, 0.1) !important; /* Green-500 with transparency - same as assigned */
+    border: 1px solid rgb(34, 197, 94) !important;
+    
+    &:hover {
+      background-color: rgba(34, 197, 94, 0.2) !important;
+    }
+  }
+}
+
 .soldier-content-list {
   padding: 0.25rem;
   text-align: right;
@@ -269,6 +336,10 @@ function dragEnd(e: DragEvent) {
   margin-top: 0.25rem;
   padding-top: 0.25rem;
   border-top: 1px solid rgba(34, 197, 94, 0.3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .assignment-summary {
@@ -283,6 +354,38 @@ function dragEnd(e: DragEvent) {
     text-decoration: underline;
     text-decoration-style: dotted;
     text-underline-offset: 2px;
+  }
+}
+
+.alert-indicator {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 0.5rem;
+  cursor: help;
+}
+
+.alert-icon-red {
+  color: rgb(239, 68, 68);
+  font-size: 0.75rem;
+  animation: pulse 2s infinite;
+}
+
+.alert-icon-orange {
+  color: rgb(249, 115, 22);
+  font-size: 0.75rem;
+}
+
+.alert-icon-yellow {
+  color: rgb(234, 179, 8);
+  font-size: 0.75rem;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
   }
 }
 
