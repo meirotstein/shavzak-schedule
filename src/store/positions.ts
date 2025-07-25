@@ -81,6 +81,7 @@ export const usePositionsStore = defineStore("positions", () => {
               startTime: shift.startTime,
               endTime: shift.endTime,
               assignmentIndex: index,
+              date: scheduleStore.scheduleDate || new Date(),
             });
           } else {
             console.log(`⚪ Empty assignment slot at index ${index} in ${position.positionName} ${shift.shiftId}`);
@@ -381,6 +382,7 @@ export const usePositionsStore = defineStore("positions", () => {
                     startTime: shift.startTime,
                     endTime: shift.endTime,
                     assignmentIndex: index,
+                    date: scheduleStore.scheduleDate || new Date(),
                   });
                 }
               });
@@ -476,6 +478,7 @@ export const usePositionsStore = defineStore("positions", () => {
         startTime: shift.startTime,
         endTime: shift.endTime,
         assignmentIndex: shiftSpotIndex,
+        date: scheduleStore.scheduleDate || new Date(),
       });
 
       // Trigger auto-save after assignment
@@ -565,13 +568,17 @@ export const usePositionsStore = defineStore("positions", () => {
           console.log(`📅 Schedule date changed to ${format(newDate, 'yyyy-MM-dd')}, reloading positions...`);
           console.log(`📊 Previous date was: ${oldDate ? format(oldDate, 'yyyy-MM-dd') : 'undefined'}`);
           
-          // Step 1: Clear all existing assignments before loading new date
-          console.log(`🗑️ Clearing all soldier assignments for date change...`);
-          assignmentsStore.clearAllAssignments();
+          // Step 1: Clear assignments for the previous date (if existed) and current date
+          if (oldDate) {
+            console.log(`🗑️ Clearing assignments for previous date: ${format(oldDate, 'yyyy-MM-dd')}`);
+            assignmentsStore.clearAssignmentsForDate(oldDate);
+          }
+          console.log(`🗑️ Clearing assignments for new date: ${format(newDate, 'yyyy-MM-dd')}`);
+          assignmentsStore.clearAssignmentsForDate(newDate);
           
-          // Step 2: Load positions from the date-specific sheet
-          console.log(`📋 Loading positions for new date...`);
-          await gapi.loadPositionsForDate(newDate);
+          // Step 2: Use incremental loading for better performance (loads current + past 3 days)
+          console.log(`📋 Loading positions incrementally for date range (current + 3 days history)...`);
+          await gapi.loadPositionsIncremental(newDate, 3);
           console.log(`✅ Positions loaded successfully for date: ${format(newDate, 'yyyy-MM-dd')}`);
           
           // Step 3: Force refresh of the positions computed property

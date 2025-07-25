@@ -1,4 +1,4 @@
-import { addDays, parse } from "date-fns";
+import { addDays, parse, subDays, format } from "date-fns";
 import { defineStore } from "pinia";
 import { reactive, ref } from "vue";
 import { useRoute } from "vue-router";
@@ -54,6 +54,12 @@ export const useGAPIStore = defineStore("gapi", () => {
     end: undefined,
     soldiersPresence: {},
   });
+
+  // Track which dates have been loaded to enable incremental loading
+  const loadedDates = reactive<Set<string>>(new Set());
+  
+  // Historical positions storage (keyed by date string for efficient lookup)
+  const historicalPositions = reactive<Map<string, PositionDto[]>>(new Map());
 
   // Function to store token in localStorage
   function storeToken(token: string, expiresIn: number) {
@@ -1093,6 +1099,177 @@ export const useGAPIStore = defineStore("gapi", () => {
     }
   }
 
+  /**
+   * Convert date to string key for tracking loaded dates
+   */
+  function getDateKey(date: Date): string {
+    return format(date, 'yyyy-MM-dd');
+  }
+
+  /**
+   * Load positions for a single date and store in historical positions
+   */
+  async function loadPositionsForSingleDate(date: Date): Promise<PositionDto[]> {
+    if (!isSignedIn.value) return [];
+
+    const dateKey = getDateKey(date);
+    const targetSheetName = getCurrentSheetName(date);
+    
+    console.log(`📅 Loading positions for date: ${dateKey} (sheet: "${targetSheetName}")`);
+
+    try {
+      // Check if date-specific sheet exists
+      const sheetExists = await checkSheetExists(targetSheetName);
+      
+      if (!sheetExists) {
+        console.log(`📋 Creating new sheet from template: "${targetSheetName}"`);
+        await duplicateSheet(SHEETS.POSITIONS, targetSheetName);
+      }
+
+      // Load positions from the existing sheet
+      const tempPositions: PositionDto[] = [];
+      await loadPositionsFromSheetIntoArray(targetSheetName, tempPositions);
+      
+      // Store in historical positions
+      historicalPositions.set(dateKey, tempPositions);
+      loadedDates.add(dateKey);
+      
+      console.log(`✅ Loaded ${tempPositions.length} positions for date: ${dateKey}`);
+      return tempPositions;
+      
+    } catch (error) {
+      console.error(`❌ Error loading positions for date ${dateKey}:`, error);
+      console.log('🔄 Falling back to template sheet...');
+      
+      try {
+        // Fallback to template sheet
+        const tempPositions: PositionDto[] = [];
+        await loadPositionsFromSheetIntoArray(SHEETS.POSITIONS, tempPositions);
+        
+        // Store template positions in historical data
+        historicalPositions.set(dateKey, tempPositions);
+        loadedDates.add(dateKey);
+        
+        console.log(`✅ Loaded ${tempPositions.length} positions from template for date: ${dateKey}`);
+        return tempPositions;
+      } catch (fallbackError) {
+        console.error(`❌ Even template fallback failed for date ${dateKey}:`, fallbackError);
+        
+        // Store empty positions to avoid retrying
+        const emptyPositions: PositionDto[] = [];
+        historicalPositions.set(dateKey, emptyPositions);
+        loadedDates.add(dateKey);
+        return emptyPositions;
+      }
+    }
+  }
+
+  /**
+   * Load positions from sheet into a specific array (doesn't affect main positions array)
+   */
+  async function loadPositionsFromSheetIntoArray(sheetName: string, targetArray: PositionDto[]): Promise<void> {
+    console.log(`🔍 Loading positions from sheet: "${sheetName}"`);
+    
+    // Save the current positions
+    const originalPositions = [...positions];
+    
+    try {
+      // Use the existing parsing logic by loading into main positions array
+      await loadPositionsFromSheet(sheetName);
+      
+      // Copy the parsed positions to our target array
+      targetArray.push(...positions);
+      
+      console.log(`📊 Final positions array for ${sheetName}:`, targetArray);
+    } finally {
+      // Restore original positions
+      positions.splice(0, positions.length, ...originalPositions);
+    }
+  }
+
+  /**
+   * Load positions for a date range (current date + past days)
+   */
+  async function loadPositionsForDateRange(currentDate: Date, pastDays: number = 3): Promise<void> {
+    if (!isSignedIn.value) return;
+
+    console.log(`📅 Loading positions for date range: ${pastDays} days before ${getDateKey(currentDate)}`);
+
+    // Generate the dates to load (past days + current day) 
+    const datesToLoad: Date[] = [];
+    for (let i = pastDays; i >= 0; i--) {
+      datesToLoad.push(subDays(currentDate, i));
+    }
+
+    console.log(`📋 Dates to load: ${datesToLoad.map(d => getDateKey(d)).join(', ')}`);
+
+    // Load all dates in parallel
+    await Promise.all(datesToLoad.map(date => loadPositionsForSingleDate(date)));
+
+    // Update main positions array with current date positions
+    const currentDatePositions = historicalPositions.get(getDateKey(currentDate)) || [];
+    positions.splice(0, positions.length, ...currentDatePositions);
+
+    console.log(`✅ Date range loading complete. Main positions updated with ${positions.length} positions`);
+  }
+
+  /**
+   * Incremental loading - only load missing dates in the new range
+   */
+  async function loadPositionsIncremental(newCurrentDate: Date, pastDays: number = 3): Promise<void> {
+    if (!isSignedIn.value) return;
+
+    console.log(`🔄 Incremental loading for date: ${getDateKey(newCurrentDate)} (${pastDays} days history)`);
+
+    // Generate the required date range
+    const requiredDates: Date[] = [];
+    for (let i = pastDays; i >= 0; i--) {
+      requiredDates.push(subDays(newCurrentDate, i));
+    }
+
+    // Find missing dates that haven't been loaded yet
+    const missingDates = requiredDates.filter(date => !loadedDates.has(getDateKey(date)));
+
+    if (missingDates.length === 0) {
+      console.log(`✅ All required dates already loaded, just updating main positions`);
+    } else {
+      console.log(`📋 Missing dates to load: ${missingDates.map(d => getDateKey(d)).join(', ')}`);
+      
+      // Load only the missing dates
+      await Promise.all(missingDates.map(date => loadPositionsForSingleDate(date)));
+    }
+
+    // Update main positions array with current date positions
+    const currentDatePositions = historicalPositions.get(getDateKey(newCurrentDate)) || [];
+    positions.splice(0, positions.length, ...currentDatePositions);
+
+    console.log(`✅ Incremental loading complete. Main positions updated with ${positions.length} positions`);
+  }
+
+  /**
+   * Get historical positions for a specific date
+   */
+  function getHistoricalPositions(date: Date): PositionDto[] {
+    const dateKey = getDateKey(date);
+    return historicalPositions.get(dateKey) || [];
+  }
+
+  /**
+   * Get all loaded dates
+   */
+  function getLoadedDates(): Date[] {
+    return Array.from(loadedDates).map(dateKey => new Date(dateKey));
+  }
+
+  /**
+   * Clear historical data (useful for memory management)
+   */
+  function clearHistoricalData() {
+    console.log('🗑️ Clearing historical positions data');
+    historicalPositions.clear();
+    loadedDates.clear();
+  }
+
   return {
     load,
     login,
@@ -1121,5 +1298,14 @@ export const useGAPIStore = defineStore("gapi", () => {
     duplicateSheet,
     getCurrentSheetName,
     loadPositionsForDate,
+    // Date range loading functions
+    getDateKey,
+    loadPositionsForSingleDate,
+    loadPositionsFromSheetIntoArray,
+    loadPositionsForDateRange,
+    loadPositionsIncremental,
+    getHistoricalPositions,
+    getLoadedDates,
+    clearHistoricalData,
   };
 });

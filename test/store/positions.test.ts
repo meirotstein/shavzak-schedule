@@ -61,6 +61,7 @@ const mockGAPIStore = {
   soldiers: testSoldiers,
   isSignedIn: true,
   loadPositionsForDate: vi.fn().mockResolvedValue(undefined),
+  loadPositionsIncremental: vi.fn().mockResolvedValue(undefined),
   getCurrentSheetName: vi.fn().mockReturnValue("שבצק-04.11.24"),
 };
 
@@ -319,6 +320,7 @@ describe("positions store tests", () => {
       startTime: "00:00",
       endTime: "02:00",
       assignmentIndex: 0,
+      date: scheduleStoreMock.scheduleDate,
     });
   });
 
