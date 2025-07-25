@@ -3,6 +3,9 @@ import DatePicker from '../components/DatePicker.vue';
 import GoogleLogin from '../components/GoogleLogin.vue';
 import PositionsTable from '../components/PositionsTable.vue';
 import SoldierList from '../components/SoldierList.vue';
+import { usePositionsStore } from '../store/positions';
+
+const positionsStore = usePositionsStore();
 </script>
 
 <template>
@@ -22,6 +25,17 @@ import SoldierList from '../components/SoldierList.vue';
     </header>
 
     <main class="page-content">
+      <!-- Loading message -->
+      <div 
+        v-if="positionsStore.isLoadingPositions || positionsStore.isLoadingSoldiers" 
+        class="loading-overlay"
+      >
+        <div class="loading-message">
+          <div class="loading-spinner"></div>
+          <span class="loading-text">{{ positionsStore.loadingMessage || 'טוען נתונים...' }}</span>
+        </div>
+      </div>
+      
       <!-- Position SoldierList on the right for RTL -->
       <aside class="sidebar">
         <SoldierList />
@@ -29,7 +43,6 @@ import SoldierList from '../components/SoldierList.vue';
       <section class="main-content">
         <PositionsTable />
       </section>
-
     </main>
   </div>
 </template>
@@ -131,5 +144,51 @@ import SoldierList from '../components/SoldierList.vue';
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   padding: 1rem;
   border: 1px solid rgb(var(--surface-200));
+}
+
+// Loading overlay styles
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.loading-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #333;
+  text-align: center;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>

@@ -46,36 +46,17 @@ function removeSoldier() {
 </script>
 
 <template>
-  <DropZone
-    @drag-enter="dragEnter"
-    @drag-leave="dragLeave"
-    @drop="drop"
-    :isEmpty="!props.assignment.soldier"
-    class="shift-drop-zone"
-    :class="{ 'drop-zone-active': overSoldierId }"
-  >
+  <DropZone @drag-enter="dragEnter" @drag-leave="dragLeave" @drop="drop" :isEmpty="!props.assignment.soldier"
+    class="shift-drop-zone" :class="{ 'drop-zone-active': overSoldierId }">
     <div v-if="props.assignment.soldier" class="soldier-with-remove">
-      <SoldierCard
-        :soldier="props.assignment.soldier"
-        target="shift"
-      />
-      <button
-        @click="removeSoldier"
-        class="remove-button"
-        type="button"
-        title="הסר"
-      >
-        <span style="font-size: 14px; font-weight: bold; line-height: 1; color: #000000; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">×</span>
+      <SoldierCard :soldier="props.assignment.soldier" target="shift" />
+      <button @click="removeSoldier" class="remove-button" type="button" title="הסר">
+        <span
+          style="font-size: 14px; font-weight: bold; line-height: 1; color: #000000; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">×</span>
       </button>
     </div>
-    <div
-      class="spot-empty"
-      v-else
-      :class="{ 'spot-empty-hover': overSoldierId }"
-      role="button"
-      tabindex="0"
-      aria-label="Empty shift spot for role: {{ props.assignment.roles[0] }}"
-    >
+    <div class="spot-empty" v-else :class="{ 'spot-empty-hover': overSoldierId }" role="button" tabindex="0"
+      aria-label="Empty shift spot for role: {{ props.assignment.roles[0] }}">
       <div class="role-badge">{{ props.assignment.roles[0] }}</div>
     </div>
   </DropZone>
@@ -90,7 +71,7 @@ function removeSoldier() {
   display: flex;
   justify-content: center;
   align-items: center;
-  
+
   &.drop-zone-active {
     background-color: rgba(var(--primary-100), 0.4);
     box-shadow: 0 0 0 2px rgb(var(--primary-400));
@@ -104,18 +85,20 @@ function removeSoldier() {
   align-items: center;
   width: 100%;
   height: 100%;
-  min-height: 1.75rem; /* Reduced height for more compact layout */
+  min-height: 1.75rem;
+  /* Reduced height for more compact layout */
   border: 1px dashed rgb(var(--surface-400));
   border-radius: 6px;
   background-color: rgba(var(--surface-100), 0.5);
-  padding: 0.25rem; /* Reduced padding for more compact layout */
+  padding: 0.25rem;
+  /* Reduced padding for more compact layout */
   transition: all 0.2s ease;
-  
+
   &:hover {
     border-color: rgb(var(--primary-400));
     background-color: rgba(var(--primary-50), 0.3);
   }
-  
+
   &.spot-empty-hover {
     border: 2px dashed rgb(var(--primary-500));
     background-color: rgba(var(--primary-100), 0.4);
@@ -124,33 +107,42 @@ function removeSoldier() {
 }
 
 .role-badge {
-  font-size: 0.7rem; /* Smaller font for compact layout */
+  font-size: 0.7rem;
+  /* Smaller font for compact layout */
   font-weight: 600;
   color: rgb(var(--primary-700));
   background-color: rgba(var(--primary-100), 0.7);
-  padding: 0.1rem 0.4rem; /* Reduced padding for compact layout */
+  padding: 0.1rem 0.4rem;
+  /* Reduced padding for compact layout */
   border-radius: 1rem;
-  margin-bottom: 0.15rem; /* Reduced margin for compact layout */
+  margin-bottom: 0.15rem;
+  /* Reduced margin for compact layout */
   border: 1px solid rgb(var(--primary-200));
-  text-align: center; /* Ensure text is centered for RTL/LTR compatibility */
+  text-align: center;
+  /* Ensure text is centered for RTL/LTR compatibility */
 }
 
 .drop-hint {
-  font-size: 0.65rem; /* Smaller font for compact layout */
+  font-size: 0.65rem;
+  /* Smaller font for compact layout */
   color: rgb(var(--primary-600));
-  margin-top: 0.15rem; /* Reduced margin for compact layout */
+  margin-top: 0.15rem;
+  /* Reduced margin for compact layout */
   font-style: italic;
   animation: pulse 1.5s infinite;
-  text-align: center; /* Ensure text is centered for RTL/LTR compatibility */
+  text-align: center;
+  /* Ensure text is centered for RTL/LTR compatibility */
 }
 
 @keyframes pulse {
   0% {
     opacity: 0.6;
   }
+
   50% {
     opacity: 1;
   }
+
   100% {
     opacity: 0.6;
   }
@@ -162,12 +154,12 @@ function removeSoldier() {
     min-height: 1.5rem;
     padding: 0.15rem;
   }
-  
+
   .role-badge {
     font-size: 0.65rem;
     padding: 0.05rem 0.3rem;
   }
-  
+
   .drop-hint {
     font-size: 0.6rem;
   }
@@ -188,7 +180,8 @@ function removeSoldier() {
 .remove-button {
   position: absolute;
   top: calc(50% - 4px);
-  left: 6px; /* Position on the left side, middle */
+  left: 6px;
+  /* Position on the left side, middle */
   transform: translateY(-50%);
   width: 16px;
   height: 16px;
@@ -204,12 +197,12 @@ function removeSoldier() {
   transition: all 0.2s ease;
   z-index: 10;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  
+
   &:hover {
     background-color: rgb(var(--red-600));
     transform: translateY(-50%) scale(1.1);
   }
-  
+
   &:focus {
     outline: 2px solid rgb(var(--red-400));
     outline-offset: 1px;

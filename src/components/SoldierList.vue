@@ -4,10 +4,13 @@ import Select from "primevue/select";
 import { computed, ref } from "vue";
 import { useAssignmentsStore } from "../store/assignments";
 import { useSoldiersStore } from "../store/soldiers";
+import { usePositionsStore } from "../store/positions";
 import SoldierCard from "./SoldierCard.vue";
+import SoldierListSkeleton from "./SoldierListSkeleton.vue";
 
 const store = useSoldiersStore();
 const assignmentsStore = useAssignmentsStore();
+const positionsStore = usePositionsStore();
 const allPlatoonsOption = { id: "all", name: "כל המחלקות" };
 const selectedPlatoon = ref(allPlatoonsOption);
 
@@ -82,7 +85,19 @@ const assignmentStats = computed(() => {
     </div>
 
     <div class="list-wrapper">
-      <ul class="soldier-list" role="list" aria-label="Available soldiers list">
+      <!-- Loading skeleton -->
+      <SoldierListSkeleton 
+        v-if="positionsStore.isLoadingSoldiers" 
+        :soldier-count="12" 
+      />
+      
+      <!-- Normal content -->
+      <ul 
+        v-else 
+        class="soldier-list" 
+        role="list" 
+        aria-label="Available soldiers list"
+      >
         <li v-for="(soldier, index) in filteredSoldiers" :key="soldier.id || index" class="soldier-list-item">
           <SoldierCard :soldier="soldier" target="list" />
         </li>

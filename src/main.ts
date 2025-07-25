@@ -1,5 +1,6 @@
 import Lara from "@primevue/themes/lara";
 import { createPinia } from "pinia";
+import "primeicons/primeicons.css";
 import PrimeVue from "primevue/config";
 import Tooltip from "primevue/tooltip";
 import { createApp } from "vue";

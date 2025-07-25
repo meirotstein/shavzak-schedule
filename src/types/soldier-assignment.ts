@@ -7,4 +7,5 @@ export type SoldierAssignment = {
   startTime: ShiftHours;
   endTime: ShiftHours;
   assignmentIndex: number; // which spot in the shift assignments array
+  date: Date; // which date this assignment belongs to
 } 

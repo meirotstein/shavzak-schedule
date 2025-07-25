@@ -6,6 +6,7 @@ import { IShift } from "../model/shift";
 import { usePositionsStore } from "../store/positions";
 import { getNextHour, hoursBetween } from '../utils/date-utils';
 import Shift from "./Shift.vue";
+import PositionsTableSkeleton from "./PositionsTableSkeleton.vue";
 
 const store = usePositionsStore();
 const scheduleStartHour = ref(14); // TODO: get from config
@@ -97,8 +98,15 @@ function remove(colField: string, shiftId: string, spotIndex: number) {
 
 <template>
   <div class="positions-table-container">
-    <!-- DataTable needs special RTL handling -->
+    <!-- Loading skeleton -->
+    <PositionsTableSkeleton 
+      v-if="store.isLoadingPositions" 
+      :position-count="tableColumns.length || 8" 
+    />
+    
+    <!-- Normal table content -->
     <DataTable
+      v-else
       :value="tableData"
       rowGroupMode="rowspan"
       :groupRowsBy="tableColumns.map(col => col.posId)"
