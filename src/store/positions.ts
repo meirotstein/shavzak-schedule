@@ -39,6 +39,11 @@ export const usePositionsStore = defineStore("positions", () => {
   // Reactive refresh counter to force positions re-computation
   const positionsRefreshCounter = ref(0);
 
+  // Loading states
+  const isLoadingPositions = ref(false);
+  const isLoadingSoldiers = ref(false);
+  const loadingMessage = ref('');
+
   // Function to force refresh of positions
   function forcePositionsRefresh() {
     positionsRefreshCounter.value++;
@@ -565,6 +570,11 @@ export const usePositionsStore = defineStore("positions", () => {
       
       if (shouldReload) {
         try {
+          // Start loading state
+          isLoadingPositions.value = true;
+          isLoadingSoldiers.value = true;
+          loadingMessage.value = 'Loading positions...';
+          
           console.log(`📅 Schedule date changed to ${format(newDate, 'yyyy-MM-dd')}, reloading positions...`);
           console.log(`📊 Previous date was: ${oldDate ? format(oldDate, 'yyyy-MM-dd') : 'undefined'}`);
           
@@ -577,12 +587,14 @@ export const usePositionsStore = defineStore("positions", () => {
           assignmentsStore.clearAssignmentsForDate(newDate);
           
           // Step 2: Use incremental loading for better performance (loads current + past 3 days)
+          loadingMessage.value = 'טוען נתונים...';
           console.log(`📋 Loading positions incrementally for date range (current + 3 days history)...`);
           await gapi.loadPositionsIncremental(newDate, 3);
           console.log(`✅ Positions loaded successfully for date: ${format(newDate, 'yyyy-MM-dd')}`);
           
           // Step 3: Force refresh of the positions computed property
           // This ensures that soldier assignments are properly reflected in the UI
+          loadingMessage.value = 'טוען נתונים...';
           console.log(`🔄 Positions loaded, forcing UI refresh to update soldier assignments...`);
           forcePositionsRefresh();
 
@@ -592,11 +604,20 @@ export const usePositionsStore = defineStore("positions", () => {
           setTimeout(() => {
             console.log(`🔄 Now executing delayed assignment recalculation...`);
             forceAssignmentRecalculation();
+            
+            // End loading state after recalculation
+            isLoadingPositions.value = false;
+            isLoadingSoldiers.value = false;
+            loadingMessage.value = '';
           }, 100); // Small delay to ensure reactivity updates are processed
           
           console.log(`✅ Date change complete - soldier assignments should now be refreshed`);
         } catch (error) {
           console.error('❌ Error reloading positions for new date:', error);
+          // End loading state on error
+          isLoadingPositions.value = false;
+          isLoadingSoldiers.value = false;
+          loadingMessage.value = '';
         }
       }
     },
@@ -611,5 +632,9 @@ export const usePositionsStore = defineStore("positions", () => {
     manualSave,
     forcePositionsRefresh, // Add this for external use if needed
     forceAssignmentRecalculation, // Add this for external use if needed
+    // Loading states
+    isLoadingPositions: computed(() => isLoadingPositions.value),
+    isLoadingSoldiers: computed(() => isLoadingSoldiers.value),
+    loadingMessage: computed(() => loadingMessage.value),
   };
 });
