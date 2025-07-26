@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { format } from "date-fns";
+import { addDays, format, isSameDay, subDays } from "date-fns";
 import Card from "primevue/card";
 import { computed } from "vue";
+import { PresenceState } from "../model/presence";
 import { ISoldier } from "../model/soldier";
 import { useAssignmentsStore } from "../store/assignments";
 import { useScheduleStore } from "../store/schedule";
 import { useSoldiersStore } from "../store/soldiers";
-import { getAssignmentAlertLevel, getAlertDescription, AlertLevel } from "../utils/assignment-alerts";
+import { AlertLevel, getAlertDescription, getAssignmentAlertLevel } from "../utils/assignment-alerts";
 import Draggable from "./dragndrop/Draggable.vue";
 
 const store = useSoldiersStore();
@@ -75,10 +76,43 @@ const pastAssignmentsTooltip = computed(() => {
     .join('\n');
 });
 
+// Helper function to get soldier presence for a specific date
+const getSoldierPresenceForDate = (date: Date) => {
+  return props.soldier.presence.find(p => isSameDay(p.date, date))?.presence;
+};
+
+// Check if soldier is returning from home (present today, different yesterday)
+const isReturningFromHome = computed(() => {
+  if (!scheduleStore.scheduleDate) return false;
+
+  const todayPresence = getSoldierPresenceForDate(scheduleStore.scheduleDate);
+  if (todayPresence !== PresenceState.PRESENT) return false;
+
+  const yesterday = subDays(scheduleStore.scheduleDate, 1);
+  const yesterdayPresence = getSoldierPresenceForDate(yesterday);
+
+  // Returning if present today and was different (not present) yesterday
+  return yesterdayPresence !== PresenceState.PRESENT && yesterdayPresence !== undefined;
+});
+
+// Check if soldier is going home the day after (present today, home/discharged tomorrow) 
+const isGoingHomeNextDay = computed(() => {
+  if (!scheduleStore.scheduleDate) return false;
+
+  const todayPresence = getSoldierPresenceForDate(scheduleStore.scheduleDate);
+  if (todayPresence !== PresenceState.PRESENT) return false;
+
+  const tomorrow = addDays(scheduleStore.scheduleDate, 1);
+  const tomorrowPresence = getSoldierPresenceForDate(tomorrow);
+
+  // Going home if present today and will be home or discharged tomorrow
+  return tomorrowPresence === PresenceState.HOME || tomorrowPresence === PresenceState.DISCHARGED;
+});
+
 // New computed for assignment alert level
 const assignmentAlertLevel = computed((): AlertLevel => {
   if (!isAssigned.value) return 'none';
-  
+
   const assignments = assignmentsStore.getAssignments(props.soldier.id);
   return getAssignmentAlertLevel(assignments);
 });
@@ -128,6 +162,13 @@ function dragEnd(e: DragEvent) {
               }
             }"></i>
           </div>
+
+          <!-- Presence status indicators -->
+          <div class="presence-indicators" v-if="isReturningFromHome || isGoingHomeNextDay">
+            <span v-if="isReturningFromHome" class="presence-label returning-label">חוזר</span>
+            <span v-if="isGoingHomeNextDay" class="presence-label outgoing-label">יוצא למחרת</span>
+          </div>
+
           <div class="soldier-details">
             <span class="soldier-role">{{ props.soldier.role }}</span>
             <span class="soldier-platoon">{{ props.soldier.platoon }}</span>
@@ -147,18 +188,17 @@ function dragEnd(e: DragEvent) {
             }">
               {{ assignmentSummary }}
             </span>
-            <div v-if="assignmentAlertLevel !== 'none'" class="alert-indicator" 
-                 v-tooltip="{
-                   value: alertDescription,
-                   showDelay: 200,
-                   hideDelay: 100,
-                   position: 'bottom',
-                   pt: {
-                     text: {
-                       style: 'max-width: 250px; white-space: pre-line; text-align: right; direction: rtl; font-size: 0.75rem;'
-                     }
-                   }
-                 }">
+            <div v-if="assignmentAlertLevel !== 'none'" class="alert-indicator" v-tooltip="{
+              value: alertDescription,
+              showDelay: 200,
+              hideDelay: 100,
+              position: 'bottom',
+              pt: {
+                text: {
+                  style: 'max-width: 250px; white-space: pre-line; text-align: right; direction: rtl; font-size: 0.75rem;'
+                }
+              }
+            }">
               <i class="pi pi-exclamation-triangle" :class="`alert-icon-${assignmentAlertLevel}`"></i>
             </div>
           </div>
@@ -234,36 +274,40 @@ function dragEnd(e: DragEvent) {
 /* Alert styling */
 .soldier-card {
   &.alert-red {
-    background-color: rgba(239, 68, 68, 0.15) !important; /* Red-500 with transparency */
+    background-color: rgba(239, 68, 68, 0.15) !important;
+    /* Red-500 with transparency */
     border: 1px solid rgb(239, 68, 68) !important;
-    
+
     &:hover {
       background-color: rgba(239, 68, 68, 0.25) !important;
     }
   }
-  
+
   &.alert-orange {
-    background-color: rgba(249, 115, 22, 0.15) !important; /* Orange-500 with transparency */
+    background-color: rgba(249, 115, 22, 0.15) !important;
+    /* Orange-500 with transparency */
     border: 1px solid rgb(249, 115, 22) !important;
-    
+
     &:hover {
       background-color: rgba(249, 115, 22, 0.25) !important;
     }
   }
-  
+
   &.alert-yellow {
-    background-color: rgba(234, 179, 8, 0.15) !important; /* Yellow-500 with transparency */
+    background-color: rgba(234, 179, 8, 0.15) !important;
+    /* Yellow-500 with transparency */
     border: 1px solid rgb(234, 179, 8) !important;
-    
+
     &:hover {
       background-color: rgba(234, 179, 8, 0.25) !important;
     }
   }
-  
+
   &.alert-none.assigned {
-    background-color: rgba(34, 197, 94, 0.1) !important; /* Green-500 with transparency - same as assigned */
+    background-color: rgba(34, 197, 94, 0.1) !important;
+    /* Green-500 with transparency - same as assigned */
     border: 1px solid rgb(34, 197, 94) !important;
-    
+
     &:hover {
       background-color: rgba(34, 197, 94, 0.2) !important;
     }
@@ -381,9 +425,12 @@ function dragEnd(e: DragEvent) {
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.7;
   }
@@ -449,4 +496,43 @@ function dragEnd(e: DragEvent) {
 /* RTL comment: Added text alignment for RTL support */
 /* Layout comment: Made shift cards more compact with smaller text and reduced padding */
 /* Assignment styling: Added visual indicators for assigned soldiers with green theme */
+
+.drag-hover-target {
+  background-color: rgba(var(--primary-500), 0.1);
+  border: 2px solid rgb(var(--primary-500));
+}
+
+/* Presence status indicators styling */
+.presence-indicators {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0.25rem 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  /* RTL: Align to the right */
+}
+
+.presence-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  color: white;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.returning-label {
+  background-color: rgb(34, 197, 94);
+  /* Green-500 for returning */
+  border: 1px solid rgb(21, 128, 61);
+  /* Green-700 */
+}
+
+.outgoing-label {
+  background-color: rgb(249, 115, 22);
+  /* Orange-500 for outgoing */
+  border: 1px solid rgb(194, 65, 12);
+  /* Orange-700 */
+}
 </style>
