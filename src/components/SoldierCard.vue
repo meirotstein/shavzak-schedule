@@ -17,6 +17,7 @@ const scheduleStore = useScheduleStore();
 const props = defineProps<{
   soldier: ISoldier;
   target: 'list' | 'shift';
+  isPrintMode?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -143,7 +144,8 @@ function dragEnd(e: DragEvent) {
       props.target === 'list' ? 'soldier-card-list' : 'soldier-card-shift',
       store.draggedSoldier?.id === props.soldier.id ? 'being-dragged' : '',
       isAssigned ? 'assigned' : 'unassigned',
-      `alert-${assignmentAlertLevel}`
+      `alert-${assignmentAlertLevel}`,
+      { 'print-mode': props.isPrintMode }
     ]">
       <template #content>
         <div v-if="props.target === 'list'" class="soldier-content-list">
@@ -534,5 +536,91 @@ function dragEnd(e: DragEvent) {
   /* Orange-500 for outgoing */
   border: 1px solid rgb(194, 65, 12);
   /* Orange-700 */
+}
+
+/* Print mode styles */
+.soldier-card.print-mode {
+  background-color: #ffffff !important;
+  border: 1.5px solid #333333 !important;
+  /* Slightly thicker border */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+  /* Subtle shadow */
+
+  &:hover {
+    background-color: #ffffff !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+    transform: none !important;
+  }
+
+  &.assigned,
+  &.unassigned,
+  &.alert-red,
+  &.alert-orange,
+  &.alert-yellow,
+  &.alert-none {
+    background-color: #ffffff !important;
+    border: 1.5px solid #333333 !important;
+
+    &:hover {
+      background-color: #ffffff !important;
+    }
+  }
+
+  .soldier-name {
+    color: #000000 !important;
+    font-weight: 700 !important;
+    /* Bolder for better readability */
+  }
+
+  .soldier-role,
+  .soldier-platoon {
+    color: #333333 !important;
+    /* Slightly lighter than pure black */
+  }
+
+  .assignment-info {
+    border-top: 1px solid #666666 !important;
+    background-color: #f8f9fa !important;
+    /* Light gray background for assignment area */
+    padding: 0.25rem !important;
+    margin: 0.25rem -0.25rem -0.25rem -0.25rem !important;
+    /* Extend to card edges */
+    border-radius: 0 0 4px 4px !important;
+  }
+
+  .assignment-summary {
+    color: #000000 !important;
+    text-decoration: none !important;
+    font-weight: 600 !important;
+  }
+
+  .past-assignments-icon {
+    color: #666666 !important;
+
+    &:hover {
+      color: #333333 !important;
+    }
+  }
+
+  .presence-label {
+    background-color: #f1f3f4 !important;
+    color: #000000 !important;
+    border: 1px solid #666666 !important;
+    font-weight: 600 !important;
+  }
+
+  .returning-label,
+  .outgoing-label {
+    background-color: #f1f3f4 !important;
+    color: #000000 !important;
+    border: 1px solid #666666 !important;
+  }
+
+  .alert-icon-red,
+  .alert-icon-orange,
+  .alert-icon-yellow {
+    color: #333333 !important;
+    animation: none !important;
+  }
 }
 </style>
