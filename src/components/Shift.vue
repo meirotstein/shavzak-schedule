@@ -211,4 +211,58 @@ function formatShiftTime(time: string): string {
     }
   }
 }
+
+/* Print-specific optimizations */
+@media print {
+  .shift-container {
+    padding: 0.1rem !important;
+    height: 100% !important;
+    overflow: visible !important;
+  }
+
+  .shift-time-info {
+    position: absolute !important;
+    top: 1px !important;
+    right: 1px !important;
+    background-color: #e5e7eb !important;
+    border-bottom: 1px solid #333333 !important;
+    border-left: 1px solid #333333 !important;
+    border-radius: 0px 3px 0px 3px !important;
+    font-size: 0.5rem !important;
+    padding: 0.1rem 0.2rem !important;
+    z-index: 10 !important;
+    box-shadow: none !important;
+  }
+
+  .shift-time {
+    font-size: 0.5rem !important;
+    font-weight: 600 !important;
+    color: #000000 !important;
+    line-height: 1 !important;
+  }
+
+  .shift-spots-container {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.1rem !important;
+    padding: 0.1rem !important;
+    height: 100% !important;
+    overflow: visible !important;
+
+    &.many-spots {
+      padding-right: 0.1rem !important;
+    }
+  }
+
+  .shift-spot {
+    min-height: 1.2rem !important;
+    margin-bottom: 0.05rem !important;
+    width: 100% !important;
+  }
+
+  .spots-count-badge {
+    display: none !important;
+    /* Hidden in print as requested */
+  }
+}
 </style>

@@ -21,7 +21,7 @@ const isPrintMode = ref(false);
         <!-- Print mode checkbox -->
         <div class="print-mode-control">
           <input type="checkbox" id="print-mode" v-model="isPrintMode" class="print-mode-checkbox" />
-          <label for="print-mode" class="print-mode-label">מצב הדפסה</label>
+          <label for="print-mode" class="print-mode-label">תצוגת הדפסה</label>
         </div>
         <GoogleLogin v-if="!isPrintMode" />
         <!-- DatePicker needs LTR for proper display of dates -->
@@ -253,6 +253,51 @@ const isPrintMode = ref(false);
 
   100% {
     transform: rotate(360deg);
+  }
+}
+
+/* Print-specific styles for A4 landscape */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 0.5in;
+  }
+
+  .schedule-page {
+    background-color: white !important;
+    padding: 0 !important;
+    min-height: auto !important;
+  }
+
+  .page-header {
+    margin-bottom: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+    border-bottom: 2px solid #333333 !important;
+  }
+
+  .page-title {
+    font-size: 1.2rem !important;
+  }
+
+  .header-controls {
+    display: none !important;
+    /* Hide controls when printing */
+  }
+
+  .page-content {
+    gap: 0 !important;
+  }
+
+  .main-content {
+    padding: 0.5rem !important;
+    border: none !important;
+    box-shadow: none !important;
+    background-color: white !important;
+  }
+
+  /* Ensure content fits on one page */
+  .positions-table-container {
+    page-break-inside: avoid;
   }
 }
 </style>

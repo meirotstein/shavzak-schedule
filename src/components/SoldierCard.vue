@@ -623,4 +623,91 @@ function dragEnd(e: DragEvent) {
     animation: none !important;
   }
 }
+
+/* Print-specific optimizations */
+@media print {
+  .soldier-card {
+    background-color: #ffffff !important;
+    border: 1px solid #333333 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+
+    &:hover {
+      background-color: #ffffff !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+  }
+
+  .soldier-card-shift {
+    max-height: 1.2rem !important;
+    border-radius: 2px !important;
+
+    :deep(.p-card-body) {
+      padding: 0.1rem !important;
+    }
+  }
+
+  .soldier-content-shift {
+    padding: 0.05rem !important;
+
+    .soldier-name {
+      font-size: 0.55rem !important;
+      font-weight: 600 !important;
+      color: #000000 !important;
+      line-height: 1 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+  }
+
+  .soldier-content-list {
+    padding: 0.15rem !important;
+
+    .soldier-name {
+      font-size: 0.7rem !important;
+      font-weight: 600 !important;
+      color: #000000 !important;
+    }
+
+    .soldier-role,
+    .soldier-platoon {
+      font-size: 0.6rem !important;
+      color: #333333 !important;
+    }
+
+    .assignment-info {
+      background-color: #f8f9fa !important;
+      border-top: 1px solid #666666 !important;
+      padding: 0.15rem !important;
+      margin: 0.15rem -0.15rem -0.15rem -0.15rem !important;
+
+      .assignment-summary {
+        font-size: 0.55rem !important;
+        color: #000000 !important;
+        font-weight: 500 !important;
+      }
+    }
+  }
+
+  .presence-label {
+    font-size: 0.5rem !important;
+    padding: 0.05rem 0.2rem !important;
+    background-color: #f1f3f4 !important;
+    color: #000000 !important;
+    border: 1px solid #666666 !important;
+  }
+
+  .past-assignments-icon,
+  .alert-indicator {
+    display: none !important;
+    /* Hide interactive elements when printing */
+  }
+
+  /* Ensure cards don't break */
+  :deep(.p-card) {
+    page-break-inside: avoid;
+  }
+}
 </style>

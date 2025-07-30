@@ -57,6 +57,10 @@ const tableData = computed(() => {
   return dataByHourArray;
 });
 
+const tableStyle = computed(() => ({
+  '--position-count': tableColumns.value.length
+}));
+
 function getShift(slotData: any, cloField: string): IShift | undefined {
   const { positionId, shiftId } = getShiftDataFromColumn(cloField, slotData);
   return store.positions.find(p => p.positionId === positionId)?.shifts.find(s => s.shiftId === shiftId);
@@ -101,7 +105,7 @@ function remove(colField: string, shiftId: string, spotIndex: number) {
 </script>
 
 <template>
-  <div class="positions-table-container" :class="{ 'print-mode': props.isPrintMode }">
+  <div class="positions-table-container" :class="{ 'print-mode': props.isPrintMode }" :style="tableStyle">
     <!-- Loading skeleton -->
     <PositionsTableSkeleton v-if="store.isLoadingPositions" :position-count="tableColumns.length || 8" />
 
@@ -315,6 +319,89 @@ function remove(colField: string, shiftId: string, spotIndex: number) {
     font-weight: 600 !important;
     border-right: 2px solid #666666 !important;
     /* Stronger border for time column */
+  }
+}
+/* Print-specific optimizations for A4 landscape */
+@media print {
+  .positions-table-container {
+    width: 100% !important;
+    overflow: visible !important;
+    direction: rtl;
+  }
+
+  :deep(.p-datatable) {
+    font-size: 0.75rem !important;
+    border-collapse: collapse !important;
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  :deep(.p-datatable-thead > tr > th) {
+    padding: 0.4rem 0.25rem !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    background-color: #f1f3f4 !important;
+    border: 1px solid #333333 !important;
+    text-align: center !important;
+    word-wrap: break-word !important;
+  }
+
+  :deep(.p-datatable-tbody > tr > td) {
+    padding: 0.25rem !important;
+    font-size: 0.65rem !important;
+    border: 1px solid #666666 !important;
+    vertical-align: top !important;
+    height: 2.5rem !important;
+    word-wrap: break-word !important;
+  }
+
+  /* Time column - narrower for print */
+  :deep(.p-datatable-tbody > tr > td:first-child) {
+    width: 3rem !important;
+    min-width: 3rem !important;
+    max-width: 3rem !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    text-align: center !important;
+    background-color: #f8f9fa !important;
+    border-right: 2px solid #333333 !important;
+  }
+
+  /* Position columns - equal width distribution */
+  :deep(.p-datatable-thead > tr > th:not(:first-child)) {
+    width: calc((100% - 3rem) / var(--position-count, 8)) !important;
+    min-width: 4rem !important;
+  }
+
+  :deep(.p-datatable-tbody > tr > td:not(:first-child)) {
+    width: calc((100% - 3rem) / var(--position-count, 8)) !important;
+    min-width: 4rem !important;
+  }
+
+  .column-content {
+    position: relative !important;
+    top: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100% !important;
+    padding: 0.15rem !important;
+  }
+
+  .column-content.shift {
+    border: 1px solid #333333 !important;
+    background-color: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  .column-content.no-shift {
+    border: 1px dashed #cccccc !important;
+    background-color: #fafafa !important;
+  }
+
+  /* Ensure table doesn't break across pages */
+  :deep(.p-datatable-wrapper) {
+    page-break-inside: avoid;
   }
 }
 </style>
