@@ -1,12 +1,35 @@
 <script setup lang="ts">
+const props = withDefaults(defineProps<{
+  enabled?: boolean;
+}>(), {
+  enabled: true,
+});
+
 const emit = defineEmits<{
   'drag-start': [event: DragEvent]
   'drag-end': [event: DragEvent]
   'drag-over': [event: DragEvent]
 }>()
 
+// Event handler functions
+function handleDragStart(e: DragEvent) {
+  if (!props.enabled) return;
+  emit('drag-start', e);
+}
+
+function handleDragEnd(e: DragEvent) {
+  if (!props.enabled) return;
+  emit('drag-end', e);
+}
+
+function handleDragOver(e: DragEvent) {
+  if (!props.enabled) return;
+  emit('drag-over', e);
+}
+
 // Keyboard accessibility functions
 function handleKeyboardDrag(e: KeyboardEvent) {
+  if (!props.enabled) return;
   // Simulate dragstart for keyboard users
   const dragEvent = new DragEvent('dragstart');
   emit('drag-start', dragEvent);
@@ -14,6 +37,7 @@ function handleKeyboardDrag(e: KeyboardEvent) {
 }
 
 function handleKeyboardDragEnd(e: KeyboardEvent) {
+  if (!props.enabled) return;
   // Simulate dragend for keyboard users
   const dragEvent = new DragEvent('dragend');
   emit('drag-end', dragEvent);
@@ -22,18 +46,10 @@ function handleKeyboardDragEnd(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div
-    draggable="true"
-    class="draggable"
-    @dragstart="(e: DragEvent) => emit('drag-start', e)"
-    @dragend="(e: DragEvent) => emit('drag-end', e)"
-    @dragover="(e: DragEvent) => emit('drag-over', e)"
-    role="button"
-    aria-grabbed="false"
-    tabindex="0"
-    @keydown.space.prevent="(e: KeyboardEvent) => handleKeyboardDrag(e)"
-    @keyup.space.prevent="(e: KeyboardEvent) => handleKeyboardDragEnd(e)"
-  >
+  <div :draggable="enabled" class="draggable" :class="{ 'drag-disabled': !enabled }" @dragstart="handleDragStart"
+    @dragend="handleDragEnd" @dragover="handleDragOver" :role="enabled ? 'button' : 'presentation'" aria-grabbed="false"
+    :tabindex="enabled ? 0 : -1" @keydown.space.prevent="handleKeyboardDrag"
+    @keyup.space.prevent="handleKeyboardDragEnd">
     <div class="draggable-content">
       <slot>
         <div class="default-drag-content">
@@ -53,21 +69,21 @@ function handleKeyboardDragEnd(e: KeyboardEvent) {
   cursor: grab;
   position: relative;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  
+
   &:active {
     cursor: grabbing;
     transform: scale(0.98);
   }
-  
+
   &:hover {
     z-index: 10;
   }
-  
+
   &:focus {
     outline: 2px solid rgb(var(--primary-400));
     outline-offset: 2px;
   }
-  
+
   &[aria-grabbed="true"] {
     opacity: 0.7;
     transform: scale(0.95);
@@ -89,7 +105,7 @@ function handleKeyboardDragEnd(e: KeyboardEvent) {
   background-color: rgb(var(--surface-50));
   border: 1px solid rgb(var(--surface-200));
   border-radius: 6px;
-  
+
   .drag-icon {
     font-size: 1.25rem;
     color: rgb(var(--primary-500));
@@ -112,5 +128,23 @@ function handleKeyboardDragEnd(e: KeyboardEvent) {
 
 .draggable:hover::before {
   opacity: 1;
+}
+
+/* Disable drag functionality when disabled */
+.drag-disabled {
+  cursor: default !important;
+
+  &:active {
+    cursor: default !important;
+    transform: none !important;
+  }
+
+  &:hover {
+    z-index: initial !important;
+  }
+
+  &::before {
+    display: none !important;
+  }
 }
 </style>

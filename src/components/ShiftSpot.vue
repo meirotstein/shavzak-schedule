@@ -48,7 +48,7 @@ function removeSoldier() {
 
 <template>
   <DropZone v-if="!props.isPrintMode || props.assignment.soldier" @drag-enter="dragEnter" @drag-leave="dragLeave"
-    @drop="drop" :isEmpty="!props.assignment.soldier" class="shift-drop-zone"
+    @drop="drop" :isEmpty="!props.assignment.soldier" :enabled="!props.isPrintMode" class="shift-drop-zone"
     :class="{ 'drop-zone-active': overSoldierId, 'print-mode': props.isPrintMode }">
     <div v-if="props.assignment.soldier" class="soldier-with-remove">
       <SoldierCard :soldier="props.assignment.soldier" target="shift" :is-print-mode="props.isPrintMode" />
@@ -79,14 +79,14 @@ function removeSoldier() {
     box-shadow: 0 0 0 2px rgb(var(--primary-400));
   }
 
-  /* Add print media query for ShiftSpot */
+  /* Print media query - clean default styling */
   @media print {
-    border: 3px solid #228B22 !important;
-    /* Thick nice green border for actual print */
+    border: 1px solid #9ca3af !important;
+    /* Light gray border for print */
     border-radius: 6px !important;
     background-color: #ffffff !important;
-    box-shadow: 0 2px 6px rgba(34, 139, 34, 0.15) !important;
-    /* Green-tinted shadow */
+    box-shadow: none !important;
+    /* Remove shadow for print */
   }
 }
 
@@ -234,7 +234,7 @@ function removeSoldier() {
 .remove-button {
   position: absolute;
   top: calc(50% - 4px);
-  left:6px;
+  left: 6px;
   /* Position on the left side, middle */
   transform: translateY(-50%);
   width: 16px;
