@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import Column from "primevue/column";
 import DataTable from "primevue/datatable";
-import { computed, ref } from "vue";
+import { computed } from "vue";
 import { IShift } from "../model/shift";
+import { useGAPIStore } from "../store/gapi";
 import { usePositionsStore } from "../store/positions";
 import { getNextHour, hoursBetween } from '../utils/date-utils';
 import PositionsTableSkeleton from "./PositionsTableSkeleton.vue";
@@ -13,7 +14,13 @@ const props = defineProps<{
 }>();
 
 const store = usePositionsStore();
-const scheduleStartHour = ref(14); // TODO: get from config
+const gapiStore = useGAPIStore();
+
+// Get schedule start hour from dayStart setting
+const scheduleStartHour = computed(() => {
+  const dayStart = gapiStore.dayStart;
+  return parseInt(dayStart.split(':')[0]);
+});
 
 const hours = computed(() => {
   const start = scheduleStartHour.value;
@@ -321,6 +328,7 @@ function remove(colField: string, shiftId: string, spotIndex: number) {
     /* Stronger border for time column */
   }
 }
+
 /* Print-specific optimizations for A4 landscape */
 @media print {
   .positions-table-container {

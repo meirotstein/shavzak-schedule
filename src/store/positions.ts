@@ -1,7 +1,7 @@
 import { format } from "date-fns";
 import { defineStore } from "pinia";
 import { computed, reactive, ref, watch } from "vue";
-import { dayStart } from "../app-config";
+import { useGAPIStore } from "./gapi";
 import { SchedulerError } from "../errors/scheduler-error";
 import { PositionModel } from "../model/position";
 import { ShiftModel } from "../model/shift";
@@ -12,7 +12,6 @@ import {
   shiftsByStartTimeCompare,
 } from "../utils/sheets-utils";
 import { useAssignmentsStore } from "./assignments";
-import { useGAPIStore } from "./gapi";
 import { useScheduleStore } from "./schedule";
 import { useSoldiersStore } from "./soldiers";
 
@@ -418,7 +417,8 @@ export const usePositionsStore = defineStore("positions", () => {
     const stack =
       new Error().stack?.split("\n").slice(1, 4).join(" -> ") || "unknown";
 
-    const dayStartMinutes = timeToMinutes(dayStart);
+    const currentDayStart = gapi.dayStart;
+    const dayStartMinutes = timeToMinutes(currentDayStart);
     const compareFn = shiftsByStartTimeCompare.bind({}, dayStartMinutes);
 
     console.log(

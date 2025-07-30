@@ -7,7 +7,7 @@ import { useAssignmentsStore } from "../store/assignments";
 import { useSoldiersStore } from "../store/soldiers";
 import { usePositionsStore } from "../store/positions";
 import { useScheduleStore } from "../store/schedule";
-import { dayStart } from "../app-config";
+import { useGAPIStore } from "../store/gapi";
 import SoldierCard from "./SoldierCard.vue";
 import SoldierListSkeleton from "./SoldierListSkeleton.vue";
 
@@ -15,6 +15,7 @@ const store = useSoldiersStore();
 const assignmentsStore = useAssignmentsStore();
 const positionsStore = usePositionsStore();
 const scheduleStore = useScheduleStore();
+const gapiStore = useGAPIStore();
 const allPlatoonsOption = { id: "all", name: "כל המחלקות" };
 const selectedPlatoon = ref(allPlatoonsOption);
 
@@ -45,7 +46,7 @@ function getLastAssignmentEndTime(soldierId: string): Date | null {
   function getActualEndDateTime(assignment: any): Date {
     const assignmentEndDateTime = new Date(assignment.date);
     const [endHours, endMinutes] = assignment.endTime.split(':').map(Number);
-    const [dayStartHours, dayStartMinutes] = dayStart.split(':').map(Number);
+    const [dayStartHours, dayStartMinutes] = gapiStore.dayStart.split(':').map(Number);
     
     assignmentEndDateTime.setHours(endHours, endMinutes, 0, 0);
     

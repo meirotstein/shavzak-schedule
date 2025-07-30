@@ -66,6 +66,7 @@ const mockGAPIStore = {
   setDateChangeInProgress: vi.fn(), // Add this mock function to prevent test failures
   currentProcessingDate: null,
   getHistoricalPositions: vi.fn().mockReturnValue([]),
+  dayStart: "14:00", // Add dayStart mock to match our new implementation
 };
 
 vi.mock("../../src/store/gapi", () => {
