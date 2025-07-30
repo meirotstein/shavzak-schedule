@@ -58,3 +58,16 @@ export function getClosestDate(
 
   return diffToStart < diffToEnd ? start : end; // Return the closest boundary
 }
+
+export function getHebrewDayName(date: Date): string {
+  const dayNames = [
+    "יום ראשון", // Sunday
+    "יום שני", // Monday
+    "יום שלישי", // Tuesday
+    "יום רביעי", // Wednesday
+    "יום חמישי", // Thursday
+    "יום שישי", // Friday
+    "שבת", // Saturday
+  ];
+  return dayNames[date.getDay()];
+}
