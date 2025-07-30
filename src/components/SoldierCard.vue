@@ -366,7 +366,7 @@ function dragEnd(e: DragEvent) {
     justify-content: center !important;
 
     .soldier-name {
-      font-size: 1.6rem !important;
+      font-size: 1.9rem !important;
       /* Even larger font for print mode preview */
       text-align: center !important;
       word-wrap: break-word !important;
@@ -538,7 +538,7 @@ function dragEnd(e: DragEvent) {
     justify-content: center !important;
 
     .soldier-name {
-      font-size: 1.4rem !important;
+      font-size: 3rem !important;
       /* Larger font for print mode preview */
       text-align: center !important;
       word-wrap: break-word !important;
@@ -656,8 +656,8 @@ function dragEnd(e: DragEvent) {
     /* Professional navy blue text */
     font-weight: 800 !important;
     /* Bold font weight */
-    font-size: 1.6rem !important;
-    /* Larger font for better readability */
+    font-size: 3rem !important;
+    /* Even larger font for better readability */
     text-shadow: 1px 1px 2px rgba(255,255,255,0.8) !important;
     /* Light text shadow for better readability on blue background */
   }
@@ -666,8 +666,8 @@ function dragEnd(e: DragEvent) {
   .soldier-platoon {
     color: #1e40af !important;
     /* Navy blue text to match theme */
-    font-size: 1rem !important;
-    /* Larger supporting text */
+    font-size: 3rem !important;
+    /* Even larger supporting text */
     font-weight: 600 !important;
   }
 
@@ -688,8 +688,8 @@ function dragEnd(e: DragEvent) {
     /* Navy blue text */
     text-decoration: none !important;
     font-weight: 700 !important;
-    font-size: 1rem !important;
-    /* Larger assignment text */
+    font-size: 1.2rem !important;
+    /* Even larger assignment text */
   }
 
   .past-assignments-icon {
@@ -710,9 +710,9 @@ function dragEnd(e: DragEvent) {
     border: 1px solid #0ea5e9 !important;
     /* Blue border */
     font-weight: 700 !important;
-    font-size: 0.9rem !important;
-    /* Larger presence labels */
-    padding: 0.5rem 0.7rem !important;
+    font-size: 1.1rem !important;
+    /* Even larger presence labels */
+    padding: 0.6rem 0.8rem !important;
     /* More padding */
   }
 
@@ -724,9 +724,9 @@ function dragEnd(e: DragEvent) {
     /* Navy blue text */
     border: 1px solid #0ea5e9 !important;
     /* Blue border */
-    font-size: 0.9rem !important;
-    /* Larger text */
-    padding: 0.5rem 0.7rem !important;
+    font-size: 1.1rem !important;
+    /* Even larger text */
+    padding: 0.6rem 0.8rem !important;
     /* More padding */
   }
 
@@ -777,7 +777,7 @@ function dragEnd(e: DragEvent) {
       color: #1e40af !important;
       /* Professional navy blue text for print */
       font-weight: 800 !important;
-      font-size: 1.7rem !important;
+      font-size: 2.1rem !important;
       /* Even larger font for print */
       text-shadow: none !important;
       /* Remove shadow for print */
