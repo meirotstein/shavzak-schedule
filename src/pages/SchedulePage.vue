@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import DatePicker from '../components/DatePicker.vue';
 import GoogleLogin from '../components/GoogleLogin.vue';
 import PositionsTable from '../components/PositionsTable.vue';
@@ -6,17 +7,23 @@ import SoldierList from '../components/SoldierList.vue';
 import { usePositionsStore } from '../store/positions';
 
 const positionsStore = usePositionsStore();
+const isPrintMode = ref(false);
 </script>
 
 <template>
-  <div class="schedule-page">
+  <div class="schedule-page" :class="{ 'print-mode': isPrintMode }">
     <header class="page-header">
       <div class="header-right">
         <!-- Changed from header-left to header-right for RTL -->
         <h1 class="page-title">לוח משמרות</h1> <!-- RTL: Changed to Hebrew "Shift Schedule" -->
       </div>
       <div class="header-controls">
-        <GoogleLogin />
+        <!-- Print mode checkbox -->
+        <div class="print-mode-control">
+          <input type="checkbox" id="print-mode" v-model="isPrintMode" class="print-mode-checkbox" />
+          <label for="print-mode" class="print-mode-label">תצוגת הדפסה</label>
+        </div>
+        <GoogleLogin v-if="!isPrintMode" />
         <!-- DatePicker needs LTR for proper display of dates -->
         <div class="ltr-element">
           <DatePicker />
@@ -24,24 +31,21 @@ const positionsStore = usePositionsStore();
       </div>
     </header>
 
-    <main class="page-content">
+    <main class="page-content" :class="{ 'print-mode': isPrintMode }">
       <!-- Loading message -->
-      <div 
-        v-if="positionsStore.isLoadingPositions || positionsStore.isLoadingSoldiers" 
-        class="loading-overlay"
-      >
+      <div v-if="positionsStore.isLoadingPositions || positionsStore.isLoadingSoldiers" class="loading-overlay">
         <div class="loading-message">
           <div class="loading-spinner"></div>
           <span class="loading-text">{{ positionsStore.loadingMessage || 'טוען נתונים...' }}</span>
         </div>
       </div>
-      
+
       <!-- Position SoldierList on the right for RTL -->
-      <aside class="sidebar">
+      <aside class="sidebar" v-if="!isPrintMode">
         <SoldierList />
       </aside>
       <section class="main-content">
-        <PositionsTable />
+        <PositionsTable :is-print-mode="isPrintMode" />
       </section>
     </main>
   </div>
@@ -54,6 +58,13 @@ const positionsStore = usePositionsStore();
   min-height: 100vh;
   padding: 1rem;
   background-color: rgb(var(--surface-50));
+
+  &.print-mode {
+    background-color: #f8f9fa !important;
+    /* Light gray background for print mode */
+    padding: 0.5rem !important;
+    /* Reduced padding */
+  }
 }
 
 .page-header {
@@ -111,6 +122,37 @@ const positionsStore = usePositionsStore();
   }
 }
 
+.print-mode-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: 6px;
+  background-color: rgba(var(--surface-100), 0.5);
+  border: 1px solid rgb(var(--surface-200));
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: rgba(var(--surface-200), 0.5);
+  }
+}
+
+.print-mode-checkbox {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+  accent-color: rgb(var(--primary-500));
+}
+
+.print-mode-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: rgb(var(--primary-700));
+  cursor: pointer;
+  user-select: none;
+  margin: 0;
+}
+
 .page-content {
   display: flex;
   flex: 1;
@@ -120,6 +162,11 @@ const positionsStore = usePositionsStore();
   @media (max-width: 1024px) {
     flex-direction: column-reverse;
     /* On mobile, we want soldiers list on top */
+  }
+
+  &.print-mode {
+    gap: 0;
+    /* Remove gap when in print mode */
   }
 }
 
@@ -144,6 +191,18 @@ const positionsStore = usePositionsStore();
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   padding: 1rem;
   border: 1px solid rgb(var(--surface-200));
+}
+
+.page-content.print-mode .main-content {
+  background-color: #ffffff !important;
+  border-radius: 0 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+  /* Subtle shadow for depth */
+  border: 2px solid #333333 !important;
+  /* Thicker, less harsh border */
+  overflow: visible !important;
+  padding: 1.5rem !important;
+  /* Slightly more padding for better spacing */
 }
 
 // Loading overlay styles
@@ -188,7 +247,57 @@ const positionsStore = usePositionsStore();
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Print-specific styles for A4 landscape */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 0.5in;
+  }
+
+  .schedule-page {
+    background-color: white !important;
+    padding: 0 !important;
+    min-height: auto !important;
+  }
+
+  .page-header {
+    margin-bottom: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+    border-bottom: 2px solid #333333 !important;
+  }
+
+  .page-title {
+    font-size: 1.2rem !important;
+  }
+
+  .header-controls {
+    display: none !important;
+    /* Hide controls when printing */
+  }
+
+  .page-content {
+    gap: 0 !important;
+  }
+
+  .main-content {
+    padding: 0.5rem !important;
+    border: none !important;
+    box-shadow: none !important;
+    background-color: white !important;
+  }
+
+  /* Ensure content fits on one page */
+  .positions-table-container {
+    page-break-inside: avoid;
+  }
 }
 </style>

@@ -10,6 +10,7 @@ const store = useSoldiersStore();
 const props = defineProps<{
   spotIndex: number;
   assignment: Assignment;
+  isPrintMode?: boolean;
 }>();
 
 const overSoldierId = ref<string | undefined>();
@@ -46,11 +47,12 @@ function removeSoldier() {
 </script>
 
 <template>
-  <DropZone @drag-enter="dragEnter" @drag-leave="dragLeave" @drop="drop" :isEmpty="!props.assignment.soldier"
-    class="shift-drop-zone" :class="{ 'drop-zone-active': overSoldierId }">
+  <DropZone v-if="!props.isPrintMode || props.assignment.soldier" @drag-enter="dragEnter" @drag-leave="dragLeave"
+    @drop="drop" :isEmpty="!props.assignment.soldier" class="shift-drop-zone"
+    :class="{ 'drop-zone-active': overSoldierId, 'print-mode': props.isPrintMode }">
     <div v-if="props.assignment.soldier" class="soldier-with-remove">
-      <SoldierCard :soldier="props.assignment.soldier" target="shift" />
-      <button @click="removeSoldier" class="remove-button" type="button" title="הסר">
+      <SoldierCard :soldier="props.assignment.soldier" target="shift" :is-print-mode="props.isPrintMode" />
+      <button @click="removeSoldier" class="remove-button" type="button" title="הסר" v-if="!props.isPrintMode">
         <span
           style="font-size: 14px; font-weight: bold; line-height: 1; color: #000000; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">×</span>
       </button>
@@ -167,6 +169,40 @@ function removeSoldier() {
 
 /* RTL comment: Added text-align center to ensure proper text alignment in both RTL and LTR contexts */
 /* Layout comment: Reduced sizes and spacing for more compact layout to fit within shift boundaries */
+
+/* Print mode styles */
+.shift-drop-zone.print-mode {
+  &.drop-zone-active {
+    background-color: #ffffff !important;
+    box-shadow: none !important;
+  }
+
+  .spot-empty {
+    border: 1.5px dashed #666666 !important;
+    /* Slightly thicker, less harsh border */
+    background-color: #fafafa !important;
+    /* Very light gray background */
+
+    &:hover {
+      border-color: #333333 !important;
+      background-color: #f5f5f5 !important;
+    }
+
+    &.spot-empty-hover {
+      border: 2px dashed #333333 !important;
+      background-color: #f0f0f0 !important;
+      transform: none !important;
+    }
+  }
+
+  .role-badge {
+    color: #000000 !important;
+    background-color: #f1f3f4 !important;
+    /* Light gray background */
+    border: 1px solid #666666 !important;
+    font-weight: 600 !important;
+  }
+}
 
 .soldier-with-remove {
   position: relative;
