@@ -139,7 +139,8 @@ function dragEnd(e: DragEvent) {
 
 <template>
   <Draggable @drag-over="dragOver" @drag-end="dragEnd" @drag-start="dragStart" @drop="() => console.log('dropped')"
-    class="draggable-soldier" :class="{ 'draggable-print-mode': props.isPrintMode && props.target === 'shift' }">
+    class="draggable-soldier" :class="{ 'draggable-print-mode': props.isPrintMode && props.target === 'shift' }"
+    :enabled="!props.isPrintMode">
     <Card class="soldier-card" :class="[
       props.target === 'list' ? 'soldier-card-list' : 'soldier-card-shift',
       store.draggedSoldier?.id === props.soldier.id ? 'being-dragged' : '',
@@ -356,8 +357,8 @@ function dragEnd(e: DragEvent) {
 
   &.print-mode,
   &.content-print-mode {
-    padding: 1rem !important;
-    /* Much more padding in print mode */
+    padding: 1.2rem !important;
+    /* Even more padding in print mode */
     width: 100% !important;
     height: 100% !important;
     display: flex !important;
@@ -365,8 +366,8 @@ function dragEnd(e: DragEvent) {
     justify-content: center !important;
 
     .soldier-name {
-      font-size: 1.4rem !important;
-      /* Larger font for print mode preview */
+      font-size: 1.6rem !important;
+      /* Even larger font for print mode preview */
       text-align: center !important;
       word-wrap: break-word !important;
       overflow-wrap: break-word !important;
@@ -618,127 +619,122 @@ function dragEnd(e: DragEvent) {
   /* Orange-700 */
 }
 
-/* Print mode styles */
+/* Print mode styles - light blue theme */
 .soldier-card.print-mode {
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
-  /* Clean white to light gray gradient background */
-  border: 3px solid #6b7280 !important;
-  /* Professional gray border */
-  box-shadow: 0 3px 8px rgba(107, 114, 128, 0.2) !important;
-  /* Professional gray-tinted shadow */
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+  /* Beautiful light blue gradient background */
+  border: 2px solid #0ea5e9 !important;
+  /* Professional blue border */
+  box-shadow: 0 2px 4px rgba(14, 165, 233, 0.1) !important;
+  /* Subtle blue-tinted shadow */
 
   &:hover {
-    background-color: #ffffff !important;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15) !important;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+    border: 2px solid #0ea5e9 !important;
+    box-shadow: 0 2px 4px rgba(14, 165, 233, 0.1) !important;
     transform: none !important;
   }
 
-  &.assigned {
+  /* All cards use the same beautiful light blue styling - no special colors for any state */
+  &.assigned,
+  &.unassigned,
+  &.alert-red,
+  &.alert-orange,
+  &.alert-yellow,
+  &.alert-none,
+  &.alert-high,
+  &.alert-medium,
+  &.alert-low {
     background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
-    /* Professional light blue gradient for assigned soldiers */
-    border: 3px solid #0ea5e9 !important;
-    /* Professional blue border for assigned */
-  }
-
-  &.unassigned {
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
-    /* Professional light gray gradient for unassigned soldiers */
-    border: 3px solid #64748b !important;
-    /* Professional slate border for unassigned */
-  }
-
-  &.alert-red {
-    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%) !important;
-    /* Professional light red gradient for red alerts */
-    border: 3px solid #dc2626 !important;
-    /* Professional red border */
-  }
-
-  &.alert-orange {
-    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
-    /* Professional light amber gradient for orange alerts */
-    border: 3px solid #f59e0b !important;
-    /* Professional amber border */
-  }
-
-  &.alert-yellow {
-    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
-    /* Professional light yellow gradient for yellow alerts */
-    border: 3px solid #eab308 !important;
-    /* Professional yellow border */
-  }
-
-  &.alert-none {
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;border: 3px solid #0ea5e9 !important;
-    /* Same as assigned - professional blue */
+    /* Same beautiful light blue background for all states */
+    border: 2px solid #0ea5e9 !important;
+    /* Same professional blue border for all states */
   }
 
   .soldier-name {
-    color: #2d3436 !important;
-    /* Dark color for better contrast on colorful backgrounds */
+    color: #1e40af !important;
+    /* Professional navy blue text */
     font-weight: 800 !important;
-    font-size: 1.3rem !important;
-    /* Even larger font for better readability */
+    /* Bold font weight */
+    font-size: 1.6rem !important;
+    /* Larger font for better readability */
     text-shadow: 1px 1px 2px rgba(255,255,255,0.8) !important;
-    /* Light text shadow for better readability on colorful backgrounds */
+    /* Light text shadow for better readability on blue background */
   }
 
   .soldier-role,
   .soldier-platoon {
-    color: #333333 !important;
-    font-size: 0.9rem !important;
+    color: #1e40af !important;
+    /* Navy blue text to match theme */
+    font-size: 1rem !important;
     /* Larger supporting text */
+    font-weight: 600 !important;
   }
 
   .assignment-info {
-    border-top: 1px solid #666666 !important;
-    background-color: #f8f9fa !important;
-    /* Light gray background for assignment area */
-    padding: 0.5rem !important;
-    margin: 0.5rem -0.5rem -0.5rem -0.5rem !important;
+    border-top: 1px solid #0ea5e9 !important;
+    /* Blue border to match theme */
+    background-color: rgba(240, 249, 255, 0.5) !important;
+    /* Light blue background for assignment area */
+    padding: 0.6rem !important;
+    /* More padding */
+    margin: 0.6rem -0.6rem -0.6rem -0.6rem !important;
     /* Extend to card edges with more space */
-    border-radius: 0 0 4px 4px !important;
+    border-radius: 0 0 6px 6px !important;
   }
 
   .assignment-summary {
-    color: #000000 !important;
+    color: #1e40af !important;
+    /* Navy blue text */
     text-decoration: none !important;
-    font-weight: 600 !important;
-    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    font-size: 1rem !important;
     /* Larger assignment text */
   }
 
   .past-assignments-icon {
-    color: #666666 !important;
+    color: #0ea5e9 !important;
+    /* Blue icon to match theme */
 
     &:hover {
-      color: #333333 !important;
+      color: #1e40af !important;
+      /* Darker blue on hover */
     }
   }
 
   .presence-label {
-    background-color: #f1f3f4 !important;
-    color: #000000 !important;
-    border: 1px solid #666666 !important;
-    font-weight: 600 !important;
-    font-size: 0.8rem !important;
-    padding: 0.4rem 0.6rem !important;
-    /* Larger presence labels in print mode too */
+    background-color: rgba(240, 249, 255, 0.8) !important;
+    /* Light blue background */
+    color: #1e40af !important;
+    /* Navy blue text */
+    border: 1px solid #0ea5e9 !important;
+    /* Blue border */
+    font-weight: 700 !important;
+    font-size: 0.9rem !important;
+    /* Larger presence labels */
+    padding: 0.5rem 0.7rem !important;
+    /* More padding */
   }
 
   .returning-label,
   .outgoing-label {
-    background-color: #f1f3f4 !important;
-    color: #000000 !important;
-    border: 1px solid #666666 !important;
-    font-size: 0.8rem !important;
-    padding: 0.4rem 0.6rem !important;
+    background-color: rgba(240, 249, 255, 0.8) !important;
+    /* Light blue background */
+    color: #1e40af !important;
+    /* Navy blue text */
+    border: 1px solid #0ea5e9 !important;
+    /* Blue border */
+    font-size: 0.9rem !important;
+    /* Larger text */
+    padding: 0.5rem 0.7rem !important;
+    /* More padding */
   }
 
   .alert-icon-red,
   .alert-icon-orange,
   .alert-icon-yellow {
-    color: #333333 !important;
+    color: #1e40af !important;
+    /* Navy blue icons - no color coding in print mode */
     animation: none !important;
   }
 }
@@ -746,16 +742,45 @@ function dragEnd(e: DragEvent) {
 /* Print-specific optimizations */
 @media print {
   .soldier-card {
-    background-color: #ffffff !important;
-    border: 2px solid #333333 !important;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+    /* Light blue gradient for print */
+    border: 2px solid #0ea5e9 !important;
+    /* Professional blue border */
     box-shadow: none !important;
-    margin: 0.2rem !important;
+    margin: 0.3rem !important;
     /* Add some margin for better spacing */
 
     &:hover {
-      background-color: #ffffff !important;
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+      border: 2px solid #0ea5e9 !important;
       box-shadow: none !important;
       transform: none !important;
+    }
+
+    /* All cards use the same light blue styling for print - no special colors for any state */
+    &.assigned,
+    &.unassigned,
+    &.alert-red,
+    &.alert-orange,
+    &.alert-yellow,
+    &.alert-none,
+    &.alert-high,
+    &.alert-medium,
+    &.alert-low {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+      /* Same beautiful light blue background for all states */
+      border: 2px solid #0ea5e9 !important;
+      /* Same professional blue border for all states */
+    }
+
+    .soldier-name {
+      color: #1e40af !important;
+      /* Professional navy blue text for print */
+      font-weight: 800 !important;
+      font-size: 1.7rem !important;
+      /* Even larger font for print */
+      text-shadow: none !important;
+      /* Remove shadow for print */
     }
   }
 
