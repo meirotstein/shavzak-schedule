@@ -251,6 +251,170 @@ describe("google api client store tests", () => {
     expect(localStorageMock.setItem).toHaveBeenCalledWith('google_token_expiry', expect.any(String));
   });
 
+  test("dayStart defaults to '14:00' on initialization", () => {
+    const store = useGAPIStore();
+    expect(store.dayStart).toBe("14:00");
+  });
+
+  test("dayStart is read from settings sheet H1 cell correctly", async () => {
+    const customDayStart = "08:30";
+    
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('settings')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            values: [
+              [, 2, , , , 200, , customDayStart], // H1 is index 7
+              [, 13, , , ,],
+            ]
+          })
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ values: [] })
+      });
+    });
+
+    const store = useGAPIStore();
+    await store.load();
+
+    // Get the callback from the first call to initTokenClient and trigger authentication
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
+
+    expect(store.dayStart).toBe(customDayStart);
+  });
+
+  test("dayStart falls back to default when H1 is empty", async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('settings')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            values: [
+              [, 2, , , , 200, , ""], // H1 is empty string
+              [, 13, , , ,],
+            ]
+          })
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ values: [] })
+      });
+    });
+
+    const store = useGAPIStore();
+    await store.load();
+
+    // Get the callback from the first call to initTokenClient and trigger authentication
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
+
+    expect(store.dayStart).toBe("14:00"); // Should use default
+  });
+
+  test("dayStart falls back to default when H1 is undefined", async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('settings')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            values: [
+              [, 2, , , , 200], // H1 is not present (undefined)
+              [, 13, , , ,],
+            ]
+          })
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ values: [] })
+      });
+    });
+
+    const store = useGAPIStore();
+    await store.load();
+
+    // Get the callback from the first call to initTokenClient and trigger authentication
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
+
+    expect(store.dayStart).toBe("14:00"); // Should use default
+  });
+
+  test("dayStart falls back to default when H1 has invalid data type", async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('settings')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            values: [
+              [, 2, , , , 200, , 123], // H1 is a number instead of string
+              [, 13, , , ,],
+            ]
+          })
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ values: [] })
+      });
+    });
+
+    const store = useGAPIStore();
+    await store.load();
+
+    // Get the callback from the first call to initTokenClient and trigger authentication
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
+
+    expect(store.dayStart).toBe("14:00"); // Should use default
+  });
+
+  test("dayStart trims whitespace from H1 value", async () => {
+    const customDayStart = "  06:15  ";
+    
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('settings')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            values: [
+              [, 2, , , , 200, , customDayStart], // H1 has leading/trailing whitespace
+              [, 13, , , ,],
+            ]
+          })
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ values: [] })
+      });
+    });
+
+    const store = useGAPIStore();
+    await store.load();
+
+    // Get the callback from the first call to initTokenClient and trigger authentication
+    const callback = (mockInitTokenClient as any).mock.calls[0]?.[0]?.callback;
+    if (callback) {
+      await callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+    }
+
+    expect(store.dayStart).toBe("06:15"); // Should be trimmed
+  });
+
   test("load of soldiers", async () => {
     const mockData = {
       id: 121212,

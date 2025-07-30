@@ -1,6 +1,6 @@
 import { addDays, parse, subDays, format } from "date-fns";
 import { defineStore } from "pinia";
-import { reactive, ref, readonly } from "vue";
+import { reactive, ref, readonly, computed } from "vue";
 import { useRoute } from "vue-router";
 import { SchedulerError } from "../errors/scheduler-error";
 import {
@@ -45,7 +45,14 @@ export const useGAPIStore = defineStore("gapi", () => {
     soldiersMaxAmount: 200,
     presenceNameColumn: 2,
     presenceNameFirstRow: 13,
+    dayStart: "14:00" as ShiftHours, // Default value, will be overridden from settings sheet H1
   });
+
+  // Separate reactive ref for dayStart to ensure proper reactivity
+  const dayStartRef = ref<ShiftHours>("14:00");
+  
+  // Computed property for dayStart to ensure Vue reactivity tracking
+  const dayStartComputed = computed(() => dayStartRef.value);
 
   const soldiers = reactive<SoldierDto[]>([]);
   const positions = reactive<PositionDto[]>([]);
@@ -318,9 +325,21 @@ export const useGAPIStore = defineStore("gapi", () => {
       console.error("unexpected settings response");
       return;
     }
+    
     settings.soldiersMaxAmount = settingsRaw[0][5];
     settings.presenceNameColumn = settingsRaw[0][1];
     settings.presenceNameFirstRow = settingsRaw[1][1];
+    
+    // Read dayStart from cell H1 (index 7), fall back to default if not available
+    const dayStartFromSheet = settingsRaw[0][7];
+    
+    if (dayStartFromSheet && typeof dayStartFromSheet === 'string' && dayStartFromSheet.trim()) {
+      const newDayStart = dayStartFromSheet.trim() as ShiftHours;
+      settings.dayStart = newDayStart;
+      dayStartRef.value = newDayStart;
+
+    }
+    // If H1 is empty or invalid, keep the default value
   }
 
   function login() {
@@ -1403,5 +1422,8 @@ export const useGAPIStore = defineStore("gapi", () => {
     // Date context for processing assignments
     currentProcessingDate: readonly(currentProcessingDate),
     setDateChangeInProgress, // Add this function for date change coordination
+    
+    // Computed property for dayStart to ensure proper Vue reactivity
+    dayStart: dayStartComputed,
   };
 });
