@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import {
   getClosestDate,
+  getHebrewDayName,
   getNextHour,
   hoursBetween,
   timeToDate,
@@ -139,6 +140,74 @@ describe("date utils tests", () => {
       const closestDate = getClosestDate(date, interval);
 
       expect(closestDate).toStrictEqual(interval.end);
+    });
+  });
+
+  describe("getHebrewDayName", () => {
+    test("should return 'יום ראשון' for Sunday", () => {
+      const sunday = new Date(2024, 0, 7); // January 7, 2024 is a Sunday
+      const dayName = getHebrewDayName(sunday);
+      expect(dayName).toBe("יום ראשון");
+    });
+
+    test("should return 'יום שני' for Monday", () => {
+      const monday = new Date(2024, 0, 8); // January 8, 2024 is a Monday
+      const dayName = getHebrewDayName(monday);
+      expect(dayName).toBe("יום שני");
+    });
+
+    test("should return 'יום שלישי' for Tuesday", () => {
+      const tuesday = new Date(2024, 0, 9); // January 9, 2024 is a Tuesday
+      const dayName = getHebrewDayName(tuesday);
+      expect(dayName).toBe("יום שלישי");
+    });
+
+    test("should return 'יום רביעי' for Wednesday", () => {
+      const wednesday = new Date(2024, 0, 10); // January 10, 2024 is a Wednesday
+      const dayName = getHebrewDayName(wednesday);
+      expect(dayName).toBe("יום רביעי");
+    });
+
+    test("should return 'יום חמישי' for Thursday", () => {
+      const thursday = new Date(2024, 0, 11); // January 11, 2024 is a Thursday
+      const dayName = getHebrewDayName(thursday);
+      expect(dayName).toBe("יום חמישי");
+    });
+
+    test("should return 'יום שישי' for Friday", () => {
+      const friday = new Date(2024, 0, 12); // January 12, 2024 is a Friday
+      const dayName = getHebrewDayName(friday);
+      expect(dayName).toBe("יום שישי");
+    });
+
+    test("should return 'שבת' for Saturday", () => {
+      const saturday = new Date(2024, 0, 13); // January 13, 2024 is a Saturday
+      const dayName = getHebrewDayName(saturday);
+      expect(dayName).toBe("שבת");
+    });
+
+    test("should handle different years consistently", () => {
+      const sunday2023 = new Date(2023, 11, 31); // December 31, 2023 is a Sunday
+      const sunday2024 = new Date(2024, 0, 7); // January 7, 2024 is a Sunday
+
+      expect(getHebrewDayName(sunday2023)).toBe("יום ראשון");
+      expect(getHebrewDayName(sunday2024)).toBe("יום ראשון");
+    });
+
+    test("should handle leap year dates correctly", () => {
+      const leapYearDate = new Date(2024, 1, 29); // February 29, 2024 (leap year) is a Thursday
+      const dayName = getHebrewDayName(leapYearDate);
+      expect(dayName).toBe("יום חמישי");
+    });
+
+    test("should handle edge case dates", () => {
+      // Test New Year's Day 2024 (Monday)
+      const newYear = new Date(2024, 0, 1);
+      expect(getHebrewDayName(newYear)).toBe("יום שני");
+
+      // Test New Year's Eve 2024 (Tuesday)
+      const newYearEve = new Date(2024, 11, 31);
+      expect(getHebrewDayName(newYearEve)).toBe("יום שלישי");
     });
   });
 });

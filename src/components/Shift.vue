@@ -73,6 +73,17 @@ function formatShiftTime(time: string): string {
   /* Establish a stacking context */
   overflow: visible;
   /* Ensure content outside the container is visible */
+
+  &.print-mode {
+    border: 3px solid #6b7280 !important;
+    /* Professional gray border for shift container */
+    border-radius: 6px !important;
+    /* More rounded for better appearance */
+    background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%) !important;
+    /* Clean white to light gray gradient background */
+    box-shadow: 0 3px 8px rgba(107, 114, 128, 0.15) !important;
+    /* Professional gray-tinted shadow for definition */
+  }
 }
 
 .shift-time-info {
@@ -169,9 +180,7 @@ function formatShiftTime(time: string): string {
     min-height: 1.5rem;
   }
 
-  .shift-spots-container.many-spots {
-    /* No max-height restriction to allow natural expansion */
-  }
+
 }
 
 /* RTL comment: Added RTL-specific positioning and ensured time display remains in LTR format */
@@ -180,18 +189,29 @@ function formatShiftTime(time: string): string {
 /* Print mode styles */
 .shift-container.print-mode {
   .shift-time-info {
-    border-bottom: solid 1.5px #333333 !important;
-    border-left: solid 1.5px #333333 !important;
-    background-color: #e5e7eb !important;
-    /* Keep gray background */
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
-    /* Subtle shadow */
+    border-bottom: solid 2px #1e40af !important;
+    border-left: solid 2px #1e40af !important;
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+    /* Professional light blue gradient */
+    box-shadow: 0 3px 6px rgba(30, 64, 175, 0.2) !important;
+    /* Professional blue-tinted shadow */
+    padding: 0.4rem 0.6rem !important;
+    /* Much more padding for bigger appearance */
+    border-radius: 0px 8px 0px 8px !important;
+    /* More rounded for better appearance */
   }
 
   .shift-time {
-    color: #000000 !important;
-    font-weight: 700 !important;
-    /* Bolder for better readability */
+    color: #1e40af !important;
+    /* Professional navy blue text */
+    font-weight: 800 !important;
+    /* Much bolder for better readability */
+    font-size: 1.2rem !important;
+    /* Much larger font size */
+    line-height: 1.1 !important;
+    /* Better line spacing */
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8) !important;
+    /* Light text shadow for better readability */
   }
 
   .spots-count-badge {
@@ -215,30 +235,43 @@ function formatShiftTime(time: string): string {
 /* Print-specific optimizations */
 @media print {
   .shift-container {
-    padding: 0.1rem !important;
+    padding: 0.3rem !important;
+    /* More padding to accommodate thicker borders */
     height: 100% !important;
     overflow: visible !important;
+    border: 4px solid #228B22 !important;
+    /* Very thick nice green border for actual print */
+    border-radius: 6px !important;
+    /* Better border radius for thick borders */
+    background-color: #ffffff !important;
+    box-shadow: 0 3px 8px rgba(34, 139, 34, 0.25) !important;
+    /* Strong green-tinted shadow for definition */
   }
 
   .shift-time-info {
     position: absolute !important;
-    top: 1px !important;
-    right: 1px !important;
+    top: 2px !important;
+    right: 2px !important;
     background-color: #e5e7eb !important;
-    border-bottom: 1px solid #333333 !important;
-    border-left: 1px solid #333333 !important;
-    border-radius: 0px 3px 0px 3px !important;
-    font-size: 0.5rem !important;
-    padding: 0.1rem 0.2rem !important;
+    border-bottom: 2px solid #333333 !important;
+    border-left: 2px solid #333333 !important;
+    border-radius: 0px 6px 0px 6px !important;
+    /* Larger border radius */
+    padding: 0.5rem 0.7rem !important;
+    /* Much more padding for bigger appearance */
     z-index: 10 !important;
-    box-shadow: none !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    /* Add shadow for better visibility */
   }
 
   .shift-time {
-    font-size: 0.5rem !important;
-    font-weight: 600 !important;
+    font-size: 1rem !important;
+    /* Much larger font size for actual print */
+    font-weight: 800 !important;
+    /* Much bolder font weight */
     color: #000000 !important;
-    line-height: 1 !important;
+    line-height: 1.1 !important;
+    /* Better line spacing */
   }
 
   .shift-spots-container {

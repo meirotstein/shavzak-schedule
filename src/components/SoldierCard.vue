@@ -139,7 +139,7 @@ function dragEnd(e: DragEvent) {
 
 <template>
   <Draggable @drag-over="dragOver" @drag-end="dragEnd" @drag-start="dragStart" @drop="() => console.log('dropped')"
-    class="draggable-soldier">
+    class="draggable-soldier" :class="{ 'draggable-print-mode': props.isPrintMode && props.target === 'shift' }">
     <Card class="soldier-card" :class="[
       props.target === 'list' ? 'soldier-card-list' : 'soldier-card-shift',
       store.draggedSoldier?.id === props.soldier.id ? 'being-dragged' : '',
@@ -205,7 +205,8 @@ function dragEnd(e: DragEvent) {
             </div>
           </div>
         </div>
-        <div v-if="props.target === 'shift'" class="soldier-content-shift">
+        <div v-if="props.target === 'shift'" class="soldier-content-shift"
+          :class="{ 'content-print-mode': props.isPrintMode }">
           <div class="soldier-name">{{ props.soldier.name }}</div>
         </div>
       </template>
@@ -222,6 +223,11 @@ function dragEnd(e: DragEvent) {
   &:active {
     cursor: grabbing;
   }
+
+  /* Make draggable wrapper fill container in print mode for shift cards */
+  &.draggable-print-mode {
+    height: 100% !important;
+  }
 }
 
 .soldier-card {
@@ -237,6 +243,11 @@ function dragEnd(e: DragEvent) {
   &.being-dragged {
     opacity: 0.6;
     transform: scale(0.95);
+  }
+
+  /* Make cards fill container height in print mode */
+  &.print-mode.soldier-card-shift {
+    height: 100% !important;
   }
 }
 
@@ -271,6 +282,16 @@ function dragEnd(e: DragEvent) {
   width: 100%;
   display: flex;
   justify-content: center;
+
+  &.print-mode {
+    max-height: none !important;
+    height: 100% !important;
+    /* Fill entire shift space in print mode */
+    display: flex !important;
+    align-items: center !important;
+    min-height: 3rem !important;
+    /* Minimum height for good visibility */
+  }
 }
 
 /* Alert styling */
@@ -330,6 +351,28 @@ function dragEnd(e: DragEvent) {
   width: 100%;
   display: flex;
   justify-content: center;
+  align-items: center;
+  height: 100%;
+
+  &.print-mode,
+  &.content-print-mode {
+    padding: 1rem !important;
+    /* Much more padding in print mode */
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    .soldier-name {
+      font-size: 1.4rem !important;
+      /* Larger font for print mode preview */
+      text-align: center !important;
+      word-wrap: break-word !important;
+      overflow-wrap: break-word !important;
+      hyphens: auto !important;
+    }
+  }
 }
 
 .soldier-header {
@@ -467,6 +510,43 @@ function dragEnd(e: DragEvent) {
   }
 }
 
+/* Enhanced padding for print mode */
+.soldier-card.print-mode {
+  :deep(.p-card-body) {
+    padding: 0.6rem !important;
+    /* More padding in print mode */
+  }
+
+  &.soldier-card-shift {
+    :deep(.p-card-body) {
+      padding: 1rem !important;
+      /* Much larger padding for shift cards in print mode */
+      height: 100% !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+    }
+  }
+
+  .soldier-content-shift {
+    padding: 1rem !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    .soldier-name {
+      font-size: 1.4rem !important;
+      /* Larger font for print mode preview */
+      text-align: center !important;
+      word-wrap: break-word !important;
+      overflow-wrap: break-word !important;
+      hyphens: auto !important;
+    }
+  }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .soldier-content-list {
@@ -540,51 +620,83 @@ function dragEnd(e: DragEvent) {
 
 /* Print mode styles */
 .soldier-card.print-mode {
-  background-color: #ffffff !important;
-  border: 1.5px solid #333333 !important;
-  /* Slightly thicker border */
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
-  /* Subtle shadow */
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  /* Clean white to light gray gradient background */
+  border: 3px solid #6b7280 !important;
+  /* Professional gray border */
+  box-shadow: 0 3px 8px rgba(107, 114, 128, 0.2) !important;
+  /* Professional gray-tinted shadow */
 
   &:hover {
     background-color: #ffffff !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15) !important;
     transform: none !important;
   }
 
-  &.assigned,
-  &.unassigned,
-  &.alert-red,
-  &.alert-orange,
-  &.alert-yellow,
-  &.alert-none {
-    background-color: #ffffff !important;
-    border: 1.5px solid #333333 !important;
+  &.assigned {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;
+    /* Professional light blue gradient for assigned soldiers */
+    border: 3px solid #0ea5e9 !important;
+    /* Professional blue border for assigned */
+  }
 
-    &:hover {
-      background-color: #ffffff !important;
-    }
+  &.unassigned {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%) !important;
+    /* Professional light gray gradient for unassigned soldiers */
+    border: 3px solid #64748b !important;
+    /* Professional slate border for unassigned */
+  }
+
+  &.alert-red {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%) !important;
+    /* Professional light red gradient for red alerts */
+    border: 3px solid #dc2626 !important;
+    /* Professional red border */
+  }
+
+  &.alert-orange {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+    /* Professional light amber gradient for orange alerts */
+    border: 3px solid #f59e0b !important;
+    /* Professional amber border */
+  }
+
+  &.alert-yellow {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+    /* Professional light yellow gradient for yellow alerts */
+    border: 3px solid #eab308 !important;
+    /* Professional yellow border */
+  }
+
+  &.alert-none {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%) !important;border: 3px solid #0ea5e9 !important;
+    /* Same as assigned - professional blue */
   }
 
   .soldier-name {
-    color: #000000 !important;
-    font-weight: 700 !important;
-    /* Bolder for better readability */
+    color: #2d3436 !important;
+    /* Dark color for better contrast on colorful backgrounds */
+    font-weight: 800 !important;
+    font-size: 1.3rem !important;
+    /* Even larger font for better readability */
+    text-shadow: 1px 1px 2px rgba(255,255,255,0.8) !important;
+    /* Light text shadow for better readability on colorful backgrounds */
   }
 
   .soldier-role,
   .soldier-platoon {
     color: #333333 !important;
-    /* Slightly lighter than pure black */
+    font-size: 0.9rem !important;
+    /* Larger supporting text */
   }
 
   .assignment-info {
     border-top: 1px solid #666666 !important;
     background-color: #f8f9fa !important;
     /* Light gray background for assignment area */
-    padding: 0.25rem !important;
-    margin: 0.25rem -0.25rem -0.25rem -0.25rem !important;
-    /* Extend to card edges */
+    padding: 0.5rem !important;
+    margin: 0.5rem -0.5rem -0.5rem -0.5rem !important;
+    /* Extend to card edges with more space */
     border-radius: 0 0 4px 4px !important;
   }
 
@@ -592,6 +704,8 @@ function dragEnd(e: DragEvent) {
     color: #000000 !important;
     text-decoration: none !important;
     font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    /* Larger assignment text */
   }
 
   .past-assignments-icon {
@@ -607,6 +721,9 @@ function dragEnd(e: DragEvent) {
     color: #000000 !important;
     border: 1px solid #666666 !important;
     font-weight: 600 !important;
+    font-size: 0.8rem !important;
+    padding: 0.4rem 0.6rem !important;
+    /* Larger presence labels in print mode too */
   }
 
   .returning-label,
@@ -614,6 +731,8 @@ function dragEnd(e: DragEvent) {
     background-color: #f1f3f4 !important;
     color: #000000 !important;
     border: 1px solid #666666 !important;
+    font-size: 0.8rem !important;
+    padding: 0.4rem 0.6rem !important;
   }
 
   .alert-icon-red,
@@ -628,9 +747,10 @@ function dragEnd(e: DragEvent) {
 @media print {
   .soldier-card {
     background-color: #ffffff !important;
-    border: 1px solid #333333 !important;
+    border: 2px solid #333333 !important;
     box-shadow: none !important;
-    margin: 0 !important;
+    margin: 0.2rem !important;
+    /* Add some margin for better spacing */
 
     &:hover {
       background-color: #ffffff !important;
@@ -640,63 +760,90 @@ function dragEnd(e: DragEvent) {
   }
 
   .soldier-card-shift {
-    max-height: 1.2rem !important;
-    border-radius: 2px !important;
+    max-height: none !important;
+    /* Remove height limitation for full expansion */
+    min-height: 4rem !important;
+    /* Much taller minimum height */
+    height: 100% !important;
+    /* Fill available space */
+    border-radius: 4px !important;
 
     :deep(.p-card-body) {
-      padding: 0.1rem !important;
+      padding: 1rem !important;
+      /* Much more padding for larger cards */
+      height: 100% !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
     }
   }
 
   .soldier-content-shift {
-    padding: 0.05rem !important;
+    padding: 1rem !important;
+    /* Much more padding for bigger cards */
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
 
     .soldier-name {
-      font-size: 0.55rem !important;
-      font-weight: 600 !important;
+      font-size: 1.5rem !important;
+      /* Much larger font for big cards */
+      font-weight: 700 !important;
       color: #000000 !important;
-      line-height: 1 !important;
-      white-space: nowrap !important;
-      overflow: hidden !important;
-      text-overflow: ellipsis !important;
+      line-height: 1.2 !important;
+      text-align: center !important;
+      word-wrap: break-word !important;
+      overflow-wrap: break-word !important;
+      hyphens: auto !important;
     }
   }
 
   .soldier-content-list {
-    padding: 0.15rem !important;
+    padding: 0.4rem !important;
+    /* Much more padding for bigger cards */
 
     .soldier-name {
-      font-size: 0.7rem !important;
-      font-weight: 600 !important;
+      font-size: 1.1rem !important;
+      /* Much larger name font */
+      font-weight: 700 !important;
       color: #000000 !important;
+      margin-bottom: 0.3rem !important;
     }
 
     .soldier-role,
     .soldier-platoon {
-      font-size: 0.6rem !important;
+      font-size: 0.9rem !important;
+      /* Larger supporting text */
       color: #333333 !important;
+      margin-bottom: 0.2rem !important;
     }
 
     .assignment-info {
       background-color: #f8f9fa !important;
       border-top: 1px solid #666666 !important;
-      padding: 0.15rem !important;
-      margin: 0.15rem -0.15rem -0.15rem -0.15rem !important;
+      padding: 0.4rem !important;
+      margin: 0.4rem -0.4rem -0.4rem -0.4rem !important;
 
       .assignment-summary {
-        font-size: 0.55rem !important;
+        font-size: 0.8rem !important;
+        /* Larger assignment text */
         color: #000000 !important;
-        font-weight: 500 !important;
+        font-weight: 600 !important;
       }
     }
   }
 
   .presence-label {
-    font-size: 0.5rem !important;
-    padding: 0.05rem 0.2rem !important;
+    font-size: 0.75rem !important;
+    /* Larger presence labels */
+    padding: 0.3rem 0.6rem !important;
+    /* More padding for better visibility */
     background-color: #f1f3f4 !important;
     color: #000000 !important;
     border: 1px solid #666666 !important;
+    font-weight: 600 !important;
   }
 
   .past-assignments-icon,

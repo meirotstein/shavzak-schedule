@@ -78,6 +78,16 @@ function removeSoldier() {
     background-color: rgba(var(--primary-100), 0.4);
     box-shadow: 0 0 0 2px rgb(var(--primary-400));
   }
+
+  /* Add print media query for ShiftSpot */
+  @media print {
+    border: 3px solid #228B22 !important;
+    /* Thick nice green border for actual print */
+    border-radius: 6px !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(34, 139, 34, 0.15) !important;
+    /* Green-tinted shadow */
+  }
 }
 
 .spot-empty {
@@ -172,24 +182,32 @@ function removeSoldier() {
 
 /* Print mode styles */
 .shift-drop-zone.print-mode {
+  border: 2px solid #228B22 !important;
+  /* Add nice green border to drop zone itself */
+  border-radius: 4px !important;
+
   &.drop-zone-active {
     background-color: #ffffff !important;
-    box-shadow: none !important;
+    box-shadow: 0 2px 6px rgba(34, 139, 34, 0.2) !important;
+    /* Add green-tinted shadow for active state */
+    border: 3px solid #228B22 !important;
+    /* Thicker green border when active */
   }
 
   .spot-empty {
-    border: 1.5px dashed #666666 !important;
-    /* Slightly thicker, less harsh border */
+    border: 3px dashed #228B22 !important;
+    /* Much thicker, nice green dashed border */
     background-color: #fafafa !important;
     /* Very light gray background */
 
     &:hover {
-      border-color: #333333 !important;
+      border-color: #228B22 !important;
       background-color: #f5f5f5 !important;
     }
 
     &.spot-empty-hover {
-      border: 2px dashed #333333 !important;
+      border: 4px dashed #228B22 !important;
+      /* Very thick green border when hovering */
       background-color: #f0f0f0 !important;
       transform: none !important;
     }
@@ -216,7 +234,7 @@ function removeSoldier() {
 .remove-button {
   position: absolute;
   top: calc(50% - 4px);
-  left: 6px;
+  left:6px;
   /* Position on the left side, middle */
   transform: translateY(-50%);
   width: 16px;

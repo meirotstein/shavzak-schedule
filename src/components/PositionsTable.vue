@@ -125,7 +125,7 @@ function remove(colField: string, shiftId: string, spotIndex: number) {
           <span class="text-sm font-medium text-gray-700">Time</span>
         </template> -->
         <template #body="slotProps">
-          <span class="text-sm font-medium">{{ slotProps.data.hour }}</span>
+          <span class="text-sm font-medium" :class="{ 'print-time-label': props.isPrintMode }">{{ slotProps.data.hour }}</span>
         </template>
       </Column>
       <Column v-for="(col, index) of tableColumns" :field="col.posId" :header="col.posName"
@@ -254,22 +254,23 @@ function remove(colField: string, shiftId: string, spotIndex: number) {
 /* Print mode styles */
 .print-mode {
   .column-content.shift {
-    border: solid 1.5px #333333 !important;
-    /* Slightly thicker, darker border */
-    background-color: #ffffff !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
-    /* Subtle shadow for depth */
+    border: solid 4px #4b5563 !important;
+    /* Professional dark gray border for prominence */
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%) !important;
+    /* Subtle light gray gradient background */
+    box-shadow: 0 3px 8px rgba(75, 85, 99, 0.2) !important;
+    /* Professional gray-tinted shadow for depth */
 
     &:hover {
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+      box-shadow: 0 3px 8px rgba(75, 85, 99, 0.2) !important;
       transform: none !important;
     }
   }
 
   .column-content.no-shift {
-    border: solid 1px #cccccc !important;
-    background-color: #fafafa !important;
-    /* Very light gray instead of pure white */
+    border: solid 2px #ddd !important;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+    /* Light gray gradient for empty cells */
     opacity: 1 !important;
   }
 }
@@ -290,13 +291,38 @@ function remove(colField: string, shiftId: string, spotIndex: number) {
   }
 
   &:deep(.p-datatable-thead > tr > th) {
-    background-color: #f1f3f4 !important;
-    /* Slightly darker than header */
-    color: #000000 !important;
-    border: 1px solid #666666 !important;
-    font-weight: 600 !important;
-    padding: 0.75rem 1rem !important;
-    font-size: 0.9rem !important;
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%) !important;
+    /* Professional dark blue-gray gradient */
+    color: #ffffff !important;
+    /* White text for contrast */
+    border: 2px solid #2c3e50 !important;
+    /* Dark blue-gray border */
+    font-weight: 700 !important;
+    /* Bolder font weight */
+    padding: 1.5rem 1.8rem !important;
+    /* Even more padding for bigger headers */
+    font-size: 1.6rem !important;
+    /* Much larger font size for column labels */
+    text-align: center !important;
+    line-height: 1.2 !important;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3) !important;
+    /* Text shadow for better readability */
+  }
+
+  /* Time column header - even bigger and bolder */
+  &:deep(.p-datatable-thead > tr > th:first-child) {
+    font-size: 1.8rem !important;
+    /* Even larger font for Time header */
+    font-weight: 800 !important;
+    /* Extra bold font weight */
+    padding: 1.8rem !important;
+    /* More padding for prominence */
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%) !important;
+    /* Professional navy blue gradient for Time header */
+    border: 3px solid #1e3a8a !important;
+    /* Navy blue border for Time header */
+    color: #ffffff !important;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.4) !important;
   }
 
   &:deep(.p-datatable-tbody > tr > td) {
@@ -322,11 +348,29 @@ function remove(colField: string, shiftId: string, spotIndex: number) {
 
   /* Time column styling */
   &:deep(.p-datatable-tbody > tr > td:first-child) {
-    background-color: #f8f9fa !important;
-    font-weight: 600 !important;
-    border-right: 2px solid #666666 !important;
-    /* Stronger border for time column */
+    background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%) !important;
+    /* Professional light gray gradient for time cells */
+    font-weight: 700 !important;
+    /* Bolder font weight */
+    border-right: 3px solid #6b7280 !important;
+    /* Professional gray border for time column */
+    font-size: 1.1rem !important;
+    /* Larger font for time labels */
+    padding: 1rem !important;
+    /* More padding for bigger cells */
+    color: #1f2937 !important;
+    /* Dark professional text */
   }
+}
+
+/* Print mode time labels */
+.print-time-label {
+  font-size: 1.1rem !important;
+  font-weight: 700 !important;
+  color: #2d3436 !important;
+  /* Dark color for contrast on colorful background */
+  text-shadow: 1px 1px 2px rgba(255,255,255,0.8) !important;
+  /* Light shadow for better readability */
 }
 
 /* Print-specific optimizations for A4 landscape */
@@ -345,45 +389,88 @@ function remove(colField: string, shiftId: string, spotIndex: number) {
   }
 
   :deep(.p-datatable-thead > tr > th) {
-    padding: 0.4rem 0.25rem !important;
-    font-size: 0.7rem !important;
-    font-weight: 600 !important;
-    background-color: #f1f3f4 !important;
-    border: 1px solid #333333 !important;
+    padding: 1.4rem 1rem !important;
+    /* Much more padding for bigger headers */
+    font-size: 1.5rem !important;
+    /* Much larger font size for column headers in print */
+    font-weight: 700 !important;
+    /* Bolder font weight */
+    background: linear-gradient(135deg, #374151 0%, #4b5563 100%) !important;
+    /* Professional dark gray gradient for actual print headers */
+    color: #ffffff !important;
+    border: 2px solid #374151 !important;
+    /* Professional gray borders */
     text-align: center !important;
     word-wrap: break-word !important;
+    line-height: 1.3 !important;
+    /* Better line spacing */
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3) !important;
+  }
+
+  /* Time column header in actual print - extra large */
+  :deep(.p-datatable-thead > tr > th:first-child) {
+    font-size: 1.7rem !important;
+    /* Even larger font for Time header in print */
+    font-weight: 800 !important;
+    /* Extra bold font weight */
+    padding: 1.6rem 1.2rem !important;
+    /* More padding for prominence */
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%) !important;
+    /* Professional navy blue gradient for Time header in print */
+    color: #ffffff !important;
+    border: 3px solid #1e3a8a !important;
+    /* Navy blue border */
+    width: 5rem !important;
+    /* Wider to accommodate larger text */
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.4) !important;
   }
 
   :deep(.p-datatable-tbody > tr > td) {
-    padding: 0.25rem !important;
-    font-size: 0.65rem !important;
+    padding: 0.4rem !important;
+    /* More padding for bigger cells */
+    font-size: 0.75rem !important;
+    /* Slightly larger font */
     border: 1px solid #666666 !important;
     vertical-align: top !important;
-    height: 2.5rem !important;
+    height: 4rem !important;
+    /* Much taller cells to accommodate bigger content */
     word-wrap: break-word !important;
   }
 
-  /* Time column - narrower for print */
+  /* Time column - wider for bigger text */
   :deep(.p-datatable-tbody > tr > td:first-child) {
-    width: 3rem !important;
-    min-width: 3rem !important;
-    max-width: 3rem !important;
-    font-size: 0.7rem !important;
-    font-weight: 600 !important;
+    width: 5rem !important;
+    /* Wider to accommodate bigger text */
+    min-width: 5rem !important;
+    max-width: 5rem !important;
+    font-size: 1rem !important;
+    /* Much larger font for time labels */
+    font-weight: 700 !important;
+    /* Bolder font weight */
     text-align: center !important;
-    background-color: #f8f9fa !important;
-    border-right: 2px solid #333333 !important;
+    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%) !important;
+    /* Professional light gray gradient for time cells in print */
+    color: #1e293b !important;
+    /* Professional dark slate text */
+    border-right: 3px solid #64748b !important;
+    /* Professional slate border */
+    padding: 0.8rem 0.4rem !important;
+    /* More padding for better spacing */
   }
 
   /* Position columns - equal width distribution */
   :deep(.p-datatable-thead > tr > th:not(:first-child)) {
-    width: calc((100% - 3rem) / var(--position-count, 8)) !important;
-    min-width: 4rem !important;
+    width: calc((100% - 5rem) / var(--position-count, 8)) !important;
+    /* Adjust for wider time column */
+    min-width: 6rem !important;
+    /* Wider minimum for bigger headers */
   }
 
   :deep(.p-datatable-tbody > tr > td:not(:first-child)) {
-    width: calc((100% - 3rem) / var(--position-count, 8)) !important;
-    min-width: 4rem !important;
+    width: calc((100% - 5rem) / var(--position-count, 8)) !important;
+    /* Adjust for wider time column */
+    min-width: 6rem !important;
+    /* Wider minimum for bigger content */
   }
 
   .column-content {
@@ -397,9 +484,11 @@ function remove(colField: string, shiftId: string, spotIndex: number) {
   }
 
   .column-content.shift {
-    border: 1px solid #333333 !important;
+    border: 3px solid #228B22 !important;
+    /* Much thicker nice green border for actual print */
     background-color: #ffffff !important;
-    box-shadow: none !important;
+    box-shadow: 0 2px 6px rgba(34, 139, 34, 0.2) !important;
+    /* Green-tinted shadow for better definition */
   }
 
   .column-content.no-shift {
@@ -410,6 +499,13 @@ function remove(colField: string, shiftId: string, spotIndex: number) {
   /* Ensure table doesn't break across pages */
   :deep(.p-datatable-wrapper) {
     page-break-inside: avoid;
+  }
+
+  /* Print mode time labels in actual print */
+  .print-time-label {
+    font-size: 1rem !important;
+    font-weight: 700 !important;
+    color: #000000 !important;
   }
 }
 </style>

@@ -1,13 +1,31 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import DatePicker from '../components/DatePicker.vue';
 import GoogleLogin from '../components/GoogleLogin.vue';
 import PositionsTable from '../components/PositionsTable.vue';
 import SoldierList from '../components/SoldierList.vue';
 import { usePositionsStore } from '../store/positions';
+import { useScheduleStore } from '../store/schedule';
+import { getHebrewDayName } from '../utils/date-utils';
 
 const positionsStore = usePositionsStore();
+const scheduleStore = useScheduleStore();
 const isPrintMode = ref(false);
+
+// Format current date for print title
+const formatDate = (date: Date): string => {
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+const printTitle = computed(() => {
+  const currentDate = scheduleStore.scheduleDate || new Date();
+  const hebrewDay = getHebrewDayName(currentDate);
+  const formattedDate = formatDate(currentDate);
+  return `שבצק ${hebrewDay} ${formattedDate}`;
+});
 </script>
 
 <template>
@@ -45,6 +63,10 @@ const isPrintMode = ref(false);
         <SoldierList />
       </aside>
       <section class="main-content">
+        <!-- Print mode title -->
+        <div v-if="isPrintMode" class="print-title">
+          {{ printTitle }}
+        </div>
         <PositionsTable :is-print-mode="isPrintMode" />
       </section>
     </main>
@@ -205,6 +227,26 @@ const isPrintMode = ref(false);
   /* Slightly more padding for better spacing */
 }
 
+/* Print mode title styles */
+.print-title {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1e3a8a;
+  /* Professional navy blue */
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  /* Light gray gradient background */
+  border: 2px solid #374151;
+  /* Professional dark gray border */
+  border-radius: 8px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  /* Subtle text shadow */
+  direction: rtl;
+  /* RTL for Hebrew text */
+}
+
 // Loading overlay styles
 .loading-overlay {
   position: fixed;
@@ -293,6 +335,24 @@ const isPrintMode = ref(false);
     border: none !important;
     box-shadow: none !important;
     background-color: white !important;
+  }
+
+  /* Print title styles for actual printing */
+  .print-title {
+    font-size: 1.8rem !important;
+    font-weight: 800 !important;
+    color: #000000 !important;
+    /* Black for better print contrast */
+    margin-bottom: 1.5rem !important;
+    padding: 0.8rem !important;
+    background: #f1f5f9 !important;
+    /* Light professional background for print */
+    border: 2px solid #374151 !important;
+    border-radius: 6px !important;
+    text-shadow: none !important;
+    /* Remove shadow for print */
+    page-break-inside: avoid !important;
+    /* Ensure title doesn't break across pages */
   }
 
   /* Ensure content fits on one page */
