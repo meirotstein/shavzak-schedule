@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import Checkbox from "primevue/checkbox";
 import InputText from "primevue/inputtext";
-import Select from "primevue/select";
-import { computed, ref } from "vue";
+import MultiSelect from "primevue/multiselect";
+import { computed, ref, watch } from "vue";
 import { useAssignmentsStore } from "../store/assignments";
-import { useSoldiersStore } from "../store/soldiers";
+import { useGAPIStore } from "../store/gapi";
 import { usePositionsStore } from "../store/positions";
 import { useScheduleStore } from "../store/schedule";
-import { useGAPIStore } from "../store/gapi";
+import { useSoldiersStore } from "../store/soldiers";
 import SoldierCard from "./SoldierCard.vue";
 import SoldierListSkeleton from "./SoldierListSkeleton.vue";
 
@@ -16,52 +16,86 @@ const assignmentsStore = useAssignmentsStore();
 const positionsStore = usePositionsStore();
 const scheduleStore = useScheduleStore();
 const gapiStore = useGAPIStore();
-const allPlatoonsOption = { id: "all", name: "כל המחלקות" };
-const selectedPlatoon = ref(allPlatoonsOption);
+// Initialize with all platoons selected
+interface PlatoonOption {
+  id: string;
+  name: string;
+}
+
+const selectedPlatoons = ref<PlatoonOption[]>([]);
+const selectAllState = ref(true);
 
 const hideAssignedSoldiers = ref(false);
 const sortByLastAssignment = ref(true);
 const searchTerm = ref("");
 
+// Get unique platoons with their display names
 const availablePlatoons = computed(() => {
   const platoons = new Set(store.availableSoldiers.map((soldier) => soldier.platoon));
-  return [allPlatoonsOption].concat([...platoons].map((platoon) => ({ id: platoon, name: platoon })));
+  return [...platoons].map((platoon) => ({ id: platoon, name: platoon }));
 });
+
+// Watch for changes in availablePlatoons and update selection if selectAll is true
+watch(availablePlatoons, (newPlatoons: PlatoonOption[]) => {
+  if (selectAllState.value) {
+    selectedPlatoons.value = [...newPlatoons];
+  }
+}, { immediate: true });
+
+// Handle select all changes
+const onSelectAllChange = (e: { checked: boolean }) => {
+  selectAllState.value = e.checked;
+  if (e.checked) {
+    // Select all platoons
+    selectedPlatoons.value = [...availablePlatoons.value];
+  } else {
+    // Deselect all platoons
+    selectedPlatoons.value = [];
+  }
+};
+
+// Handle individual selection changes
+const onSelectionChange = (e: { value: any[] }) => {
+  const allSelected = e.value.length === availablePlatoons.value.length;
+  if (selectAllState.value !== allSelected) {
+    selectAllState.value = allSelected;
+  }
+};
 
 // Function to get the last assignment end time for a soldier (only past/current assignments)
 function getLastAssignmentEndTime(soldierId: string): Date | null {
   const allAssignments = assignmentsStore.getAllAssignments(soldierId);
   const currentDate = scheduleStore.scheduleDate || new Date();
-  
+
   // Filter only past and current assignments (ignore future)
-  const pastAndCurrentAssignments = allAssignments.filter(assignment => 
+  const pastAndCurrentAssignments = allAssignments.filter(assignment =>
     assignment.date <= currentDate
   );
-  
+
   if (pastAndCurrentAssignments.length === 0) {
     return null; // No past assignments means infinity (should appear first)
   }
-  
+
   // Helper function to calculate the actual end datetime considering schedule day cycle
   function getActualEndDateTime(assignment: any): Date {
     const assignmentEndDateTime = new Date(assignment.date);
     const [endHours, endMinutes] = assignment.endTime.split(':').map(Number);
     const [dayStartHours, dayStartMinutes] = gapiStore.dayStart.split(':').map(Number);
-    
+
     assignmentEndDateTime.setHours(endHours, endMinutes, 0, 0);
-    
+
     // Schedule day cycle: if end time is at or before day start, it's the next calendar day
     // This ensures proper chronological order: 14:00-22:00 → 22:00-06:00 → 06:00-14:00
     const endTimeInMinutes = endHours * 60 + endMinutes;
     const dayStartInMinutes = dayStartHours * 60 + dayStartMinutes;
-    
+
     if (endTimeInMinutes <= dayStartInMinutes) {
       assignmentEndDateTime.setDate(assignmentEndDateTime.getDate() + 1);
     }
-    
+
     return assignmentEndDateTime;
   }
-  
+
   // Find the assignment with the latest end time
   return pastAndCurrentAssignments.reduce((latestEndTime, assignment) => {
     const assignmentEndDateTime = getActualEndDateTime(assignment);
@@ -73,8 +107,12 @@ const filteredSoldiers = computed(() => {
   let soldiers = store.availableSoldiers;
 
   // Filter by platoon
-  if (selectedPlatoon.value.id !== "all") {
-    soldiers = soldiers.filter((soldier) => soldier.platoon === selectedPlatoon.value.id);
+  if (selectedPlatoons.value.length === 0) {
+    // When nothing is selected, show empty list
+    soldiers = [];
+  } else {
+    const selectedPlatoonIds = selectedPlatoons.value.map((p: any) => p.id);
+    soldiers = soldiers.filter((soldier) => selectedPlatoonIds.includes(soldier.platoon));
   }
 
   // Filter by assignment status
@@ -85,7 +123,7 @@ const filteredSoldiers = computed(() => {
   // Filter by search term
   if (searchTerm.value.trim()) {
     const searchLower = searchTerm.value.toLowerCase().trim();
-    soldiers = soldiers.filter((soldier) => 
+    soldiers = soldiers.filter((soldier) =>
       soldier.name.toLowerCase().includes(searchLower) ||
       soldier.role.toLowerCase().includes(searchLower) ||
       soldier.platoon.toLowerCase().includes(searchLower)
@@ -97,12 +135,12 @@ const filteredSoldiers = computed(() => {
     soldiers = [...soldiers].sort((a, b) => {
       const aLastAssignment = getLastAssignmentEndTime(a.id);
       const bLastAssignment = getLastAssignmentEndTime(b.id);
-      
+
       // Soldiers with no past assignments (null) should appear first
       if (aLastAssignment === null && bLastAssignment === null) return 0;
       if (aLastAssignment === null) return -1;
       if (bLastAssignment === null) return 1;
-      
+
       // Sort by date - older assignments first (farther in the past = higher in list)
       return aLastAssignment.getTime() - bLastAssignment.getTime();
     });
@@ -113,11 +151,20 @@ const filteredSoldiers = computed(() => {
 
 // Assignment statistics
 const assignmentStats = computed(() => {
-  const availableSoldiersForSelectedPlatoon = store.availableSoldiers.filter(s =>
-    (selectedPlatoon.value.id === 'all' || s.platoon === selectedPlatoon.value.id)
-  );
-  const total = availableSoldiersForSelectedPlatoon.length;
-  const assigned = availableSoldiersForSelectedPlatoon.filter(s => assignmentsStore.isAssigned(s.id)).length;
+  let availableSoldiersForSelectedPlatoons: typeof store.availableSoldiers;
+
+  if (selectedPlatoons.value.length === 0) {
+    // When nothing is selected, stats should be for empty list
+    availableSoldiersForSelectedPlatoons = [];
+  } else {
+    const selectedPlatoonIds = selectedPlatoons.value.map((p: any) => p.id);
+    availableSoldiersForSelectedPlatoons = store.availableSoldiers.filter(s =>
+      selectedPlatoonIds.includes(s.platoon)
+    );
+  }
+
+  const total = availableSoldiersForSelectedPlatoons.length;
+  const assigned = availableSoldiersForSelectedPlatoons.filter(s => assignmentsStore.isAssigned(s.id)).length;
   const unassigned = total - assigned;
 
   return { total, assigned, unassigned };
@@ -132,33 +179,26 @@ const assignmentStats = computed(() => {
 
       <!-- Search Box -->
       <div class="search-container">
-        <InputText 
-          v-model="searchTerm"
-          placeholder="חפש חייל, תפקיד או מחלקה..."
-          class="search-input"
-          :pt="{
-            root: { class: 'w-full search-box' }
-          }"
-        />
-        <button 
-          v-show="searchTerm.trim()"
-          @click="searchTerm = ''"
-          class="search-clear-btn"
-          type="button"
-          aria-label="Clear search"
-        >
+        <InputText v-model="searchTerm" placeholder="חפש חייל, תפקיד או מחלקה..." class="search-input" :pt="{
+          root: { class: 'w-full search-box' }
+        }" />
+        <button v-show="searchTerm.trim()" @click="searchTerm = ''" class="search-clear-btn" type="button"
+          aria-label="Clear search">
           ×
         </button>
       </div>
 
       <!-- Platoon Filter -->
-      <Select v-model="selectedPlatoon" :options="availablePlatoons" optionLabel="name" placeholder="בחר מחלקה"
-        class="filter-selector" :pt="{
+      <MultiSelect v-model="selectedPlatoons" :options="availablePlatoons" optionLabel="name" placeholder="בחר מחלקות"
+        :showToggleAll="true" filter :showClear="true" class="filter-selector" @change="onSelectionChange"
+        clearIcon="none" @selectall-change="onSelectAllChange" :pt="{
           root: { class: 'w-full rtl-dropdown' },
           input: { class: 'p-2 text-sm text-right' },
           panel: { class: 'shadow-lg border border-gray-200' },
           item: { class: 'text-right' }
-        }" />
+        }">
+      </MultiSelect>
+
 
       <!-- Hide Assigned Soldiers Checkbox -->
       <div class="checkbox-container">
@@ -190,18 +230,10 @@ const assignmentStats = computed(() => {
 
     <div class="list-wrapper">
       <!-- Loading skeleton -->
-      <SoldierListSkeleton 
-        v-if="positionsStore.isLoadingSoldiers" 
-        :soldier-count="12" 
-      />
-      
+      <SoldierListSkeleton v-if="positionsStore.isLoadingSoldiers" :soldier-count="12" />
+
       <!-- Normal content -->
-      <ul 
-        v-else 
-        class="soldier-list" 
-        role="list" 
-        aria-label="Available soldiers list"
-      >
+      <ul v-else class="soldier-list" role="list" aria-label="Available soldiers list">
         <li v-for="(soldier, index) in filteredSoldiers" :key="soldier.id || index" class="soldier-list-item">
           <SoldierCard :soldier="soldier" target="list" />
         </li>
@@ -255,7 +287,8 @@ const assignmentStats = computed(() => {
 
 .search-clear-btn {
   position: absolute;
-  left: 0.5rem; /* Position on the left for RTL */
+  left: 0.5rem;
+  /* Position on the left for RTL */
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -407,7 +440,8 @@ const assignmentStats = computed(() => {
   .p-inputtext {
     text-align: right;
     direction: rtl;
-    padding: 0.5rem 2rem 0.5rem 0.5rem; /* Right padding for text, left padding for clear button */
+    padding: 0.5rem 2rem 0.5rem 0.5rem;
+    /* Right padding for text, left padding for clear button */
     font-size: 0.875rem;
   }
 }
