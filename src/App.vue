@@ -11,7 +11,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div id="app" class="rtl-support">
+  <div id="app" class="rtl-support w-full min-h-screen overflow-x-hidden">
     <router-view />
   </div>
 </template>
