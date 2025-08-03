@@ -94,7 +94,12 @@ export const useGAPIStore = defineStore("gapi", () => {
     tokenExpirationTime = expirationTime;
     accessToken.value = token;
     
-    console.log('✅ Token stored successfully');
+    // Also store user info if available
+    if (userInfo.value) {
+      localStorage.setItem('google_user_info', JSON.stringify(userInfo.value));
+    }
+    
+    console.log('✅ Token and user info stored successfully');
   }
 
   // Function to retrieve stored token
@@ -102,12 +107,13 @@ export const useGAPIStore = defineStore("gapi", () => {
     console.log('📦 Attempting to retrieve stored token...');
     const token = localStorage.getItem(TOKEN_STORAGE_KEY);
     const expiryStr = localStorage.getItem(TOKEN_EXPIRY_STORAGE_KEY);
+    const storedUserInfo = localStorage.getItem('google_user_info');
     
     console.log('🔍 Token retrieval results:', {
       hasToken: !!token,
       tokenPreview: token ? `${token.substring(0, 20)}...` : 'null',
       hasExpiry: !!expiryStr,
-      expiryStr: expiryStr
+      hasUserInfo: !!storedUserInfo
     });
     
     if (!token || !expiryStr) {
@@ -134,6 +140,16 @@ export const useGAPIStore = defineStore("gapi", () => {
       return null;
     }
 
+    // Restore user info if available
+    if (storedUserInfo) {
+      try {
+        userInfo.value = JSON.parse(storedUserInfo);
+        console.log('👤 Restored user info from storage');
+      } catch (error) {
+        console.error('Failed to parse stored user info:', error);
+      }
+    }
+
     console.log('✅ Token is valid, setting access token');
     tokenExpirationTime = expirationTime;
     accessToken.value = token;
@@ -142,12 +158,14 @@ export const useGAPIStore = defineStore("gapi", () => {
 
   // Function to clear stored token
   function clearStoredToken() {
-    console.log('🗑️ Clearing stored token from localStorage');
+    console.log('🗑️ Clearing stored token and user info from localStorage');
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     localStorage.removeItem(TOKEN_EXPIRY_STORAGE_KEY);
+    localStorage.removeItem('google_user_info');
     accessToken.value = "";
     tokenExpirationTime = 0;
-    console.log('✅ Token cleared successfully');
+    userInfo.value = null;
+    console.log('✅ Token and user info cleared successfully');
   }
 
   async function load(): Promise<void> {
@@ -185,6 +203,7 @@ export const useGAPIStore = defineStore("gapi", () => {
         await testTokenValidity();
         await updateSignInStatus(true);
         console.log('🎉 Successfully restored authentication from stored token');
+        return;
       } catch (error) {
         console.error('❌ Stored token validation failed:', error);
         clearStoredToken();
@@ -192,6 +211,12 @@ export const useGAPIStore = defineStore("gapi", () => {
       }
     } else {
       console.log('🚫 No stored token found');
+    }
+    
+    // Only show One Tap if we have no token and no user info
+    if (!isSignedIn.value && !userInfo.value) {
+      console.log('🔒 No active session or user info, showing One Tap sign-in');
+      google.accounts.id.prompt();
     }
   }
 
@@ -287,22 +312,20 @@ export const useGAPIStore = defineStore("gapi", () => {
           };
           console.log('👤 User identified via One Tap:', userInfo.value);
           
-          // Store user identity but don't request API access yet
-          // The user will need to explicitly grant API access when needed
-          console.log('ℹ️ User identity confirmed. API access will be requested when needed.');
+          // Automatically request API access after successful One Tap sign-in
+          console.log('🔑 Automatically requesting API access after One Tap sign-in');
+          if (tokenClient) {
+            tokenClient.requestAccessToken({ prompt: 'consent' });
+          }
           
         } catch (error) {
           console.error('Could not decode One Tap credential:', error);
         }
       },
-      auto_prompt: true, // Show One Tap automatically if user is signed in to Google
+      auto_prompt: false,
       cancel_on_tap_outside: false,
     });
 
-    // Only show One Tap prompt if user is not already authenticated
-    if (!isSignedIn.value) {
-      google.accounts.id.prompt();
-    }
   }
 
   function requestApiAccess() {
