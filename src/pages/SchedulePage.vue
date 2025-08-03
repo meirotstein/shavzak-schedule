@@ -6,7 +6,7 @@ import PositionsTable from '../components/PositionsTable.vue';
 import SoldierList from '../components/SoldierList.vue';
 import { usePositionsStore } from '../store/positions';
 import { useScheduleStore } from '../store/schedule';
-import { getHebrewDayName } from '../utils/date-utils';
+import { getHebrewDayName, toHebrewDateString } from '../utils/date-utils';
 
 const positionsStore = usePositionsStore();
 const scheduleStore = useScheduleStore();
@@ -24,7 +24,8 @@ const printTitle = computed(() => {
   const currentDate = scheduleStore.scheduleDate || new Date();
   const hebrewDay = getHebrewDayName(currentDate);
   const formattedDate = formatDate(currentDate);
-  return `שבצק ${hebrewDay} ${formattedDate}`;
+  const hebrewDate = toHebrewDateString(currentDate);
+  return `שבצק ${hebrewDay} ${formattedDate} - ${hebrewDate}`;
 });
 </script>
 
