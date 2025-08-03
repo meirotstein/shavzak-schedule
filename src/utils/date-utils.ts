@@ -1,3 +1,4 @@
+import { HDate } from "@hebcal/hdate";
 import {
   addDays,
   addHours,
@@ -7,6 +8,7 @@ import {
   isWithinInterval,
   parse,
 } from "date-fns";
+
 import { ShiftHours } from "../types/shift-hours";
 
 export function timeToDate(time: ShiftHours): Date {
@@ -70,4 +72,9 @@ export function getHebrewDayName(date: Date): string {
     "שבת", // Saturday
   ];
   return dayNames[date.getDay()];
+}
+
+export function toHebrewDateString(date: Date): string {
+  const hdate = new HDate(date);
+  return hdate.renderGematriya();
 }

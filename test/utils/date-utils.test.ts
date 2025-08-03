@@ -6,6 +6,7 @@ import {
   hoursBetween,
   timeToDate,
   timeToMinutes,
+  toHebrewDateString,
 } from "../../src/utils/date-utils";
 
 describe("date utils tests", () => {
@@ -208,6 +209,86 @@ describe("date utils tests", () => {
       // Test New Year's Eve 2024 (Tuesday)
       const newYearEve = new Date(2024, 11, 31);
       expect(getHebrewDayName(newYearEve)).toBe("יום שלישי");
+    });
+  });
+
+  describe("toHebrewDateString", () => {
+    test("should return Hebrew date with gematriya format", () => {
+      // Test with a known date: November 12, 2024 (11 Cheshvan 5785)
+      const testDate = new Date(2024, 10, 12); // Month is 0-indexed, so 10 = November
+      const hebrewDate = toHebrewDateString(testDate);
+
+      // Should return format like "י״א חֶשְׁוָן תשפ״ה"
+      expect(hebrewDate).toMatch(/^[א-ת״]+ [א-תְֱֲֳִֵֶַָָֹֻּֽׁ]+ [א-ת״]+$/);
+      expect(hebrewDate).toContain("חֶשְׁוָן"); // Cheshvan month
+      expect(hebrewDate).toContain("תשפ״ה"); // Year 5785 in Hebrew letters
+    });
+
+    test("should handle different months correctly", () => {
+      // Test with Tishrei (September/October)
+      const tishreiDate = new Date(2024, 9, 15); // October 15, 2024 (13 Tishrei 5785)
+      const tishreiHebrew = toHebrewDateString(tishreiDate);
+
+      expect(tishreiHebrew).toContain("תִּשְׁרֵי"); // Tishrei month
+      expect(tishreiHebrew).toContain("י״ג"); // 13 in Hebrew letters
+    });
+
+    test("should handle single digit days correctly", () => {
+      // Test with day 4
+      const day4Date = new Date(2024, 10, 5); // November 5, 2024 (4 Cheshvan 5785)
+      const day4Hebrew = toHebrewDateString(day4Date);
+
+      expect(day4Hebrew).toContain("ד׳"); // 4 in Hebrew letters
+    });
+
+    test("should handle double digit days correctly", () => {
+      // Test with day 19
+      const day19Date = new Date(2024, 10, 20); // November 20, 2024 (19 Cheshvan 5785)
+      const day19Hebrew = toHebrewDateString(day19Date);
+
+      expect(day19Hebrew).toContain("י״ט"); // 19 in Hebrew letters
+    });
+
+    test("should handle leap year correctly", () => {
+      // Test with a leap year date (2024 is a leap year)
+      const leapYearDate = new Date(2024, 1, 29); // February 29, 2024 (29 Adar I 5784)
+      const leapYearHebrew = toHebrewDateString(leapYearDate);
+
+      expect(leapYearHebrew).toContain("תשפ״ד"); // Year 5784 in Hebrew letters
+    });
+
+    test("should handle current date correctly", () => {
+      const currentDate = new Date();
+      const currentHebrew = toHebrewDateString(currentDate);
+
+      // Should be a valid Hebrew date string
+      expect(currentHebrew.length).toBeGreaterThan(0);
+      expect(typeof currentHebrew).toBe("string");
+    });
+
+    test("should handle edge case dates", () => {
+      // Test with Rosh Hashanah (first day of Tishrei)
+      const roshHashanah = new Date(2024, 9, 3); // October 3, 2024 (1 Tishrei 5785)
+      const roshHashanahHebrew = toHebrewDateString(roshHashanah);
+
+      expect(roshHashanahHebrew).toContain("א׳"); // 1 in Hebrew letters
+      expect(roshHashanahHebrew).toContain("תִּשְׁרֵי"); // Tishrei month
+    });
+
+    test("should handle end of month dates", () => {
+      // Test with last day of a month
+      const lastDayDate = new Date(2024, 10, 30); // November 30, 2024 (29 Cheshvan 5785)
+      const lastDayHebrew = toHebrewDateString(lastDayDate);
+
+      expect(lastDayHebrew).toContain("כ״ט"); // 29 in Hebrew letters
+    });
+
+    test("should return consistent format for same date", () => {
+      const testDate = new Date(2024, 10, 12);
+      const hebrew1 = toHebrewDateString(testDate);
+      const hebrew2 = toHebrewDateString(testDate);
+
+      expect(hebrew1).toBe(hebrew2);
     });
   });
 });

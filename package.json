@@ -12,6 +12,7 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@hebcal/core": "^5.10.1",
     "@primevue/themes": "^4.0.7",
     "date-fns": "^4.1.0",
     "pinia": "^2.2.2",
