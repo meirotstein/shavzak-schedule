@@ -87,6 +87,15 @@ describe("google api client store tests", () => {
   test("gapi store load initializes token client and One Tap", async () => {
     const store = useGAPIStore();
 
+    // Mock the token client before loading
+    mockInitTokenClient.mockImplementation((config: any) => {
+      // Execute the callback to set up the token client
+      if (config.callback) {
+        config.callback({ access_token: 'test-token', token_type: 'Bearer', expires_in: 3600 });
+      }
+      return mockTokenClient;
+    });
+
     await store.load();
 
     expect(mockInitTokenClient).toHaveBeenCalledWith({
@@ -98,7 +107,7 @@ describe("google api client store tests", () => {
     expect(mockInitialize).toHaveBeenCalledWith({
       client_id: expect.any(String),
       callback: expect.any(Function),
-      auto_prompt: true,
+      auto_prompt: false,
       cancel_on_tap_outside: false,
     });
 
@@ -112,14 +121,16 @@ describe("google api client store tests", () => {
         picture: 'https://example.com/avatar.jpg'
       })) + '.signature';
 
-      oneTapCallback({ credential: mockJWT, select_by: 'user' });
+      // Call the callback after token client is initialized
+      await oneTapCallback({ credential: mockJWT, select_by: 'user' });
 
-      // Should store user info but not immediately request access token
+      // Should store user info and request access token
       expect(store.userInfo).toEqual({
         name: 'Test User',
         email: 'test@example.com',
         picture: 'https://example.com/avatar.jpg'
       });
+      expect(mockTokenClient.requestAccessToken).toHaveBeenCalledWith({ prompt: 'consent' });
     }
   });
 
