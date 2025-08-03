@@ -83,27 +83,65 @@ function getGapBetweenShifts(
     );
   }
 
+  // Check if shifts are on different days
+  const isDifferentDays = !isSameDay(firstShift.date, secondShift.date);
+
+  if (isDifferentDays) {
+    console.log("Shifts are on different days:", {
+      firstDate: firstShift.date.toISOString(),
+      secondDate: secondShift.date.toISOString(),
+    });
+
+    // For cross-day shifts, we need to calculate the gap differently
+    // If second shift is on a later day, we need to consider the actual time difference
+    if (secondShift.date > firstShift.date) {
+      // Calculate the actual gap between end of first shift and start of second shift
+      // For example: first ends at 14:00 yesterday, second starts at 14:00 today
+      // Gap = 0 hours (no gap between shifts)
+      const firstEndTime = firstEnd;
+      const secondStartTime = secondStart;
+
+      // If the second shift starts at the same time as the first shift ended,
+      // there's no gap (0 hours)
+      if (secondStartTime === firstEndTime) {
+        console.log("Shifts are consecutive with no gap");
+        return 0;
+      }
+
+      // Otherwise, calculate the gap considering the day difference
+      // For now, let's use a simple approach: if they're on consecutive days
+      // and the times are the same, gap is 0
+      const dayDiff = Math.floor(
+        (secondShift.date.getTime() - firstShift.date.getTime()) /
+          (24 * 60 * 60 * 1000)
+      );
+      if (dayDiff === 1 && secondStartTime === firstEndTime) {
+        console.log("Consecutive days with same time - no gap");
+        return 0;
+      }
+    }
+  } else {
+    // Same day shifts - handle the case where second shift starts early and first ends late
+    // If second shift starts early (before 12:00) and first shift ends after 12:00,
+    // treat second shift as next day
+    if (secondStart < 12 * 60 && firstEnd > 12 * 60) {
+      console.log("Checking for next-day shift:", {
+        secondStartsEarly: secondStart < 12 * 60,
+        firstEndsAfterNoon: firstEnd > 12 * 60,
+      });
+
+      secondStart += 24 * 60;
+      secondEnd += 24 * 60;
+      console.log("Adjusted for next day:", {
+        newSecondStart: secondStart,
+        newSecondEnd: secondEnd,
+      });
+    }
+  }
+
   // Initial gap calculation
   let gap = secondStart - firstEnd;
   console.log("Initial gap:", gap);
-
-  // If second shift starts early (before 12:00) and first shift ends after 12:00,
-  // treat second shift as next day
-  if (secondStart < 12 * 60 && firstEnd > 12 * 60) {
-    console.log("Checking for next-day shift:", {
-      secondStartsEarly: secondStart < 12 * 60,
-      firstEndsAfterNoon: firstEnd > 12 * 60,
-    });
-
-    secondStart += 24 * 60;
-    secondEnd += 24 * 60;
-    gap = secondStart - firstEnd;
-    console.log("Adjusted for next day:", {
-      newSecondStart: secondStart,
-      newSecondEnd: secondEnd,
-      newGap: gap,
-    });
-  }
 
   // If gap is still negative or too large, these shifts aren't consecutive
   if (gap < 0 || gap > 24 * 60) {
@@ -134,25 +172,28 @@ export function getAssignmentAlertLevel(
 
   // Sort assignments chronologically, handling shifts that cross days
   const sortedAssignments = [...assignments].sort((a, b) => {
-    // Convert times to minutes
-    let aStart = timeToMinutes(a.startTime);
-    let bStart = timeToMinutes(b.startTime);
-    let aEnd = timeToMinutes(a.endTime);
-    let bEnd = timeToMinutes(b.endTime);
-
-    // Handle shifts that cross midnight
-    if (aEnd <= aStart) aEnd += 24 * 60;
-    if (bEnd <= bStart) bEnd += 24 * 60;
-
-    // If one shift starts early (before 12:00) and the other ends late (after 12:00),
-    // treat the early shift as next day
-    if (aStart < 12 * 60 && bEnd > 12 * 60) {
-      aStart += 24 * 60;
-    } else if (bStart < 12 * 60 && aEnd > 12 * 60) {
-      bStart += 24 * 60;
+    // First compare by date
+    const dateComparison = a.date.getTime() - b.date.getTime();
+    if (dateComparison !== 0) {
+      return dateComparison;
     }
 
-    return aStart - bStart;
+    // If same date, compare by start time, but handle shifts that cross midnight
+    const aStart = timeToMinutes(a.startTime);
+    const bStart = timeToMinutes(b.startTime);
+
+    // If one shift starts early (before 12:00) and the other starts late (after 12:00),
+    // treat the early shift as next day for sorting purposes
+    let adjustedAStart = aStart;
+    let adjustedBStart = bStart;
+
+    if (aStart < 12 * 60 && bStart > 12 * 60) {
+      adjustedAStart += 24 * 60;
+    } else if (bStart < 12 * 60 && aStart > 12 * 60) {
+      adjustedBStart += 24 * 60;
+    }
+
+    return adjustedAStart - adjustedBStart;
   });
 
   let highestAlert: AlertLevel = "none";

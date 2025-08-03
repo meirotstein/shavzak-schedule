@@ -114,7 +114,7 @@ const isGoingHomeNextDay = computed(() => {
 const assignmentAlertLevel = computed((): AlertLevel => {
   if (!isAssigned.value) return 'none';
 
-  const assignments = assignmentsStore.getAssignments(props.soldier.id);
+  const assignments = assignmentsStore.getAssignmentsForAlertCheck(props.soldier.id);
   return getAssignmentAlertLevel(assignments);
 });
 
@@ -658,7 +658,7 @@ function dragEnd(e: DragEvent) {
     /* Bold font weight */
     font-size: 3rem !important;
     /* Even larger font for better readability */
-    text-shadow: 1px 1px 2px rgba(255,255,255,0.8) !important;
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8) !important;
     /* Light text shadow for better readability on blue background */
   }
 

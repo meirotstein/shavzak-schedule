@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SoldierAssignment } from "../../src/types/soldier-assignment";
-import {
-  getAssignmentAlertLevel
-} from "../../src/utils/assignment-alerts";
+import { getAssignmentAlertLevel } from "../../src/utils/assignment-alerts";
 
 describe("Assignment Alerts", () => {
   const testDate = new Date("2024-01-15");
@@ -98,6 +96,20 @@ describe("Assignment Alerts", () => {
       createAssignment("16:00", "20:00", "pos2", new Date("2024-01-16")), // Different date
     ];
     expect(getAssignmentAlertLevel(assignments)).toBe("none");
+  });
+
+  it("should detect cross-day gap alerts", () => {
+    const yesterday = new Date("2024-11-12");
+    const today = new Date("2024-11-13");
+
+    const assignments = [
+      createAssignment("10:00", "14:00", "pos1", yesterday), // Yesterday 10:00-14:00
+      createAssignment("14:00", "22:00", "pos2", today), // Today 14:00-22:00
+    ];
+    // Gap = 0 hours (14:00 yesterday to 14:00 today = 0 hours gap)
+    // Duration of first shift = 4 hours, gap = 0 hours (no gap between shifts)
+    // Since gap (0h) <= duration (4h), this should be orange alert
+    expect(getAssignmentAlertLevel(assignments)).toBe("orange");
   });
 
   it("should return highest priority alert when multiple alerts exist", () => {
