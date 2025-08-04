@@ -112,6 +112,7 @@ export const useExportStore = defineStore("export", () => {
   // Prepare export data from positions with 24-hour alignment starting from dayStart
   function prepareExportData() {
     const positions = positionsStore.positions;
+    // dayStart is used in the createMergedCells function
     const dayStart = gapiStore.dayStart;
     const currentDate = scheduleStore.scheduleDate || new Date();
     const positionData = new Map<
@@ -144,14 +145,23 @@ export const useExportStore = defineStore("export", () => {
     });
 
     // Collect shift data and map to the aligned hours
-    positions.forEach((position) => {
-      console.log(`🔍 Processing position: ${position.positionName}`);
-      position.shifts.forEach((shift) => {
+    console.log(`📊 Total positions to process: ${positions.length}`);
+    positions.forEach((position, positionIndex) => {
+      console.log(
+        `🔍 Processing position ${positionIndex + 1}/${positions.length}: ${
+          position.positionName
+        }`
+      );
+      console.log(`  Position has ${position.shifts.length} shifts`);
+
+      position.shifts.forEach((shift, shiftIndex) => {
         const startHour = shift.startTime;
         const endHour = shift.endTime;
 
         console.log(
-          `  Processing shift: ${shift.shiftId} (${startHour}-${endHour})`
+          `  Processing shift ${shiftIndex + 1}/${position.shifts.length}: ${
+            shift.shiftId
+          } (${startHour}-${endHour})`
         );
         console.log(
           `  Assignments:`,
@@ -181,6 +191,11 @@ export const useExportStore = defineStore("export", () => {
         );
 
         // Map each hour in the shift to the aligned schedule
+        console.log(
+          `  📅 Processing hours for shift ${shift.shiftId} (${shiftStartHour}-${shiftEndHour})`
+        );
+        let hoursInShift = 0;
+
         for (let i = 0; i < 24; i++) {
           const hourStr = hours[i];
           const hourValue = parseInt(hourStr.split(":")[0]);
@@ -197,6 +212,7 @@ export const useExportStore = defineStore("export", () => {
           }
 
           if (isInShift) {
+            hoursInShift++;
             console.log(
               `🔍 Processing hour ${hourStr} for shift ${shift.shiftId} (${shiftStartHour}-${shiftEndHour})`
             );
@@ -205,12 +221,32 @@ export const useExportStore = defineStore("export", () => {
             positionData.get(position.positionName)!.get(hourStr)!.shiftId =
               shift.shiftId;
 
+            // Determine the effective start hour for displaying soldiers on the current day's sheet
+            let effectiveStartHourForDisplay: number;
+            if (shiftStartHour === shiftEndHour) {
+              // It's a 24-hour shift, display soldiers at 00:00
+              effectiveStartHourForDisplay = 0;
+            } else if (shiftStartHour > shiftEndHour) {
+              // It's an overnight shift
+              if (shiftStartHour >= 22) {
+                // Overnight shift starting on previous day (22:00-06:00), display at 00:00
+                effectiveStartHourForDisplay = 0;
+              } else {
+                // Overnight shift starting on current day (13:00-00:00), display at start hour
+                effectiveStartHourForDisplay = shiftStartHour;
+              }
+            } else {
+              // Regular shift within the same day
+              effectiveStartHourForDisplay = shiftStartHour;
+            }
+
             // Only add soldiers in the first hour of the shift (for merged cell display)
-            const isFirstHourOfShift = hourValue === shiftStartHour;
+            const isFirstHourOfShift =
+              hourValue === effectiveStartHourForDisplay;
 
             if (isFirstHourOfShift) {
               console.log(
-                `  🎯 First hour of shift - adding all soldiers for merged cell`
+                `  🎯 First hour of shift - adding all soldiers for merged cell at effective start hour ${hourStr}`
               );
               const soldiersArray = positionData
                 .get(position.positionName)!
@@ -235,6 +271,8 @@ export const useExportStore = defineStore("export", () => {
             }
           }
         }
+
+        console.log(`  📊 Shift ${shift.shiftId} spans ${hoursInShift} hours`);
       });
     });
 
@@ -251,8 +289,13 @@ export const useExportStore = defineStore("export", () => {
     tableData.push(headerRow);
 
     // Data rows: hours and assignments
-    hours.forEach((hour) => {
+    console.log(`📋 Preparing final table data...`);
+    hours.forEach((hour, hourIndex) => {
       const row = [hour];
+      console.log(
+        `📊 Processing hour ${hour} (${hourIndex + 1}/${hours.length})`
+      );
+
       positions.forEach((position) => {
         const data = positionData.get(position.positionName)?.get(hour);
         const soldiers = data ? data.soldiers.join("\n") : "";
@@ -260,16 +303,24 @@ export const useExportStore = defineStore("export", () => {
         // Debug: Log soldier data for each hour
         if (data && data.soldiers.length > 0) {
           console.log(
-            `📊 Hour ${hour} - ${position.positionName}: [${data.soldiers.join(
-              ", "
-            )}]`
+            `  📊 Hour ${hour} - ${
+              position.positionName
+            }: [${data.soldiers.join(", ")}]`
           );
+        } else if (data && data.shiftId) {
+          console.log(
+            `  ⚠️ Hour ${hour} - ${position.positionName}: Empty but has shiftId: ${data.shiftId}`
+          );
+        } else {
+          console.log(`  ❌ Hour ${hour} - ${position.positionName}: No data`);
         }
 
         row.push(soldiers);
       });
       tableData.push(row);
     });
+
+    console.log(`✅ Table data prepared with ${tableData.length} rows`);
 
     return { tableData, sortedHours: hours, positionData };
   }

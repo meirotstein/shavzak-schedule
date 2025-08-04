@@ -282,29 +282,34 @@ describe("export store tests", () => {
 
   describe("createMergedCells", () => {
     test("should create merge requests for shifts", async () => {
-      const mockSoldier: Soldier = {
+      const mockSoldier: ISoldier = {
         id: "1",
         name: "אדיר גל",
-        rank: 'רב"ט',
-        unit: "יחידה",
+        role: 'רב"ט',
+        platoon: "יחידה",
+        presence: [],
+        addPresence: vi.fn(),
       };
 
       const mockAssignment: Assignment = {
         soldier: mockSoldier,
-        soldierId: "1",
+        roles: [],
       };
 
-      const mockShift: Shift = {
+      const mockShift: IShift = {
         shiftId: "shift-1",
         startTime: "06:00",
         endTime: "14:00",
         assignments: [mockAssignment],
+        addSoldier: vi.fn(),
+        removeSoldier: vi.fn(),
       };
 
-      const mockPosition: Position = {
+      const mockPosition: IPosition = {
         positionName: "סיור 1",
         positionId: "pos-1",
         shifts: [mockShift],
+        addShift: vi.fn(),
       };
 
       mockPositionsStore.positions = [mockPosition];
@@ -333,10 +338,11 @@ describe("export store tests", () => {
 
   describe("mergeTitleAndFormat", () => {
     test("should merge title row and apply formatting", async () => {
-      const mockPosition: Position = {
+      const mockPosition: IPosition = {
         positionName: "סיור 1",
         positionId: "pos-1",
         shifts: [],
+        addShift: vi.fn(),
       };
 
       mockPositionsStore.positions = [mockPosition];
@@ -367,10 +373,11 @@ describe("export store tests", () => {
 
   describe("setRTLDirection", () => {
     test("should set RTL direction for the sheet", async () => {
-      const mockPosition: Position = {
+      const mockPosition: IPosition = {
         positionName: "סיור 1",
         positionId: "pos-1",
         shifts: [],
+        addShift: vi.fn(),
       };
 
       mockPositionsStore.positions = [mockPosition];
@@ -416,29 +423,34 @@ describe("export store tests", () => {
     });
 
     test("should complete full export process successfully", async () => {
-      const mockSoldier: Soldier = {
+      const mockSoldier: ISoldier = {
         id: "1",
         name: "אדיר גל",
-        rank: 'רב"ט',
-        unit: "יחידה",
+        role: 'רב"ט',
+        platoon: "יחידה",
+        presence: [],
+        addPresence: vi.fn(),
       };
 
       const mockAssignment: Assignment = {
         soldier: mockSoldier,
-        soldierId: "1",
+        roles: [],
       };
 
-      const mockShift: Shift = {
+      const mockShift: IShift = {
         shiftId: "shift-1",
         startTime: "06:00",
         endTime: "14:00",
         assignments: [mockAssignment],
+        addSoldier: vi.fn(),
+        removeSoldier: vi.fn(),
       };
 
-      const mockPosition: Position = {
+      const mockPosition: IPosition = {
         positionName: "סיור 1",
         positionId: "pos-1",
         shifts: [mockShift],
+        addShift: vi.fn(),
       };
 
       mockPositionsStore.positions = [mockPosition];
@@ -460,10 +472,11 @@ describe("export store tests", () => {
     });
 
     test("should handle API errors gracefully", async () => {
-      const mockPosition: Position = {
+      const mockPosition: IPosition = {
         positionName: "סיור 1",
         positionId: "pos-1",
         shifts: [],
+        addShift: vi.fn(),
       };
 
       mockPositionsStore.positions = [mockPosition];
@@ -474,29 +487,34 @@ describe("export store tests", () => {
     });
 
     test("should handle overnight shifts correctly", async () => {
-      const mockSoldier: Soldier = {
+      const mockSoldier: ISoldier = {
         id: "1",
         name: "אדיר גל",
-        rank: 'רב"ט',
-        unit: "יחידה",
+        role: 'רב"ט',
+        platoon: "יחידה",
+        presence: [],
+        addPresence: vi.fn(),
       };
 
       const mockAssignment: Assignment = {
         soldier: mockSoldier,
-        soldierId: "1",
+        roles: [],
       };
 
-      const mockShift: Shift = {
+      const mockShift: IShift = {
         shiftId: "shift-1",
         startTime: "22:00",
         endTime: "06:00",
         assignments: [mockAssignment],
+        addSoldier: vi.fn(),
+        removeSoldier: vi.fn(),
       };
 
-      const mockPosition: Position = {
+      const mockPosition: IPosition = {
         positionName: "סיור 1",
         positionId: "pos-1",
         shifts: [mockShift],
+        addShift: vi.fn(),
       };
 
       mockPositionsStore.positions = [mockPosition];
@@ -516,48 +534,57 @@ describe("export store tests", () => {
     });
 
     test("should handle multiple positions and shifts", async () => {
-      const mockSoldier1: Soldier = {
+      const mockSoldier1: ISoldier = {
         id: "1",
         name: "אדיר גל",
-        rank: 'רב"ט',
-        unit: "יחידה",
+        role: 'רב"ט',
+        platoon: "יחידה",
+        presence: [],
+        addPresence: vi.fn(),
       };
 
-      const mockSoldier2: Soldier = {
+      const mockSoldier2: ISoldier = {
         id: "2",
         name: "דן כהן",
-        rank: "סמל",
-        unit: "יחידה",
+        role: "סמל",
+        platoon: "יחידה",
+        presence: [],
+        addPresence: vi.fn(),
       };
 
       const mockAssignment1: Assignment = {
         soldier: mockSoldier1,
-        soldierId: "1",
+        roles: [],
       };
 
       const mockAssignment2: Assignment = {
         soldier: mockSoldier2,
-        soldierId: "2",
+        roles: [],
       };
 
-      const mockShift1: Shift = {
+      const mockShift1: IShift = {
         shiftId: "shift-1",
         startTime: "06:00",
         endTime: "14:00",
         assignments: [mockAssignment1],
+        addSoldier: vi.fn(),
+        removeSoldier: vi.fn(),
       };
 
-      const mockShift2: Shift = {
+      const mockShift2: IShift = {
         shiftId: "shift-2",
         startTime: "14:00",
         endTime: "22:00",
         assignments: [mockAssignment2],
+        addSoldier: vi.fn(),
+        removeSoldier: vi.fn(),
       };
 
-      const mockPosition: Position = {
+      const mockPosition: IPosition = {
         positionName: "סיור 1",
         positionId: "pos-1",
         shifts: [mockShift1, mockShift2],
+        addShift: vi.fn(),
       };
 
       mockPositionsStore.positions = [mockPosition];
@@ -574,6 +601,72 @@ describe("export store tests", () => {
 
       expect(result.sheetName).toBeTruthy();
       expect(result.sheetUrl).toBeTruthy();
+    });
+
+    test("should handle overnight shift ending at midnight (13:00-00:00) correctly", async () => {
+      // This test covers the specific case we fixed where shifts like "13:00-00:00"
+      // were empty in export even though they had assignments
+      const mockSoldier: ISoldier = {
+        id: "1",
+        name: "פרץ דוד",
+        role: 'רב"ט',
+        platoon: "יחידה",
+        presence: [],
+        addPresence: vi.fn(),
+      };
+
+      const mockAssignment: Assignment = {
+        soldier: mockSoldier,
+        roles: [],
+      };
+
+      const mockShift: IShift = {
+        shiftId: "shift-1",
+        startTime: "13:00",
+        endTime: "00:00", // This is the key case - overnight shift ending at midnight
+        assignments: [mockAssignment],
+        addSoldier: vi.fn(),
+        removeSoldier: vi.fn(),
+      };
+
+      const mockPosition: IPosition = {
+        positionName: "צקמ 109",
+        positionId: "pos-1",
+        shifts: [mockShift],
+        addShift: vi.fn(),
+      };
+
+      mockPositionsStore.positions = [mockPosition];
+      mockGAPIStore.checkSheetExists.mockResolvedValue(false);
+      mockGAPIStore.getSheetIdByName.mockResolvedValue(123);
+      mockGAPIStore.updateSheetValues.mockResolvedValue({});
+
+      (global.fetch as any).mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({}),
+      });
+
+      const result = await store.exportToSheet();
+
+      expect(result.sheetName).toBeTruthy();
+      expect(result.sheetUrl).toBeTruthy();
+
+      // Verify that the fetch calls include the expected data for this shift
+      const fetchCalls = (global.fetch as any).mock.calls;
+      expect(fetchCalls.length).toBeGreaterThan(0);
+
+      // Check that the request body contains data for the shift
+      const hasShiftData = fetchCalls.some((call: any) => {
+        const body = call[1]?.body;
+        return (
+          body &&
+          (body.includes("addSheet") ||
+            body.includes("mergeCells") ||
+            body.includes("updateSheetProperties"))
+        );
+      });
+
+      expect(hasShiftData).toBe(true);
     });
   });
 });
