@@ -4,12 +4,16 @@ import DatePicker from '../components/DatePicker.vue';
 import GoogleLogin from '../components/GoogleLogin.vue';
 import PositionsTable from '../components/PositionsTable.vue';
 import SoldierList from '../components/SoldierList.vue';
+import { useExportStore } from '../store/export';
+import { useGAPIStore } from '../store/gapi';
 import { usePositionsStore } from '../store/positions';
 import { useScheduleStore } from '../store/schedule';
 import { getHebrewDayName, toHebrewDateString } from '../utils/date-utils';
 
 const positionsStore = usePositionsStore();
 const scheduleStore = useScheduleStore();
+const gapiStore = useGAPIStore();
+const exportStore = useExportStore();
 const isPrintMode = ref(false);
 
 // Format current date for print title
@@ -27,6 +31,20 @@ const printTitle = computed(() => {
   const hebrewDate = toHebrewDateString(currentDate);
   return `שבצק ${hebrewDay} ${formattedDate} - ${hebrewDate}`;
 });
+
+// Export functionality
+const handleExport = async () => {
+  try {
+    const result = await exportStore.exportToSheet();
+    if (result.sheetName) {
+      // Immediately open the sheet in a new tab
+      window.open(result.sheetUrl, '_blank');
+    }
+  } catch (error) {
+    console.error('Export error:', error);
+    alert('שגיאה ביצוא הרשימה');
+  }
+};
 </script>
 
 <template>
@@ -42,6 +60,12 @@ const printTitle = computed(() => {
           <input type="checkbox" id="print-mode" v-model="isPrintMode" class="print-mode-checkbox" />
           <label for="print-mode" class="print-mode-label">תצוגת הדפסה</label>
         </div>
+        <!-- Export button -->
+        <button v-if="gapiStore.isSignedIn" @click="handleExport" class="export-button" type="button"
+          :disabled="exportStore.isExporting" title="ייצא לרשימה חדשה">
+          <span v-if="exportStore.isExporting" class="export-spinner"></span>
+          <span v-else>יצא לגליון</span>
+        </button>
         <GoogleLogin v-if="!isPrintMode" />
         <!-- DatePicker needs LTR for proper display of dates -->
         <div class="ltr-element">
@@ -174,6 +198,52 @@ const printTitle = computed(() => {
   cursor: pointer;
   user-select: none;
   margin: 0;
+}
+
+.export-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  background-color: rgb(var(--primary-500));
+  color: white;
+  border: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+  justify-content: center;
+
+  &:hover:not(:disabled) {
+    background-color: rgb(var(--primary-600));
+  }
+
+  &:disabled {
+    background-color: rgb(var(--surface-300));
+    color: rgb(var(--surface-600));
+    cursor: not-allowed;
+  }
+}
+
+.export-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .page-content {
