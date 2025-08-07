@@ -134,8 +134,6 @@ export const useExportStore = defineStore("export", () => {
       hours.push(hourStr);
     }
 
-    console.log(`📅 Export hours array (dayStart: ${dayStart}): [${hours.join(", ")}]`);
-
     // Initialize position data for all hours
     positions.forEach((position) => {
       positionData.set(position.positionName, new Map());
@@ -147,39 +145,14 @@ export const useExportStore = defineStore("export", () => {
     });
 
     // Collect shift data and map to the aligned hours
-    console.log(`📊 Total positions to process: ${positions.length}`);
     positions.forEach((position, positionIndex) => {
-      console.log(
-        `🔍 Processing position ${positionIndex + 1}/${positions.length}: ${
-          position.positionName
-        }`
-      );
-      console.log(`  Position has ${position.shifts.length} shifts`);
-
       position.shifts.forEach((shift, shiftIndex) => {
         const startHour = shift.startTime;
         const endHour = shift.endTime;
 
-        console.log(
-          `  Processing shift ${shiftIndex + 1}/${position.shifts.length}: ${
-            shift.shiftId
-          } (${startHour}-${endHour})`
-        );
-        console.log(
-          `  Assignments:`,
-          shift.assignments.map((a) => ({
-            soldierId: a.soldier?.id,
-            soldierName: a.soldier?.name,
-          }))
-        );
-
         // Convert times to hour values for comparison
         const shiftStartHour = parseInt(startHour.split(":")[0]);
         const shiftEndHour = parseInt(endHour.split(":")[0]);
-
-        console.log(
-          `  ⏰ Shift time parsing: startHour="${startHour}" -> ${shiftStartHour}, endHour="${endHour}" -> ${shiftEndHour}`
-        );
 
         // Get all soldiers for this shift (will be shown in merged cell)
         const shiftSoldiers: string[] = [];
@@ -192,14 +165,7 @@ export const useExportStore = defineStore("export", () => {
           }
         });
 
-        console.log(
-          `  Soldiers for shift ${shift.shiftId}: [${shiftSoldiers.join(", ")}]`
-        );
-
         // Map each hour in the shift to the aligned schedule
-        console.log(
-          `  📅 Processing hours for shift ${shift.shiftId} (${shiftStartHour}-${shiftEndHour})`
-        );
         let hoursInShift = 0;
         let firstHourFound = false;
 
@@ -220,9 +186,6 @@ export const useExportStore = defineStore("export", () => {
 
           if (isInShift) {
             hoursInShift++;
-            console.log(
-              `🔍 Processing hour ${hourStr} for shift ${shift.shiftId} (${shiftStartHour}-${shiftEndHour})`
-            );
 
             // Set shift ID for this hour (even if no assignments)
             positionData.get(position.positionName)!.get(hourStr)!.shiftId =
@@ -232,38 +195,17 @@ export const useExportStore = defineStore("export", () => {
             // This ensures all soldiers are included regardless of dayStart alignment
             if (!firstHourFound && shiftSoldiers.length > 0) {
               firstHourFound = true;
-              console.log(
-                `  🎯 First hour of shift - adding all soldiers for merged cell at hour ${hourStr}`
-              );
               const soldiersArray = positionData
                 .get(position.positionName)!
                 .get(hourStr)!.soldiers;
               shiftSoldiers.forEach((soldierName) => {
                 if (!soldiersArray.includes(soldierName)) {
                   soldiersArray.push(soldierName);
-                  console.log(
-                    `  ✅ Added ${soldierName} to merged cell at hour ${hourStr}`
-                  );
                 }
               });
-              console.log(
-                `  Final soldiers for merged cell at hour ${hourStr}: [${soldiersArray.join(
-                  ", "
-                )}]`
-              );
-            } else if (firstHourFound) {
-              console.log(
-                `  ⏭️ Skipping hour ${hourStr} - will be part of merged cell`
-              );
             }
-          } else {
-            console.log(
-              `  ❌ Hour ${hourStr} is NOT in shift ${shift.shiftId} (${shiftStartHour}-${shiftEndHour})`
-            );
           }
         }
-
-        console.log(`  📊 Shift ${shift.shiftId} spans ${hoursInShift} hours`);
       });
     });
 
@@ -277,58 +219,24 @@ export const useExportStore = defineStore("export", () => {
 
     // Header row: position names
     const headerRow = ["שעות", ...positions.map((p) => p.positionName)];
-    console.log(`📋 Header row positions: [${positions.map((p) => p.positionName).join(", ")}]`);
-    console.log(`📋 Full header row: [${headerRow.join(", ")}]`);
     tableData.push(headerRow);
 
     // Data rows: hours and assignments
-    console.log(`📋 Preparing final table data...`);
     let totalSoldiersInExport = 0;
     hours.forEach((hour, hourIndex) => {
       const row = [hour];
-      console.log(
-        `📊 Processing hour ${hour} (${hourIndex + 1}/${hours.length})`
-      );
 
       positions.forEach((position) => {
         const data = positionData.get(position.positionName)?.get(hour);
         const soldiers = data ? data.soldiers.join("\n") : "";
 
-        // Debug: Log soldier data for each hour
         if (data && data.soldiers.length > 0) {
-          console.log(
-            `  📊 Hour ${hour} - ${
-              position.positionName
-            }: [${data.soldiers.join(", ")}]`
-          );
           totalSoldiersInExport += data.soldiers.length;
-        } else if (data && data.shiftId) {
-          console.log(
-            `  ⚠️ Hour ${hour} - ${position.positionName}: Empty but has shiftId: ${data.shiftId}`
-          );
-        } else {
-          console.log(`  ❌ Hour ${hour} - ${position.positionName}: No data`);
         }
 
         row.push(soldiers);
       });
       tableData.push(row);
-    });
-
-    console.log(`✅ Table data prepared with ${tableData.length} rows`);
-    console.log(`📊 Total soldiers in export: ${totalSoldiersInExport}`);
-    
-    // Log summary of all positions and their assignments
-    console.log(`📋 Export Summary:`);
-    positions.forEach((position) => {
-      const positionSoldiers = new Set<string>();
-      hours.forEach((hour) => {
-        const data = positionData.get(position.positionName)?.get(hour);
-        if (data && data.soldiers.length > 0) {
-          data.soldiers.forEach(soldier => positionSoldiers.add(soldier));
-        }
-      });
-      console.log(`  ${position.positionName}: ${Array.from(positionSoldiers).join(", ")}`);
     });
 
     return { tableData, sortedHours: hours, positionData };
@@ -350,24 +258,19 @@ export const useExportStore = defineStore("export", () => {
       positions.forEach((position, positionIndex) => {
         const columnIndex = positionIndex + 1; // +1 because first column is hours
 
-        // Debug for מפקד מוצב
-        if (position.positionName === 'מפקד מוצב') {
-          console.log(`🔍 Processing מפקד מוצב merges (column ${columnIndex}):`);
-        }
-        
         // Process each shift directly from the position
         position.shifts.forEach((shift) => {
           const startHour = shift.startTime;
           const endHour = shift.endTime;
 
           // Only create merge requests for shifts that have soldiers assigned
-          const soldiersInShift = shift.assignments.filter(a => a.soldier).length;
-          
+          const soldiersInShift = shift.assignments.filter(
+            (a) => a.soldier
+          ).length;
+
           // Convert times to hour values for comparison (same logic as prepareExportData)
           const shiftStartHour = parseInt(startHour.split(":")[0]);
           const shiftEndHour = parseInt(endHour.split(":")[0]);
-          
-
 
           // Find the start and end row indices for this shift
           let shiftStartRow = -1;
@@ -397,14 +300,12 @@ export const useExportStore = defineStore("export", () => {
             }
           });
 
-
-
           // For empty shifts, we need to be more selective about merging
           if (soldiersInShift === 0) {
             // Calculate the visual span of this shift
             const shiftSpan = shiftEndRow - shiftStartRow + 1;
             const totalRows = 24; // 24 hours in the export
-            
+
             // Only merge empty shifts that don't span the entire column
             // This allows visual consistency for partial empty shifts while avoiding full-column overwrites
             if (shiftSpan >= totalRows) {
@@ -478,13 +379,6 @@ export const useExportStore = defineStore("export", () => {
         if (!mergeResponse.ok) {
           throw new Error("Failed to merge cells and apply formatting");
         }
-        
-        // Debug summary of merge requests
-        console.log(`📊 Applied ${mergeRequests.length} merge requests and ${formatRequests.length} format requests`);
-        mergeRequests.forEach((req, index) => {
-          const range = req.mergeCells.range;
-          console.log(`  Merge ${index + 1}: rows ${range.startRowIndex}-${range.endRowIndex}, columns ${range.startColumnIndex}-${range.endColumnIndex}`);
-        });
       }
     }
   }
@@ -677,15 +571,6 @@ export const useExportStore = defineStore("export", () => {
       0
     );
 
-    console.log(`🔍 Pre-export validation: ${positions.length} positions, ${totalAssignments} assignments`);
-    console.log(`📋 Position names: [${positions.map((p) => p.positionName).join(", ")}]`);
-    
-
-    
-    if (totalAssignments === 0) {
-      console.warn("⚠️ No assignments found in positions - this might indicate incomplete data loading");
-    }
-
     try {
       isExporting.value = true;
 
@@ -702,29 +587,10 @@ export const useExportStore = defineStore("export", () => {
       const { tableData, sortedHours } = prepareExportData();
 
       // Write data to sheet
-      console.log(`📊 Writing ${tableData.length} rows to sheet:`, tableData.slice(0, 3)); // Log first 3 rows
-      
       await gapiStore.updateSheetValues(sheetName, "A1:Z100", tableData);
-    
-      console.log(`✅ Data written to sheet ${sheetName}`);
 
       // Create merged cells for shifts
       await createMergedCells(sheetName, sortedHours);
-
-             // Additional debugging for מפקד מוצב column layout
-       console.log(`🔍 Checking merged cells for מפקד מוצב column:`);
-       const mafkedMutzavColumnIndex = tableData[1].findIndex(cell => cell === 'מפקד מוצב');
-       if (mafkedMutzavColumnIndex !== -1) {
-         console.log(`  📍 מפקד מוצב is in column ${mafkedMutzavColumnIndex + 1} (${String.fromCharCode(65 + mafkedMutzavColumnIndex)})`);
-         
-         // Check which rows have data in this column
-         for (let rowIndex = 2; rowIndex < tableData.length; rowIndex++) {
-           const cellValue = tableData[rowIndex][mafkedMutzavColumnIndex];
-           if (cellValue && cellValue.trim() !== '') {
-             console.log(`  📊 Row ${rowIndex} (${tableData[rowIndex][0]}): "${cellValue}"`);
-           }
-         }
-       }
 
       // Set RTL direction
       await setRTLDirection(sheetName);

@@ -27,8 +27,9 @@ const mockRoute = {
 };
 
 // Mock fetch globally
+const mockFetch = vi.fn();
 // @ts-ignore
-(global as any).fetch = vi.fn();
+(global as any).fetch = mockFetch;
 
 // Mock window.location for Node.js environment
 if (typeof window === "undefined") {
@@ -86,7 +87,7 @@ describe("export store tests", () => {
     mockScheduleStore.scheduleDate = new Date("2024-01-15");
 
     // Reset fetch mock
-    (global.fetch as any).mockReset();
+    mockFetch.mockReset();
   });
 
   describe("isExporting", () => {
@@ -182,7 +183,7 @@ describe("export store tests", () => {
       mockPositionsStore.positions = [mockPosition];
 
       // Mock successful API responses
-      (global.fetch as any).mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({}),
       });
@@ -203,7 +204,7 @@ describe("export store tests", () => {
       mockGAPIStore.checkSheetExists.mockResolvedValue(true);
       mockGAPIStore.getSheetIdByName.mockResolvedValue(123);
 
-      (global.fetch as any).mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({}),
       });
@@ -221,7 +222,7 @@ describe("export store tests", () => {
 
       expect(mockGAPIStore.checkSheetExists).toHaveBeenCalled();
       expect(mockGAPIStore.getSheetIdByName).toHaveBeenCalled();
-      expect(global.fetch).toHaveBeenCalled();
+      expect(mockFetch).toHaveBeenCalled();
     });
 
     test("should not delete when sheet does not exist", async () => {
@@ -235,7 +236,7 @@ describe("export store tests", () => {
       };
       mockPositionsStore.positions = [mockPosition];
 
-      (global.fetch as any).mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({}),
       });
@@ -253,7 +254,7 @@ describe("export store tests", () => {
     test("should create new sheet with correct properties", async () => {
       mockGAPIStore.checkSheetExists.mockResolvedValue(false);
 
-      (global.fetch as any).mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({}),
       });
@@ -269,14 +270,31 @@ describe("export store tests", () => {
       await store.exportToSheet();
 
       // Verify that the export process completed successfully
-      expect(global.fetch).toHaveBeenCalled();
+      expect(mockFetch).toHaveBeenCalled();
 
       // Verify that at least one call contained addSheet
-      const fetchCalls = (global.fetch as any).mock.calls;
+      const fetchCalls = mockFetch.mock.calls;
       const hasAddSheetCall = fetchCalls.some((call: any) =>
         call[1].body.includes("addSheet")
       );
       expect(hasAddSheetCall).toBe(true);
+
+      // Validate the request content for addSheet
+      const addSheetCall = fetchCalls.find((call: any) =>
+        call[1].body.includes("addSheet")
+      );
+      expect(addSheetCall).toBeDefined();
+
+      const requestBody = JSON.parse(addSheetCall![1].body);
+      expect(requestBody.requests).toBeDefined();
+
+      const addSheetRequest = requestBody.requests.find(
+        (req: any) => req.addSheet
+      );
+      expect(addSheetRequest).toBeDefined();
+      expect(addSheetRequest.addSheet.properties.title).toMatch(
+        /^שבצק-\d{2}\.\d{2}\.\d{2}-יצוא$/
+      );
     });
   });
 
@@ -317,7 +335,7 @@ describe("export store tests", () => {
       mockGAPIStore.getSheetIdByName.mockResolvedValue(123);
       mockGAPIStore.updateSheetValues.mockResolvedValue({});
 
-      (global.fetch as any).mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({}),
       });
@@ -325,14 +343,30 @@ describe("export store tests", () => {
       await store.exportToSheet();
 
       // Verify that the export process completed successfully
-      expect(global.fetch).toHaveBeenCalled();
+      expect(mockFetch).toHaveBeenCalled();
 
       // Verify that at least one call contained mergeCells
-      const fetchCalls = (global.fetch as any).mock.calls;
+      const fetchCalls = mockFetch.mock.calls;
       const hasMergeCellsCall = fetchCalls.some((call: any) =>
         call[1].body.includes("mergeCells")
       );
       expect(hasMergeCellsCall).toBe(true);
+
+      // Validate the merge request content
+      const mergeCellsCall = fetchCalls.find((call: any) =>
+        call[1].body.includes("mergeCells")
+      );
+      expect(mergeCellsCall).toBeDefined();
+
+      const requestBody = JSON.parse(mergeCellsCall![1].body);
+      expect(requestBody.requests).toBeDefined();
+
+      const mergeRequest = requestBody.requests.find(
+        (req: any) => req.mergeCells
+      );
+      expect(mergeRequest).toBeDefined();
+      expect(mergeRequest.mergeCells.mergeType).toBe("MERGE_ALL");
+      expect(mergeRequest.mergeCells.range).toBeDefined();
     });
   });
 
@@ -350,7 +384,7 @@ describe("export store tests", () => {
       mockGAPIStore.getSheetIdByName.mockResolvedValue(123);
       mockGAPIStore.updateSheetValues.mockResolvedValue({});
 
-      (global.fetch as any).mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({}),
       });
@@ -358,16 +392,33 @@ describe("export store tests", () => {
       await store.exportToSheet();
 
       // Verify that the export process completed successfully
-      expect(global.fetch).toHaveBeenCalled();
+      expect(mockFetch).toHaveBeenCalled();
 
       // Verify that at least one call contained mergeCells for title
-      const fetchCalls = (global.fetch as any).mock.calls;
+      const fetchCalls = mockFetch.mock.calls;
       const hasTitleMergeCall = fetchCalls.some(
         (call: any) =>
           call[1].body.includes("mergeCells") &&
           call[1].body.includes('startRowIndex":0')
       );
       expect(hasTitleMergeCall).toBe(true);
+
+      // Validate the title merge request content
+      const titleMergeCall = fetchCalls.find(
+        (call: any) =>
+          call[1].body.includes("mergeCells") &&
+          call[1].body.includes('startRowIndex":0')
+      );
+      expect(titleMergeCall).toBeDefined();
+
+      const requestBody = JSON.parse(titleMergeCall![1].body);
+      expect(requestBody.requests).toBeDefined();
+
+      const titleMergeRequest = requestBody.requests.find(
+        (req: any) => req.mergeCells && req.mergeCells.range.startRowIndex === 0
+      );
+      expect(titleMergeRequest).toBeDefined();
+      expect(titleMergeRequest.mergeCells.mergeType).toBe("MERGE_ALL");
     });
   });
 
@@ -385,7 +436,7 @@ describe("export store tests", () => {
       mockGAPIStore.getSheetIdByName.mockResolvedValue(123);
       mockGAPIStore.updateSheetValues.mockResolvedValue({});
 
-      (global.fetch as any).mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({}),
       });
@@ -393,16 +444,37 @@ describe("export store tests", () => {
       await store.exportToSheet();
 
       // Verify that the export process completed successfully
-      expect(global.fetch).toHaveBeenCalled();
+      expect(mockFetch).toHaveBeenCalled();
 
       // Verify that at least one call contained updateSheetProperties for RTL
-      const fetchCalls = (global.fetch as any).mock.calls;
+      const fetchCalls = mockFetch.mock.calls;
       const hasRTLCall = fetchCalls.some(
         (call: any) =>
           call[1].body.includes("updateSheetProperties") &&
           call[1].body.includes("rightToLeft")
       );
       expect(hasRTLCall).toBe(true);
+
+      // Validate the RTL request content
+      const rtlCall = fetchCalls.find(
+        (call: any) =>
+          call[1].body.includes("updateSheetProperties") &&
+          call[1].body.includes("rightToLeft")
+      );
+      expect(rtlCall).toBeDefined();
+
+      const requestBody = JSON.parse(rtlCall![1].body);
+      expect(requestBody.requests).toBeDefined();
+
+      const rtlRequest = requestBody.requests.find(
+        (req: any) =>
+          req.updateSheetProperties &&
+          req.updateSheetProperties.properties.rightToLeft
+      );
+      expect(rtlRequest).toBeDefined();
+      expect(rtlRequest.updateSheetProperties.properties.rightToLeft).toBe(
+        true
+      );
     });
   });
 
@@ -458,7 +530,7 @@ describe("export store tests", () => {
       mockGAPIStore.getSheetIdByName.mockResolvedValue(123);
       mockGAPIStore.updateSheetValues.mockResolvedValue({});
 
-      (global.fetch as any).mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({}),
       });
@@ -469,6 +541,25 @@ describe("export store tests", () => {
       expect(result.sheetUrl).toBeTruthy();
       expect(result.sheetUrl).toContain("docs.google.com");
       expect(store.isExporting).toBe(false);
+
+      // Validate that the correct sequence of API calls was made
+      const fetchCalls = mockFetch.mock.calls;
+      expect(fetchCalls.length).toBeGreaterThan(0);
+
+      // Check for specific request types
+      const hasAddSheet = fetchCalls.some((call: any) =>
+        call[1].body.includes("addSheet")
+      );
+      const hasMergeCells = fetchCalls.some((call: any) =>
+        call[1].body.includes("mergeCells")
+      );
+      const hasUpdateProperties = fetchCalls.some((call: any) =>
+        call[1].body.includes("updateSheetProperties")
+      );
+
+      expect(hasAddSheet).toBe(true);
+      expect(hasMergeCells).toBe(true);
+      expect(hasUpdateProperties).toBe(true);
     });
 
     test("should handle API errors gracefully", async () => {
@@ -522,7 +613,7 @@ describe("export store tests", () => {
       mockGAPIStore.getSheetIdByName.mockResolvedValue(123);
       mockGAPIStore.updateSheetValues.mockResolvedValue({});
 
-      (global.fetch as any).mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({}),
       });
@@ -531,6 +622,23 @@ describe("export store tests", () => {
 
       expect(result.sheetName).toBeTruthy();
       expect(result.sheetUrl).toBeTruthy();
+
+      // Validate overnight shift merge request
+      const fetchCalls = mockFetch.mock.calls;
+      const mergeCellsCall = fetchCalls.find((call: any) =>
+        call[1].body.includes("mergeCells")
+      );
+      expect(mergeCellsCall).toBeDefined();
+
+      const requestBody = JSON.parse(mergeCellsCall![1].body);
+      const mergeRequest = requestBody.requests.find(
+        (req: any) => req.mergeCells
+      );
+      expect(mergeRequest).toBeDefined();
+
+      // For overnight shift (22:00-06:00), the range should span multiple rows
+      const range = mergeRequest.mergeCells.range;
+      expect(range.startRowIndex).toBeLessThan(range.endRowIndex);
     });
 
     test("should handle multiple positions and shifts", async () => {
@@ -592,7 +700,7 @@ describe("export store tests", () => {
       mockGAPIStore.getSheetIdByName.mockResolvedValue(123);
       mockGAPIStore.updateSheetValues.mockResolvedValue({});
 
-      (global.fetch as any).mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({}),
       });
@@ -601,6 +709,13 @@ describe("export store tests", () => {
 
       expect(result.sheetName).toBeTruthy();
       expect(result.sheetUrl).toBeTruthy();
+
+      // Validate multiple merge requests
+      const fetchCalls = mockFetch.mock.calls;
+      const mergeCellsCalls = fetchCalls.filter((call: any) =>
+        call[1].body.includes("mergeCells")
+      );
+      expect(mergeCellsCalls.length).toBeGreaterThan(1);
     });
 
     test("should handle overnight shift ending at midnight (13:00-00:00) correctly", async () => {
@@ -641,7 +756,7 @@ describe("export store tests", () => {
       mockGAPIStore.getSheetIdByName.mockResolvedValue(123);
       mockGAPIStore.updateSheetValues.mockResolvedValue({});
 
-      (global.fetch as any).mockResolvedValue({
+      mockFetch.mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({}),
       });
@@ -652,7 +767,7 @@ describe("export store tests", () => {
       expect(result.sheetUrl).toBeTruthy();
 
       // Verify that the fetch calls include the expected data for this shift
-      const fetchCalls = (global.fetch as any).mock.calls;
+      const fetchCalls = mockFetch.mock.calls;
       expect(fetchCalls.length).toBeGreaterThan(0);
 
       // Check that the request body contains data for the shift
@@ -667,6 +782,23 @@ describe("export store tests", () => {
       });
 
       expect(hasShiftData).toBe(true);
+
+      // Validate the merge request for the overnight shift
+      const mergeCellsCall = fetchCalls.find((call: any) =>
+        call[1].body.includes("mergeCells")
+      );
+      expect(mergeCellsCall).toBeDefined();
+
+      const requestBody = JSON.parse(mergeCellsCall![1].body);
+      const mergeRequest = requestBody.requests.find(
+        (req: any) => req.mergeCells
+      );
+      expect(mergeRequest).toBeDefined();
+
+      // For overnight shift (13:00-00:00), verify the range spans the correct hours
+      const range = mergeRequest.mergeCells.range;
+      expect(range.startRowIndex).toBeGreaterThan(0); // Should start after title row
+      expect(range.endRowIndex).toBeGreaterThan(range.startRowIndex);
     });
   });
 });
