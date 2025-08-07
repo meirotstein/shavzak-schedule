@@ -145,8 +145,8 @@ export const useExportStore = defineStore("export", () => {
     });
 
     // Collect shift data and map to the aligned hours
-    positions.forEach((position, positionIndex) => {
-      position.shifts.forEach((shift, shiftIndex) => {
+    positions.forEach((position) => {
+      position.shifts.forEach((shift) => {
         const startHour = shift.startTime;
         const endHour = shift.endTime;
 
@@ -223,7 +223,7 @@ export const useExportStore = defineStore("export", () => {
 
     // Data rows: hours and assignments
     let totalSoldiersInExport = 0;
-    hours.forEach((hour, hourIndex) => {
+    hours.forEach((hour) => {
       const row = [hour];
 
       positions.forEach((position) => {
@@ -557,19 +557,6 @@ export const useExportStore = defineStore("export", () => {
     if (!positionsStore.positions || positionsStore.positions.length === 0) {
       throw new Error("אין נתונים ליצוא");
     }
-
-    // Additional validation to ensure all data is loaded
-    const positions = positionsStore.positions;
-    const totalAssignments = positions.reduce(
-      (count, pos) =>
-        count +
-        pos.shifts.reduce(
-          (shiftCount, shift) =>
-            shiftCount + shift.assignments.filter((a) => a.soldier).length,
-          0
-        ),
-      0
-    );
 
     try {
       isExporting.value = true;
