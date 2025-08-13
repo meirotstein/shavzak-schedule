@@ -48,12 +48,6 @@ function handleDateInQuery(dateStr: string) {
         root: { class: 'w-full' },
         input: { class: 'date-input' },
         panel: { class: 'date-panel' },
-        pcPrevButton: {
-          root: 'datepicker-btn-rtl'
-        },
-        pcNextButton: {
-          root: 'datepicker-btn-rtl'
-        },
         header: { class: 'date-header' },
         footer: { class: 'date-footer' },
         today: { class: 'date-today-btn' },

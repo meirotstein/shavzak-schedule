@@ -176,10 +176,6 @@ body {
   box-shadow: 0 0 0 1px rgba(var(--primary-500), 0.2);
 }
 
-/* RTL support */
-.datepicker-btn-rtl {
-  transform: rotate(180deg);
-}
 
 /* Enhanced RTL support */
 html[dir="rtl"],
