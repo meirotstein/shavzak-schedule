@@ -161,4 +161,20 @@ describe("Assignment Alerts", () => {
     // Since gap (12h) > 2 * duration of first shift (8h), this should be none
     expect(getAssignmentAlertLevel(assignments)).toBe("none");
   });
+
+  it("should NOT trigger any alert for 24-hour gap between shifts", () => {
+    const yesterday = new Date("2024-11-12");
+    const today = new Date("2024-11-13");
+
+    const assignments = [
+      createAssignment("14:00", "22:00", "pos1", yesterday), // Yesterday 14:00-22:00 (8 hours)
+      createAssignment("22:00", "06:00", "pos2", today), // Today 22:00-06:00 (8 hours)
+    ];
+    // First shift: 14:00-22:00 on 12/11 (8 hours duration)
+    // Second shift: 22:00-06:00 on 13/11 (8 hours duration)
+    // Gap = 24 hours (22:00 on 12/11 to 22:00 on 13/11)
+    // Since gap (24h) > 2 * duration of first shift (16h), this should be none
+    // NOT orange as currently implemented
+    expect(getAssignmentAlertLevel(assignments)).toBe("none");
+  });
 });
