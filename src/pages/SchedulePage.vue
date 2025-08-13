@@ -52,7 +52,7 @@ const handleExport = async () => {
     <header class="page-header">
       <div class="header-right">
         <!-- Changed from header-left to header-right for RTL -->
-        <h1 class="page-title">לוח משמרות</h1> <!-- RTL: Changed to Hebrew "Shift Schedule" -->
+        <h1 class="page-title">שבצ״ק יומי</h1> <!-- RTL: Changed to Hebrew "Shift Schedule" -->
       </div>
       <div class="header-controls">
         <!-- Print mode checkbox -->
