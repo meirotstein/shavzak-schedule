@@ -92,33 +92,61 @@ function getGapBetweenShifts(
       secondDate: secondShift.date.toISOString(),
     });
 
-    // For cross-day shifts, we need to calculate the gap differently
-    // If second shift is on a later day, we need to consider the actual time difference
+    // For cross-day shifts, we need to calculate the actual gap
     if (secondShift.date > firstShift.date) {
       // Calculate the actual gap between end of first shift and start of second shift
-      // For example: first ends at 14:00 yesterday, second starts at 14:00 today
-      // Gap = 0 hours (no gap between shifts)
+      // Convert both times to absolute minutes since a reference point
       const firstEndTime = firstEnd;
       const secondStartTime = secondStart;
 
-      // If the second shift starts at the same time as the first shift ended,
-      // there's no gap (0 hours)
-      if (secondStartTime === firstEndTime) {
-        console.log("Shifts are consecutive with no gap");
-        return 0;
-      }
-
-      // Otherwise, calculate the gap considering the day difference
-      // For now, let's use a simple approach: if they're on consecutive days
-      // and the times are the same, gap is 0
+      // Calculate the day difference in minutes
       const dayDiff = Math.floor(
         (secondShift.date.getTime() - firstShift.date.getTime()) /
           (24 * 60 * 60 * 1000)
       );
-      if (dayDiff === 1 && secondStartTime === firstEndTime) {
-        console.log("Consecutive days with same time - no gap");
-        return 0;
+
+      // Check if shifts are truly consecutive (end time matches start time on consecutive days)
+      // BUT only if the gap is actually 0 hours, not 24 hours
+      if (dayDiff === 1 && firstEndTime === secondStartTime) {
+        // Special case: if both shifts end/start at the same time on consecutive days,
+        // we need to check if this creates a 24-hour gap or a 0-hour gap
+        // For example: ending at 22:00 and starting at 22:00 next day = 24 hour gap
+        // But ending at 14:00 and starting at 14:00 next day = 0 hour gap (truly consecutive)
+
+        // If the time is late in the day (after 18:00), it's likely a 24-hour gap
+        // If the time is earlier in the day (before 18:00), it's likely truly consecutive
+        if (firstEndTime >= 18 * 60) {
+          // 18:00 = 1080 minutes
+          console.log(
+            "Late time on consecutive days - likely 24-hour gap, not truly consecutive"
+          );
+          // Calculate the actual 24-hour gap
+          const timeGap = secondStartTime - firstEndTime;
+          const dayGap = dayDiff * 24 * 60;
+          const totalGap = timeGap + dayGap;
+          return totalGap;
+        } else {
+          console.log("Shifts are truly consecutive across days - no gap");
+          return 0;
+        }
       }
+
+      // Otherwise, calculate the actual gap including the day difference
+      // For example: first ends at 22:00 on day 1, second starts at 22:00 on day 2
+      // Gap = (22:00 day 2 - 22:00 day 1) + (1 day * 24 hours)
+      // Gap = 0 + 24 hours = 24 hours
+      const timeGap = secondStartTime - firstEndTime;
+      const dayGap = dayDiff * 24 * 60; // Convert days to minutes
+      const totalGap = timeGap + dayGap;
+
+      console.log("Cross-day gap calculation:", {
+        timeGap,
+        dayGap,
+        totalGap,
+        dayDiff,
+      });
+
+      return totalGap;
     }
   } else {
     // Same day shifts - handle the case where second shift starts early and first ends late
