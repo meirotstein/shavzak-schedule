@@ -177,4 +177,19 @@ describe("Assignment Alerts", () => {
     // NOT orange as currently implemented
     expect(getAssignmentAlertLevel(assignments)).toBe("none");
   });
+
+  it("should trigger orange alert if soldier has relevant assignments between schedules", () => {
+    const yesterday = new Date("2024-11-12");
+    const today = new Date("2024-11-13");
+
+    const assignments = [
+      createAssignment("06:00", "10:00", "pos1", yesterday), // Yesterday 06:00-10:00 (4 hours)
+      createAssignment("14:00", "22:00", "pos2", today), // Today 14:00-22:00 (8 hours)
+    ];
+    // First shift: 06:00-10:00 on 12/11 (4 hours duration)
+    // Second shift: 14:00-22:00 on 13/11 (8 hours duration)
+    // Gap = 4 hours (10:00 on 12/11 to 14:00 on 13/11)
+    // Since gap (4h) <= duration of first shift (4h), this should be orange alert
+    expect(getAssignmentAlertLevel(assignments)).toBe("orange");
+  });
 });

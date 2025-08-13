@@ -131,22 +131,43 @@ function getGapBetweenShifts(
         }
       }
 
-      // Otherwise, calculate the actual gap including the day difference
-      // For example: first ends at 22:00 on day 1, second starts at 22:00 on day 2
-      // Gap = (22:00 day 2 - 22:00 day 1) + (1 day * 24 hours)
-      // Gap = 0 + 24 hours = 24 hours
-      const timeGap = secondStartTime - firstEndTime;
-      const dayGap = dayDiff * 24 * 60; // Convert days to minutes
-      const totalGap = timeGap + dayGap;
+      // For consecutive days, calculate the actual time gap
+      // The gap should be the time from end of first shift to start of second shift
+      // For example: first ends at 10:00 on day 1, second starts at 14:00 on day 2
+      // Gap = 4 hours (not 28 hours)
+      if (dayDiff === 1) {
+        // For consecutive days, just calculate the time difference
+        // No need to add 24 hours since we want the actual gap
+        const gap = secondStartTime - firstEndTime;
 
-      console.log("Cross-day gap calculation:", {
-        timeGap,
-        dayGap,
-        totalGap,
-        dayDiff,
-      });
+        // If the gap is negative, it means the second shift starts before the first ends
+        // This shouldn't happen for consecutive days, but handle it gracefully
+        if (gap < 0) {
+          console.log("Negative gap on consecutive days, returning Infinity");
+          return Infinity;
+        }
 
-      return totalGap;
+        console.log("Consecutive days gap calculation:", {
+          gap,
+          dayDiff,
+        });
+
+        return gap;
+      } else {
+        // For non-consecutive days, calculate including the day difference
+        const timeGap = secondStartTime - firstEndTime;
+        const dayGap = dayDiff * 24 * 60; // Convert days to minutes
+        const totalGap = timeGap + dayGap;
+
+        console.log("Non-consecutive days gap calculation:", {
+          timeGap,
+          dayGap,
+          totalGap,
+          dayDiff,
+        });
+
+        return totalGap;
+      }
     }
   } else {
     // Same day shifts - handle the case where second shift starts early and first ends late
